@@ -83,7 +83,10 @@ class BaseStage:
         return self
     
     def __exit__(self, type, value, traceback):
-        self.close()
+        Stage._get_global_stage().go(
+            self.close,
+            on_error=self._on_error,
+        )
         if type is not None and self._on_error is not None:
             self._on_error(value)
         return False
