@@ -111,13 +111,11 @@ class Tunnel:
                     while True:
                         data = self._NODATA
                         try:
-                            if timeout is not None or self._timeout is not None:
-                                data = self._data_queue.get(
-                                    timeout=timeout if timeout is not None else self._timeout
-                                )
-                            else:
-                                data = self._data_queue.get()
+                            data = self._data_queue.get(
+                                timeout=timeout if timeout is not None else self._timeout
+                            )
                         except queue.Empty:
+                            self.put_stop()
                             continue
                         if data is StopIteration:
                             break
