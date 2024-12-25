@@ -17,7 +17,7 @@ pip install agently-stage
 
 ## What is Agently Stage?
 
-Asynchronous and multithreaded programming in Python has always been complex and confusing, especially when building applications for GenAI. In <a src="https://github.com/AgentEra/Agently">Agently AI application development framework</a>, we’ve introduced numerous solutions to enhance control over GenAI outputs. For example, with Agently Instant Mode, you can perform streaming parsing of formatted data like JSON while generating structured results. Additionally, Agently Workflow allows you to orchestrate scheduling relationships between multiple GenAI request results.
+Asynchronous and multithreaded programming in Python has always been complex and confusing, especially when building applications for GenAI. In <[Agently AI application development framework](https://github.com/AgentEra/Agently), we’ve introduced numerous solutions to enhance control over GenAI outputs. For example, with Agently Instant Mode, you can perform streaming parsing of formatted data like JSON while generating structured results. Additionally, Agently Workflow allows you to orchestrate scheduling relationships between multiple GenAI request results.
 
 As we delved deeper into controlling GenAI outputs, we recognized that the inherent complexity of combining asynchronous and multithreaded programming in Python poses a significant challenge. This complexity often hinders developers from leveraging GenAI capabilities efficiently and creatively.
 
@@ -136,25 +136,25 @@ from agently_stage import Stage
 # We create a handler in one dispatch
 # Param `is_daemon=True` can set Stage dispatch thread as a daemon thread
 # so that Stage dispatch thread can close automatically with main thread
-stage_1 = Stage(is_daemon=True)
-@stage_1.func
-async def handler(sentence):
-    return f"Someone said: { sentence }"
+with Stage() as stage_1:
+    @stage_1.func
+    async def handler(sentence):
+        return f"Someone said: { sentence }"
     
 # We wait this handler in another dispatch
-stage_2 = Stage(is_daemon=True)
-def waiting():
-    result = handler.wait()
-    print(result)
-stage_2.go(waiting)
+with Stage() as stage_2:
+    def waiting():
+        result = handler.wait()
+        print(result)
+    stage_2.go(waiting)
 
 # We start this handler in the third dispatch some uncertain time after
 time.sleep(1)
-stage_3 = Stage(is_daemon=True)
-async def executor():
-    await asyncio.sleep(1)
-    handler("StageFunction is useful!")
-stage_3.go(executor)
+with Stage() as stage_3:
+    async def executor():
+        await asyncio.sleep(1)
+        handler("StageFunction is useful!")
+    stage_3.go(executor)
 ```
 
 ```text
@@ -232,33 +232,33 @@ from agently_stage import Stage, Tunnel
 
 tunnel = Tunnel()
 
-async def provider(n:int):
-    for i in range(n):
-        tunnel.put(i + 1)
-        await asyncio.sleep(0.1)
-    tunnel.put_stop()
+with Stage() as stage_1:
+    def consumer():
+        time.sleep(1)
+        # You can use `tunnel.get_gen()` to get a `StageHybridGenerator` from tunnel instance
+        gen = tunnel.get_gen()
+        for data in gen:
+            print("streaming:", data)
+    stage_1.go(consumer)
 
-def consumer():
-    time.sleep(1)
-    # You can use `tunnel.get_gen()` to get a `StageHybridGenerator` from tunnel instance
-    gen = tunnel.get_gen()
-    for data in gen:
-        print("streaming:", data)
+with Stage() as stage_2:
+    async def async_consumer():
+        # Or you can just iterate over tunnel data by `for`/`async for`
+        async for data in tunnel:
+            print("async streaming:", data)
+    stage_2.go(async_consumer)
 
-async def async_consumer():
-    # Or you can just iterate over tunnel data by `for`/`async for`
-    async for data in tunnel:
-        print("async streaming:", data)
+# Provider start providing data sometime later
+time.sleep(1)
+with Stage() as stage_3:
+    async def provider(n:int):
+        for i in range(n):
+            tunnel.put(i + 1)
+            await asyncio.sleep(0.1)
+        # If you forget to .put_stop(), tunnel will close after 10s by default
+        # tunnel.put_stop() 
+    stage_3.go(provider, 5)
 
-stage_1 = Stage()
-stage_2 = Stage()
-stage_3 = Stage()
-stage_1.go(consumer)
-stage_2.go(async_consumer)
-stage_3.go(provider, 5)
-stage_1.close()
-stage_2.close()
-stage_3.close()
 # You can also use `tunnel.get()` to get a final yielded item list
 print(tunnel.get())
 ```
@@ -274,9 +274,10 @@ streaming: 2
 streaming: 3
 streaming: 4
 streaming: 5
+[1, 2, 3, 4, 5]
 ```
 
-Sometimes, we won't know if the data transporation from upstream is done or not and want to set a timeout to stop waiting, parameter `timeout` when creating Tunnel instance or in `.get_gen()`, `.get()` will help us to do so. By default, we set this timeout to `10 seconds`. You can set timeout value as `None` manually if you want to keep waiting no matter what.
+Sometimes, we won't know if the data transportation from upstream is done or not and want to set a timeout to stop waiting, parameter `timeout` when creating Tunnel instance or in `.get_gen()`, `.get()` will help us to do so. By default, we set this timeout to `10 seconds`. You can set timeout value as `None` manually if you want to keep waiting no matter what.
 
 ```python
 from agently_stage import Tunnel
@@ -323,6 +324,6 @@ No `asyncio.run()`! No `await emitter.emit()`! No worries about fxxking event lo
 
 ## Something More
 
-`Agently Stage` is part of our main work <a src="https://github.com/AgentEra/Agently">Agently AI application development framework</a> which aim to make GenAI application development faster, easier and smarter. Please ⭐️ this project and maybe try Agently framework by `pip install Agently` later, thank you!
+`Agently Stage` is part of our main work [Agently AI application development framework](https://github.com/AgentEra/Agently) which aim to make GenAI application development faster, easier and smarter. Please ⭐️ this project and maybe try Agently framework by `pip install Agently` later, thank you!
 
-If you want to contact us, email to <a href="mailto:developer@agently.tech">developer@agently.tech</a>, leave comments in <a href="https://github.com/AgentEra/Agently-Stage/issues">Issues</a> or <a href="https://github.com/AgentEra/Agently-Stage/discussions">Discussions</a> or leave messages to our X:[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/AgentlyTech.svg?style=social&label=Follow%20%40AgentlyTech)](https://x.com/AgentlyTech)
+If you want to contact us, email to [developer@agently.tech](mailto:developer@agently.tech), leave comments in [Issues](https://github.com/AgentEra/Agently-Stage/issues) or [Discussions](https://github.com/AgentEra/Agently-Stage/discussions) or leave messages to our X:[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/AgentlyTech.svg?style=social&label=Follow%20%40AgentlyTech)](https://x.com/AgentlyTech)
