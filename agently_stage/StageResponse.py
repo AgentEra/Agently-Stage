@@ -34,7 +34,7 @@ class StageResponse:
         self._status = None
         self._result = None
         self._error = None
-        self._final_result = None
+        self._final_response = None
         self._on_success = on_success
         self._on_error = on_error
         if asyncio.iscoroutine(task):
@@ -48,12 +48,12 @@ class StageResponse:
             self._status = True
             self._result = future.result()
             if self._on_success:
-                self._final_result = self._on_success(self._result)
+                self._final_response = self._stage.go(self._on_success, self._result)
         except Exception as e:
             self._status = False
             self._error = e
             if self._on_error:
-                self._final_result = self._on_error(self._error)
+                self._final_response = self._stage.go(self._on_error, self._error)
             else:    
                 raise self._error
         finally:
@@ -65,6 +65,8 @@ class StageResponse:
         Block process and wait for the result from ongoing Agently Stage task.
         """
         self._result_ready.wait()
+        if self._final_response is not None:
+            self._final_response.get()
         if self._status == True:
             return self._result
         elif self._on_error is None:
@@ -75,7 +77,7 @@ class StageResponse:
         Block process and wait for the result after success callback handler executed from ongoing Agently Stage task.
         """
         self._result_ready.wait()
-        if self._final_result:
-            return self._final_result
+        if self._final_response is not None:
+            return self._final_response.get()
         else:
             return self._result
