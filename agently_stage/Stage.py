@@ -29,12 +29,25 @@ class BaseStage:
     _global_executor = None
     _global_max_workers = 5
     _executor_lock = threading.RLock()
+    _activate_instance = set()
+
+    @staticmethod
+    def _wait_and_shutdown_global_executor():
+        for instance in BaseStage._activate_instance:
+            instance._wait_all_responses()
+        BaseStage._global_executor.shutdown(wait=True)
 
     @staticmethod
     def _get_global_executor():
-        if BaseStage._global_executor is None:
+        if BaseStage._global_executor is None or BaseStage._global_executor._shutdown:
             with BaseStage._executor_lock:
-                BaseStage._global_executor = ThreadPoolExecutor(max_workers=BaseStage._global_max_workers)
+                BaseStage._global_executor = ThreadPoolExecutor(
+                    max_workers=BaseStage._global_max_workers,
+                    thread_name_prefix="AgentlyStageGlobal",
+                )
+                for t in BaseStage._global_executor._threads:
+                    t.daemon = False
+                atexit.register(BaseStage._wait_and_shutdown_global_executor)
         return BaseStage._global_executor
         
     @staticmethod
@@ -52,8 +65,13 @@ class BaseStage:
         with BaseStage._executor_lock:
             if BaseStage._global_executor:
                 BaseStage._global_executor.shutdown(wait=True)
-            BaseStage._global_executor = ThreadPoolExecutor(max_workers=BaseStage._global_max_workers)
-            atexit.register(functools.partial(BaseStage._global_executor.shutdown, wait=True))
+            BaseStage._global_executor = ThreadPoolExecutor(
+                max_workers=BaseStage._global_max_workers,
+                thread_name_prefix="AgentlyStageGlobalExecutor",
+            )
+            for t in BaseStage._global_executor._threads:
+                t.daemon = False
+            atexit.register(BaseStage._wait_and_shutdown_global_executor)
 
     def __init__(
             self,
@@ -76,9 +94,16 @@ class BaseStage:
         self._closing_timeout = closing_timeout
         self._closed = False
         self._errors = []
+        BaseStage._activate_instance.add(self)
         if self._is_daemon:
-            atexit.register(self.close)
+            def wait_and_close():
+                self._wait_all_responses()
+                self.close()
+            atexit.register(wait_and_close)
     
+    def __del__(self):
+        BaseStage._activate_instance.remove(self)
+
     def __enter__(self):
         return self
     
@@ -90,16 +115,22 @@ class BaseStage:
         if type is not None and self._on_error is not None:
             self._on_error(value)
         return False
+    
+    def _get_private_executor(self):
+        if self._private_executor is None or self._private_executor._shutdown:
+            with BaseStage._executor_lock:
+                self._private_executor = ThreadPoolExecutor(
+                    max_workers=self._private_max_workers,
+                    thread_name_prefix="AgentlyStageExecutor",
+                )
+                for t in self._private_executor._threads:
+                    t.daemon = False
+        return self._private_executor
 
     @property
     def _executor(self):
         if self._private_max_workers:
-            self._private_executor = (
-                ThreadPoolExecutor(max_workers=self._private_max_workers)
-                if self._private_executor is None
-                else self._private_executor
-            )
-            return self._private_executor
+            return self._get_private_executor()
         else:
             return BaseStage._get_global_executor()
     
@@ -111,7 +142,11 @@ class BaseStage:
             or not self._loop
             or not self._loop.is_running()
         ):
-            self._loop_thread = threading.Thread(target=self._start_loop, daemon=self._is_daemon)
+            self._loop_thread = threading.Thread(
+                target=self._start_loop,
+                daemon=self._is_daemon,
+                name="AgentlyStageEventLoop",
+            )
             self._loop_thread.start()
             self._loop_ready.wait()
 
@@ -370,6 +405,12 @@ class BaseStage:
         - List[Exception]
         """
         return self._errors
+
+    def _wait_all_responses(self):
+        for response in self._responses.copy():
+            self._final_response = response.get()
+        if len(self._responses) > 0:
+            self._wait_all_responses()
     
     def close(self, timeout:Union[float, int]=None):
         """
@@ -378,34 +419,37 @@ class BaseStage:
         Args:
         - `timeout` (`float` | `int`): Timeout seconds for waiting each still ongoing task when Agently Stage instance is closing. This parameter will have higher priority than `closing_timeout` which was set when Agently Stage instance was created.
         """
+        timeout = timeout if timeout is not None else self._closing_timeout
+
         if self._closed:
             return
         self._closed = True
-        
-        for response in self._responses.copy():
-            if timeout is not None or self._closing_timeout is not None:
-                response._result_ready.wait(
-                    timeout=timeout if timeout is not None else self._closing_timeout
-                )
-            else:
-                response._result_ready.wait()
-            if isinstance(response, StageHybridGenerator):
-                if not response._iter_consumed:
-                    for _ in response:
-                        pass
+
+        self._wait_all_responses()
+            
         if self._loop and self._loop.is_running():
             self._loop.call_soon_threadsafe(self._loop.stop)
+            
         if self._loop:
             pending = asyncio.all_tasks(self._loop)
             if pending:
                 for task in pending:
                     task.cancel()
-        if self._private_max_workers and self._private_executor is not None:
-            self._private_executor.shutdown(wait=True)
+                try:
+                    self._loop.run_until_complete(
+                        asyncio.gather(*pending, return_exceptions=True)
+                    )
+                except:
+                    pass
+                    
+        if self._private_max_workers and self._private_executor:
+            self._private_executor.shutdown(wait=True, cancel_futures=True)
             self._private_executor = None
+            
         if self._loop_thread and self._loop_thread.is_alive():
-            self._loop_thread.join()
+            self._loop_thread.join(timeout=timeout)
             self._loop_thread = None
+            
         if self._loop and not self._loop.is_closed():
             self._loop.close()
         self._loop = None
