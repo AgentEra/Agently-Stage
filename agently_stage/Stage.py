@@ -408,7 +408,7 @@ class BaseStage:
 
     def _wait_all_responses(self):
         for response in self._responses.copy():
-            self._final_response = response.get()
+            response.get()
         if len(self._responses) > 0:
             self._wait_all_responses()
     
