@@ -75,7 +75,7 @@ class StageHybridGenerator:
         if self._on_success:
             self._final_result = self._on_success(self._result)
         self._result_ready.set()
-        #self._stage._responses.discard(self)
+        self._stage._responses.discard(self)
     
     async def _consume_async_gen(self, task):
         try:
@@ -145,6 +145,7 @@ class StageHybridGenerator:
                 if self._is_lazy:
                     self._run_consume_async_gen(self._task)
                 self._result_ready.wait()
+                self._iter_consumed = True
                 return self._result
 
     def get_final(self):
@@ -162,6 +163,7 @@ class StageHybridGenerator:
                 if self._is_lazy:
                     self._run_consume_async_gen(self._task)
                 self._result_ready.wait()
+                self._iter_consumed = True
                 if self._final_result:
                     return self._final_result
                 else:
