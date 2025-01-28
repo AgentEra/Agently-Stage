@@ -46,14 +46,10 @@ class Tunnel:
     """
     def __init__(
             self,
-            private_max_workers:int=1,
-            max_concurrent_tasks:int=None,
-            on_error:Callable[[Exception], any]=None,
+            exception_handler: Callable[[Exception], any]=None,
             timeout:int=10
         ):
-        self._private_max_worker = private_max_workers
-        self._max_concurrent_tasks = max_concurrent_tasks
-        self._on_error = on_error
+        self._exception_handler = exception_handler
         self._timeout = timeout
         self._data_queue = queue.Queue()
         self._close_event = threading.Event()
@@ -75,7 +71,9 @@ class Tunnel:
         if self._stage is not None:
             return self._stage
         else:
-            self._stage = Stage(private_max_workers=self._private_max_worker, max_concurrent_tasks=self._max_concurrent_tasks, on_error=self._on_error)
+            self._stage = Stage(
+                exception_handler=self._exception_handler,
+            )
             return self._stage
     
     def put(self, data:any):
@@ -103,11 +101,10 @@ class Tunnel:
         Return:
         - `StageHybridGenerator`
         """
-        with self._lock:
-            if self._ongoing_gen is None:
-                self._defer_close_stage()
-                stage = self._get_stage()
-                def queue_consumer():
+        if self._ongoing_gen is None:
+            stage = self._get_stage()
+            def queue_consumer():
+                with self._lock:
                     while True:
                         data = self._NODATA
                         try:
@@ -115,16 +112,14 @@ class Tunnel:
                                 timeout=timeout if timeout is not None else self._timeout
                             )
                         except queue.Empty:
-                            self.put_stop()
-                            continue
+                            break
                         if data is StopIteration:
                             break
                         if data is not self._NODATA:
                             self._results.append(data)
                             yield data
-                    self._close_event.set()
-                self._ongoing_gen = stage.go(queue_consumer)
-            return self._ongoing_gen
+            self._ongoing_gen = stage.go(queue_consumer)
+        return self._ongoing_gen
     
     def __iter__(self):
         gen = self.get_gen()

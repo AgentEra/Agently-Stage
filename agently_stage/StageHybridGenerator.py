@@ -19,152 +19,114 @@ import asyncio
 import threading
 
 class StageHybridGenerator:
-    """
-    Agently Stage Hybrid Generator can be called by `for` and `async for` both.
-    
-    You can also use `.get()` to get a list result of all items yielded from the generator.
-
-    The execution timing inside the generator task depends on the setting of parameter `lazy` when Stage Hybrid Generator was created.
-
-    Example:
-
-    ```
-    from agently-stage import Stage
-    async def run_gen(n):
-        for i in range(n):
-            yield f"Count: { i }"
-    
-    with Stage() as stage:
-        gen = stage.go(run_gen, n)
-        for item in gen:
-            print(item)
-        results = gen.get()
-        print(results)
-    ```
-    """
-    def __init__(self, stage, task, on_success=None, on_error=None, lazy=None, async_gen_interval=0.1):
+    def __init__(self,
+            stage,
+            task,
+            *,
+            lazy,
+            wait_interval,
+            ignore_exception,
+            on_success,
+            on_error,
+            on_finally,
+        ):
         self._stage = stage
-        self._stage._responses.add(self)
-        self._loop = stage._loop
+        self._task = task
+        self._is_lazy = lazy
+        self._wait_interval = wait_interval
+        self._ignore_exception = ignore_exception
         self._on_success = on_success
         self._on_error = on_error
-        self._task = task
-        self._result = []
-        self._error = None
-        self._result_queue = queue.Queue()
-        self._result_ready = threading.Event()
-        self._completed = False
-        self._iter_consumed = False
-        self._final_result = None
-        self._is_lazy = lazy
-        self._async_gen_interval = async_gen_interval
-        self._lock = threading.RLock()
+        self._on_finally = on_finally
+        self.result_ready = threading.Event()
+        self._result = {
+            "result": [],
+            "exceptions": [],
+            "queue": queue.Queue()
+        }
+        self._is_started = False
+        self._iter_lock = threading.RLock()
         if not self._is_lazy:
-            self._run_consume_async_gen(self._task)
+            self._start_consume_async_gen()
     
-    def _run_consume_async_gen(self, task):
-        consume_result = asyncio.run_coroutine_threadsafe(self._consume_async_gen(task), self._loop)
-        consume_result.add_done_callback(self._on_consume_async_gen_done)
+    def _start_consume_async_gen(self):
+        if not self._is_started:
+            self._is_started = True
+            consume_result = self._stage._loop_thread.run_coroutine(self._consume_async_gen())
+            consume_result.add_done_callback(self._on_consume_async_gen_done)
+    
+    async def _consume_async_gen(self):
+        try:
+            async for item in self._task:
+                result = (
+                    item
+                    if self._on_success is None
+                    else self._on_success(item)
+                )
+                if isinstance(result, Exception):
+                    raise result
+                self._result["queue"].put(result)
+                self._result["result"].append(result)
+        except Exception as e:
+            result = (
+                e
+                if self._on_error is None
+                else self._on_error(e)
+            )
+            self._result["queue"].put(result)
+            self._result["result"].append(result)
+            if isinstance(result, Exception):
+                self._result["exceptions"].append(result)
+                if self._on_error is None and not self._ignore_exception:
+                    self._stage._raise_exception(result)
+        finally:
+            self._result["queue"].put(StopIteration)
     
     def _on_consume_async_gen_done(self, future):
-        future.result()
-        if self._error is not None:
-            def raise_error():
-                raise self._error
-            self._loop.call_soon_threadsafe(raise_error)
-        if self._on_success:
-            self._final_result = self._on_success(self._result)
-        self._result_ready.set()
-        self._stage._responses.discard(self)
-    
-    async def _consume_async_gen(self, task):
-        try:
-            async for item in task:
-                self._result_queue.put(item)
-                self._result.append(item)
-            self._completed = True
-        except Exception as e:
-            if self._on_error:
-                handled_result = self._on_error(e)
-                self._result_queue.put(handled_result)
-                self._result.append(handled_result)
-            else:
-                self._result_queue.put(e)
-                self._result.append(e)
-                self._error = e
-        finally:
-            self._result_queue.put(StopIteration)
-    
+        future.done()
+        if self._on_finally is not None:
+            self._on_finally(self._result["result"])
+        self.result_ready.set()
+        
     async def __aiter__(self):
-        with self._lock:
-            if self._iter_consumed:
-                self._result_ready.wait()
-                for item in self._result:
+        with self._iter_lock:
+            if self.result_ready.is_set():
+                for item in self._result["result"]:
                     yield item
             else:
                 if self._is_lazy:
-                    self._run_consume_async_gen(self._task)
+                    self._start_consume_async_gen()
                 while True:
                     try:
-                        item = self._result_queue.get_nowait()
+                        item = self._result["queue"].get_nowait()
                         if item is StopIteration:
                             break
                         yield item
                     except queue.Empty:
-                        await asyncio.sleep(self._async_gen_interval)
-                self._iter_consumed = True
+                        await asyncio.sleep(self._wait_interval)
 
     def __iter__(self):
-        with self._lock:
-            if self._iter_consumed:
-                self._result_ready.wait()
-                for item in self._result:
+        with self._iter_lock:
+            if self.result_ready.is_set():
+                for item in self._result["result"]:
                     yield item
             else:
                 if self._is_lazy:
-                    self._run_consume_async_gen(self._task)
+                    self._start_consume_async_gen()
                 while True:
-                    item = self._result_queue.get()
+                    item = self._result["queue"].get()
                     if item is StopIteration:
                         break
                     yield item
-                self._iter_consumed = True
-    
+
+    def is_ready(self):
+        return self.result_ready.is_set()
+
     def get(self):
-        """
-        Get a list result of all items yielded from the generator.
-
-        Return:
-        - [<yielded item 1>, <yielded item 2>, ...]
-        """
-        with self._lock:
-            if self._iter_consumed:
-                self._result_ready.wait()
-                return self._result
-            else:
-                if self._is_lazy:
-                    self._run_consume_async_gen(self._task)
-                self._result_ready.wait()
-                self._iter_consumed = True
-                return self._result
-
-    def get_final(self):
-        """
-        Get result from success callback handler that executed with input of a list result of all items yielded from the generator.
-        """
-        with self._lock:
-            if self._iter_consumed:
-                self._result_ready.wait()
-                if self._final_result:
-                    return self._final_result
-                else:
-                    return self._result
-            else:
-                if self._is_lazy:
-                    self._run_consume_async_gen(self._task)
-                self._result_ready.wait()
-                self._iter_consumed = True
-                if self._final_result:
-                    return self._final_result
-                else:
-                    return self._result
+        if self._is_lazy:
+            self._start_consume_async_gen()
+        self.result_ready.wait()
+        return self._result["result"]
+    
+    def __call__(self):
+        return self.get()
