@@ -1,0 +1,22 @@
+[project]
+name = "agently-stage"
+version = "0.2.0-alpha"
+description = "Agently Stage - Efficient Convenient Asynchronous and Multithreaded Programming"
+authors = [
+    { name = "Agently Team", email = "developer@agently.tech" },
+    { name = "Maplemx", email = "maplemx@gmail.com" },
+]
+repository = "https://github.com/AgentEra/Agently-Stage"
+homepage = "https://agently.tech"
+license = "Apache-2.0"
+readme = "README.md"
+documentation = "https://github.com/AgentEra/Agently-Stage/blob/main/README.md"
+requires-python = ">=3.9"
+dependencies = [
+]
+keywords = ["agently", "async", "multithreading", "EventEmitter"]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
