@@ -21,9 +21,9 @@ Asynchronous and multithreaded programming in Python has always been complex and
 
 As we delved deeper into controlling GenAI outputs, we recognized that the inherent complexity of combining asynchronous and multithreaded programming in Python poses a significant challenge. This complexity often hinders developers from leveraging GenAI capabilities efficiently and creatively.
 
-To address this issue, we’ve spun off Agently Stage, a dedicated management solution specifically designed for mixed asynchronous and multithreaded programming, from the core Agently AI application development framework. With Agently Stage, we aim to empower developers to seamlessly manage mixed programming paradigms in Python.
+To solve this problem, we’ve spun off Agently Stage, a dedicated management solution specifically designed for mixed asynchronous and multithreaded programming, from the core Agently AI application development framework. With Agently Stage, we aim to help Python developers to do mixed asynchronous and multithreaded programming in Python much easier.
 
-Read on to discover how Agently Stage can revolutionize your approach to asynchronous and multithreaded programming, delivering a new era of efficiency and simplicity!
+Read on to discover what revolutionary change Agently Stage can bring to asynchronous and multithreaded programming to make it efficiency and simplicity!
 
 ## Quick Overview of Core Features
 
@@ -74,15 +74,10 @@ with Stage() as stage:
 print(async_response.get(), "|", sync_response.get())
 ```
 
-By default, each Stage dispatch environment has 1 independent thread for its coroutine tasks and share a public thread executor pool with 5 executor workers with other Stage dispatch environments for its sync task. But you can adjust that as your wish with parameters when creating Stage instance:
+By default, each Stage dispatch environment has 1 independent daemon thread for its coroutine tasks. You can customize it as below if you want:
 
-- `private_max_workers` (`int`): If you want to use a private thread pool executor, declare worker number here and the private thread pool executor will execute tasks instead of the global one in this Agently Stage instance. Value `None` means use the global thread pool executor.
-- `max_concurrent_tasks` (`int`): If you want to limit the max concurrent task number that running in async event loop, declare max task number here. Value `None` means no limitation.
-- `on_error` (`function(Exception)->any`): Customize exception handler to handle exceptions those raised from tasks running in Agently Stage instance's dispatch environment.
-- `is_daemon` (`bool`): When Agently Stage instance is daemon, it will automatically close when main thread is closing.
-- `closing_timeout` (`float` | `int`): Timeout seconds for waiting each still ongoing task when Agently Stage instance is closing by `.close()` or is closing with main thread.
-
-If you want to adjust the worker's number in public thread pool executor, you can use static method `Stage.set_global_max_workers(<new_worker_number>)` to do so.
+- `exception_handler` (`function(Exception)->any`): Customize exception handler to handle exceptions those raised from tasks running in Agently Stage instance's dispatch environment. By default, we provide a handler that will raise exceptions in runtime and collect all exceptions and print all details in a list to the console after main thread exit.
+- `is_daemon` (`bool`): When Agently Stage instance is daemon, the thread of it will automatically close when main thread is closing, if you want to close it manually using `with` or `.close()` otherwise keep the thread alive.
 
 ### `StageFunction`: Transform a Normal Function into a Non-Blocking Function with Status
 
@@ -134,8 +129,6 @@ import asyncio
 from agently_stage import Stage
 
 # We create a handler in one dispatch
-# Param `is_daemon=True` can set Stage dispatch thread as a daemon thread
-# so that Stage dispatch thread can close automatically with main thread
 with Stage() as stage_1:
     @stage_1.func
     async def handler(sentence):
@@ -147,14 +140,12 @@ with Stage() as stage_2:
         result = handler.wait()
         print(result)
     stage_2.go(waiting)
-
-# We start this handler in the third dispatch some uncertain time after
-time.sleep(1)
-with Stage() as stage_3:
+    # Some uncertain time later, the handler is called
+    time.sleep(1)
     async def executor():
         await asyncio.sleep(1)
         handler("StageFunction is useful!")
-    stage_3.go(executor)
+    stage_2.go(executor)
 ```
 
 ```text
@@ -232,32 +223,32 @@ from agently_stage import Stage, Tunnel
 
 tunnel = Tunnel()
 
-with Stage() as stage_1:
+with Stage() as stage:
     def consumer():
         time.sleep(1)
         # You can use `tunnel.get_gen()` to get a `StageHybridGenerator` from tunnel instance
         gen = tunnel.get_gen()
         for data in gen:
             print("streaming:", data)
-    stage_1.go(consumer)
-
-with Stage() as stage_2:
+    
     async def async_consumer():
         # Or you can just iterate over tunnel data by `for`/`async for`
         async for data in tunnel:
             print("async streaming:", data)
-    stage_2.go(async_consumer)
 
-# Provider start providing data sometime later
-time.sleep(1)
-with Stage() as stage_3:
     async def provider(n:int):
         for i in range(n):
             tunnel.put(i + 1)
             await asyncio.sleep(0.1)
         # If you forget to .put_stop(), tunnel will close after 10s by default
-        # tunnel.put_stop() 
-    stage_3.go(provider, 5)
+        tunnel.put_stop() 
+
+    # State consumer first
+    stage.go(consumer)
+    stage.go(async_consumer)
+    # Provider start providing data sometime later
+    time.sleep(1)
+    stage.go(provider, 5)
 
 # You can also use `tunnel.get()` to get a final yielded item list
 print(tunnel.get())
@@ -304,21 +295,28 @@ emitter = EventEmitter()
 
 async def listener(data):
     print(f"I got: { data }")
+    # You can return value to emitter
+    return True
 
 emitter.on("data", listener)
 
 with Stage() as stage:
     stage.go(lambda: emitter.emit("data", "EventEmitter is Cool!"))
 
-emitter.emit("data", "I'll say it again, EventEmitter is Cool!")
+responses = emitter.emit("data", "I'll say it again, EventEmitter is Cool!")
+
+# Get responses from all event listeners
+for response in responses:
+    print(response.get())
 ```
 
 ```text
 I got: EventEmitter is Cool!
 I got: I'll say it again, EventEmitter is Cool!
+True
 ```
 
-No `asyncio.run()`! No `await emitter.emit()`! No worries about fxxking event loops! JUST `.emit()` WHEREVER YOU WANT!💪💪💪
+No `asyncio.run()`! No `await emitter.emit()`! No worries about choosing event loops! JUST `.emit()` WHEREVER YOU WANT!💪💪💪
 
 ---
 
