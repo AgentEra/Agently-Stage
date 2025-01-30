@@ -14,7 +14,6 @@
 
 # Contact us: Developer@Agently.tech
 
-import asyncio
 import threading
 
 class StageFunction:
@@ -37,10 +36,17 @@ class StageFunction:
     def get(self, *args, **kwargs):
         return self.go(*args, **kwargs).get()
 
-    def wait(self):
-        self._is_started.wait()
-        return self._response.get()
+    def wait(self, timeout=None, no_exception=True):
+        try:
+            self._is_started.wait(timeout=timeout)
+            return self._response.get()
+        except Exception as e:
+            if no_exception:
+                return None
+            else:
+                raise e
     
     def reset(self):
+        self._is_started.clear()
         self._response = None
         return self
