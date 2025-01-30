@@ -47,34 +47,57 @@ class Tunnel:
     def __init__(
             self,
             exception_handler: Callable[[Exception], any]=None,
-            timeout:int=10
+            timeout:int=10,
+            timeout_after_start:bool=True,
         ):
         self._exception_handler = exception_handler
         self._timeout = timeout
+        self._timeout_after_start = timeout_after_start
+        self._started = False
         self._data_queue = queue.Queue()
         self._close_event = threading.Event()
-        self._stage = None
-        self._ongoing_gen = None
-        self._results = []
         self._NODATA = object()
         self._lock = threading.RLock()
+        self._stage = Stage()
+        self.generator = self._create_generator()
     
-    def _defer_close_stage(self):
-        def close_stage():
-            self._close_event.wait()
-            self._stage.close()
-            self._stage = None
-        defer_thread = threading.Thread(target=close_stage)
-        defer_thread.start()
+    def _create_generator(self):
+        def run_hybrid_generator():
+            with self._lock:
+                while True:
+                    data = self._NODATA
+                    try:
+                        if self._timeout_after_start and not self._started:
+                            data = self._data_queue.get()
+                            self._started = True
+                        else:
+                            data = self._data_queue.get(
+                                timeout=self._timeout
+                            )
+                    except queue.Empty:
+                        break
+                    if data is StopIteration:
+                        break
+                    if data is not self._NODATA:
+                        yield data
+        return self._stage.go(run_hybrid_generator, lazy=True)
+
+    def get_generator(self):
+        return self.generator
+
+    def __iter__(self):
+        for item in self.generator:
+            yield item
     
-    def _get_stage(self):
-        if self._stage is not None:
-            return self._stage
-        else:
-            self._stage = Stage(
-                exception_handler=self._exception_handler,
-            )
-            return self._stage
+    async def __aiter__(self):
+        async for item in self.generator:
+            yield item
+    
+    def __call__(self):
+        return self.generator()
+    
+    def get(self):
+        return self.generator.get()
     
     def put(self, data:any):
         """
@@ -90,56 +113,3 @@ class Tunnel:
         Put stop sign into tunnel to tell all consumers data transportation is done.
         """
         self._data_queue.put(StopIteration)
-    
-    def get_gen(self, timeout:int=None):
-        """
-        Get Agently Stage Hybrid Generator to consumer data in tunnel.
-
-        Args:
-        - `timeout` (int): Seconds to wait next item when start pull out item from generator. This parameter will have higher priority than the one was set when Tunnel instance was created.
-
-        Return:
-        - `StageHybridGenerator`
-        """
-        if self._ongoing_gen is None:
-            stage = self._get_stage()
-            def queue_consumer():
-                with self._lock:
-                    while True:
-                        data = self._NODATA
-                        try:
-                            data = self._data_queue.get(
-                                timeout=timeout if timeout is not None else self._timeout
-                            )
-                        except queue.Empty:
-                            break
-                        if data is StopIteration:
-                            break
-                        if data is not self._NODATA:
-                            self._results.append(data)
-                            yield data
-            self._ongoing_gen = stage.go(queue_consumer)
-        return self._ongoing_gen
-    
-    def __iter__(self):
-        gen = self.get_gen()
-        for item in gen:
-            yield item
-    
-    async def __aiter__(self):
-        gen = self.get_gen()
-        async for item in gen:
-            yield item
-
-    def get(self, timeout:int=None):
-        """
-        Get all items from tunnel into an item list.
-
-        Args:
-        - `timeout` (int): Seconds to wait next item when start pull out item from generator. This parameter will have higher priority than the one was set when Tunnel instance was created.
-
-        Return:
-        - `List[<item>]`
-        """
-        gen = self.get_gen(timeout=timeout)
-        return gen.get()
