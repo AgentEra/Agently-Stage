@@ -170,7 +170,6 @@ class StageEventLoopThread:
 
 def _close_all_daemon_loop_thread():
     for loop_thread in StageEventLoopThread._all_daemon_loop_threads.copy():
-        loop_thread.ensure_tasks()
         if loop_thread._exception_handler is None and loop_thread._exceptions.has_exceptions():
             print(loop_thread._exceptions)
         loop_thread.close()
