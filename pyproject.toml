@@ -15,7 +15,7 @@ requires-python = ">=3.9"
 dependencies = [
 ]
 keywords = ["agently", "async", "multithreading", "EventEmitter"]
-
+exclude = ["examples", "tests"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
