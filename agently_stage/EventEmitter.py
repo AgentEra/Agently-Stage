@@ -34,13 +34,9 @@ class EventEmitter:
     emitter.emit("data", "Agently Stage EventEmitter is so easy to use!")
     ```
     """
-    def __init__(
-            self,
-            exception_handler: Callable[[Exception], any]=None
-        ):
+    def __init__(self):
         self._listeners = {}
         self._once = {}
-        self._exception_handler = exception_handler
     
     def add_listener(self, event:str, listener:Callable[[any], any]):
         """
@@ -154,7 +150,7 @@ class EventEmitter:
             for listener in self._once[event]:
                 listeners_to_execute.append((listener, args, kwargs))
             self._once.update({ event: [] })
-        with Stage(exception_handler=self._exception_handler) as stage:
+        with Stage() as stage:
             for listener, args, kwargs in listeners_to_execute:
                 on_going_listeners.append(stage.go(listener, *args, **kwargs))
         return on_going_listeners
