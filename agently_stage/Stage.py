@@ -21,7 +21,7 @@ import asyncio
 import functools
 from concurrent.futures import Future
 from typing import Callable, Union, Tuple, Dict, List, Any
-from .StageEventLoopThread import StageEventLoopThread
+from .StageDispatch import StageDispatch
 from .StageResponse import StageResponse
 from .StageHybridGenerator import StageHybridGenerator
 from .StageFunction import StageFunction
@@ -30,36 +30,28 @@ class Stage:
     def __init__(
         self,
         exception_handler: Callable[[Exception], Any]=None,
+        max_workers: int=None,
         is_daemon: bool=True,
     ):
         """
         Agently Stage create an stage instance to help you execute sync and async tasks in its dispatch environment outside the main thread.
 
-        Agently Stage dispatch environment will execute tasks in an independent thread with an independent async event loop. Sync task will be transformed into async task by `asyncio.to_thread()` and put into this independent event loop to dispatch too.
+        Agently Stage dispatch environment will execute tasks in an independent thread with an independent async event loop. Sync task will be transformed into async task by thread pool executor and put into this independent event loop to dispatch too.
 
         Args:
 
         - `exception_handler`: [Optional] Customize exception handler to handle runtime exception.
         - `is_daemon`: [Default: True] When an stage instance is set as daemon, it will try to ensure all executed tasks then close its dispatch environment with the main thread. If you come across unexpect task closing, try set `is_daemon` to `False` and close stage instance with `stage.close()` manually.
         """
-        self._id = uuid.uuid4()
-        self._exception_handler = exception_handler
-        self._is_daemon = is_daemon
-        self._loop_thread = StageEventLoopThread(
-            exception_handler=self._exception_handler,
-            is_daemon=self._is_daemon,
+        self._dispatch = StageDispatch(
+            exception_handler=exception_handler,
+            max_workers=max_workers,
+            is_daemon=is_daemon,
         )
-        self._raise_exception = self._loop_thread.raise_exception
-        self.ensure_start = self._loop_thread.ensure_tasks_start
-        self.ensure_responses = self._loop_thread.ensure_tasks_done
-        self.close = self._loop_thread.close
-    
-    # Identity
-    def __hash__(self):
-        return hash("stage-", str(self._id))
-    
-    def __eq__(self, target):
-        return isinstance(self, Stage) and self._id == target._id
+        self._raise_exception = self._dispatch.raise_exception
+        self.ensure_start = self._dispatch.ensure_tasks_start
+        self.ensure_responses = self._dispatch.ensure_tasks_done
+        self.close = self._dispatch.close
 
     # Basic
     def _classify_task(self, task):
@@ -154,8 +146,8 @@ class Stage:
             async def async_gen():
                 for item in task(*args, **kwargs):
                     try:
-                        result = await asyncio.to_thread(lambda: item)
-                        yield result
+                        await asyncio.sleep(0)
+                        yield item
                     except Exception as e:
                         yield e
             return StageHybridGenerator(
@@ -172,8 +164,8 @@ class Stage:
             async def async_gen():
                 for item in task:
                     try:
-                        result = await asyncio.to_thread(lambda: item)
-                        yield result
+                        await asyncio.sleep(0)
+                        yield item
                     except Exception as e:
                         yield e
             return StageHybridGenerator(
@@ -188,18 +180,8 @@ class Stage:
             )
         
         # Async Func
-        if task_class == "async_func":
-            go_task = self._loop_thread.run_async_function(task, *args, **kwargs)
-            return StageResponse(
-                self,
-                go_task,
-                on_success=on_success,
-                on_error=on_error,
-                on_finally=on_finally,
-                ignore_exception=ignore_exception,
-            )
-        if task_class == "async_coro":
-            go_task = self._loop_thread.run_coroutine(task)
+        if task_class == "async_func" or task_class == "async_coro":
+            go_task = self._dispatch.run_async_function(task, *args, **kwargs)
             return StageResponse(
                 self,
                 go_task,
@@ -219,7 +201,7 @@ class Stage:
             )
         # Sync Func
         if task_class == "func":
-            go_task = self._loop_thread.run_sync_function(task, *args, **kwargs)
+            go_task = self._dispatch.run_sync_function(task, *args, **kwargs)
             return StageResponse(
                 self,
                 go_task,
@@ -261,7 +243,7 @@ class Stage:
         return self
     
     def __exit__(self, type, value, traceback):
-        self._loop_thread.ensure_tasks_start()
+        self._dispatch.ensure_tasks_start()
     
     # Func
     def func(self, task)->StageFunction:
