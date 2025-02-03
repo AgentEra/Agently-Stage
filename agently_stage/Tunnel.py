@@ -14,7 +14,9 @@
 
 # Contact us: Developer@Agently.tech
 
+import time
 import queue
+import asyncio
 import threading
 from typing import Callable
 from .Stage import Stage
@@ -46,40 +48,42 @@ class Tunnel:
     """
     def __init__(
             self,
-            exception_handler: Callable[[Exception], any]=None,
+            wait_interval:float=0.1,
             timeout:int=10,
             timeout_after_start:bool=True,
         ):
-        self._exception_handler = exception_handler
+        self._wait_interval = wait_interval
         self._timeout = timeout
         self._timeout_after_start = timeout_after_start
         self._started = False
+        self._stage = Stage()
         self._data_queue = queue.Queue()
         self._close_event = threading.Event()
         self._NODATA = object()
-        self._lock = threading.RLock()
-        self._stage = Stage()
         self.generator = self._create_generator()
     
     def _create_generator(self):
-        def run_hybrid_generator():
-            with self._lock:
-                while True:
-                    data = self._NODATA
+        async def run_hybrid_generator():
+            start_time = time.time()
+            while True:
+                data = self._NODATA
+                if self._timeout_after_start and not self._started:
                     try:
-                        if self._timeout_after_start and not self._started:
-                            data = self._data_queue.get()
-                            self._started = True
-                        else:
-                            data = self._data_queue.get(
-                                timeout=self._timeout
-                            )
+                        data = self._data_queue.get_nowait()
+                        self._started = True
                     except queue.Empty:
-                        break
+                        await asyncio.sleep(self._wait_interval)
+                else:
+                    try:
+                        data = self._data_queue.get_nowait()
+                    except queue.Empty:
+                        if time.time() - start_time > self._timeout:
+                            break
+                        await asyncio.sleep(self._wait_interval)
                     if data is StopIteration:
                         break
-                    if data is not self._NODATA:
-                        yield data
+                if data is not self._NODATA:
+                    yield data
         return self._stage.go(run_hybrid_generator, lazy=True)
 
     def get_generator(self):
