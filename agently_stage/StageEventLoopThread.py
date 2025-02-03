@@ -14,12 +14,14 @@
 
 # Contact us: Developer@Agently.tech
 
+import time
 import uuid
 import atexit
 import inspect
 import asyncio
 import threading
 from typing import Callable
+from concurrent.futures import ThreadPoolExecutor
 from .StageException import StageException
 
 class StageEventLoopThread:
@@ -29,16 +31,19 @@ class StageEventLoopThread:
     def __init__(
             self,
             exception_handler: Callable[[Exception], any]=None,
+            max_workers: int=None,
             is_daemon: bool=True,
         ):
         self._id = uuid.uuid4()
         self._exception_handler = exception_handler
         self._is_daemon = is_daemon
         self._loop = None
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
         self._loop_thread = None
         self._loop_ready = threading.Event()
         self._exceptions = StageException()
         self._all_tasks = set()
+        self._lock = threading.Lock()
         if self._is_daemon:
             StageEventLoopThread._all_daemon_loop_threads.add(self)
     
@@ -62,6 +67,7 @@ class StageEventLoopThread:
     
     def _start_loop(self):
         self._loop = asyncio.new_event_loop()
+        self._loop.set_default_executor(self._executor)
         self._loop.set_exception_handler(self._loop_exception_handler)
         asyncio.set_event_loop(self._loop)
         self._loop.call_soon_threadsafe(lambda: self._loop_ready.set())
@@ -83,7 +89,7 @@ class StageEventLoopThread:
     
     def get_loop(self):
         if not self._loop_ready.is_set():
-            with threading.Lock():
+            with self._lock:
                 self._start_loop_thread()
                 self._loop_ready.wait()
         return self._loop
@@ -104,20 +110,27 @@ class StageEventLoopThread:
         def _raise_exception(e):
             raise e
         self.get_loop().call_soon(_raise_exception, e)
+    
+    def _register_task(self, task):
+        with self._lock:
+            self._all_tasks.add(task)
+        
+        def _discard_from_tasks(_):
+            with self._lock:
+                self._all_tasks.discard(task)
+        task.add_done_callback(_discard_from_tasks)
 
     def run_async_function(self, async_func, *args, **kwargs):
         task = asyncio.run_coroutine_threadsafe(
             async_func(*args, **kwargs),
             self.get_loop(),
         )
-        self._all_tasks.add(task)
-        task.add_done_callback(lambda _: self._all_tasks.remove(task))
+        self._register_task(task)
         return task
 
     def run_coroutine(self, coro):
         task = asyncio.run_coroutine_threadsafe(coro, self.get_loop())
-        self._all_tasks.add(task)
-        task.add_done_callback(lambda _: self._all_tasks.remove(task))
+        self._register_task(task)
         return task
     
     def run_sync_function(self, func, *args, **kwargs):
@@ -125,19 +138,30 @@ class StageEventLoopThread:
             asyncio.to_thread(func, *args, **kwargs),
             self.get_loop(),
         )
-        self._all_tasks.add(task)
-        task.add_done_callback(lambda _: self._all_tasks.remove(task))
+        self._register_task(task)
         return task
-
-    def ensure_tasks(self):
-        for task in self._all_tasks.copy():
-            task.result()
-        if len(self._all_tasks) > 0:
-            self.ensure_tasks()
+    
+    def ensure_tasks_start(self):
+        def get_pending_tasks():
+            with self._lock:
+                pending_tasks = [task for task in self._all_tasks if not (task.running() or task.done())]
+            return pending_tasks
+        
+        while get_pending_tasks():
+            time.sleep(0.01)
+    
+    def ensure_tasks_done(self):
+        with self._lock:
+            all_tasks = list(self._all_tasks)
+        
+        if len(all_tasks) > 0:
+            for task in all_tasks:
+                task.result()
+            self.ensure_tasks_done()
 
     def close(self):
         try:
-            self.ensure_tasks()
+            self.ensure_tasks_done()
             if self._loop_ready.is_set():
                 with threading.Lock():
                     if self._loop:
@@ -162,6 +186,8 @@ class StageEventLoopThread:
                     if self._loop and not self._loop.is_closed():
                         self._loop.close()
                     
+                    self._executor.shutdown(wait=True)
+                
                 self._loop_ready.clear()
         finally:
             StageEventLoopThread._all_daemon_loop_threads.discard(self)

@@ -1,4 +1,4 @@
-# Copyright 2024 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
+# Copyright 2024-2025 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,9 +29,19 @@ from .StageFunction import StageFunction
 class Stage:
     def __init__(
         self,
-        exception_handler: Callable[[Exception], any]=None,
+        exception_handler: Callable[[Exception], Any]=None,
         is_daemon: bool=True,
     ):
+        """
+        Agently Stage create an stage instance to help you execute sync and async tasks in its dispatch environment outside the main thread.
+
+        Agently Stage dispatch environment will execute tasks in an independent thread with an independent async event loop. Sync task will be transformed into async task by `asyncio.to_thread()` and put into this independent event loop to dispatch too.
+
+        Args:
+
+        - `exception_handler`: [Optional] Customize exception handler to handle runtime exception.
+        - `is_daemon`: [Default: True] When an stage instance is set as daemon, it will try to ensure all executed tasks then close its dispatch environment with the main thread. If you come across unexpect task closing, try set `is_daemon` to `False` and close stage instance with `stage.close()` manually.
+        """
         self._id = uuid.uuid4()
         self._exception_handler = exception_handler
         self._is_daemon = is_daemon
@@ -40,7 +50,9 @@ class Stage:
             is_daemon=self._is_daemon,
         )
         self._raise_exception = self._loop_thread.raise_exception
-        self.ensure_responses = self._loop_thread.ensure_tasks
+        self.ensure_start = self._loop_thread.ensure_tasks_start
+        self.ensure_responses = self._loop_thread.ensure_tasks_done
+        self.close = self._loop_thread.close
     
     # Identity
     def __hash__(self):
@@ -87,6 +99,26 @@ class Stage:
         wait_interval: Union[float, int]=0.1,
         **kwargs,
     )->Union[StageResponse, StageHybridGenerator]:
+        """
+        Start task in stage instance's dispatch environment.
+
+        Usage:
+
+        ```
+        def task(sentence, options:dict):
+            print(sentence)
+            for key, value in options.items():
+                print(key, value)
+            raise Exception("Some Error")
+        
+        stage.go(
+            task,
+            "hello world",
+            options={"AgentlyStage": "is very cool!"},
+            on_error=lambda e: print("Something Wrong:", e),
+        )
+        ```
+        """
         task_class = self._classify_task(task)
 
         # Stage Function
@@ -223,17 +255,13 @@ class Stage:
             wait_interval=wait_interval,
             **kwargs
         ).get()
-    
-    def close(self):
-        self._loop_thread.ensure_tasks()
-        self._loop_thread.close()
 
     # With
     def __enter__(self):
         return self
     
     def __exit__(self, type, value, traceback):
-        self.close()
+        self._loop_thread.ensure_tasks_start()
     
     # Func
     def func(self, task)->StageFunction:
