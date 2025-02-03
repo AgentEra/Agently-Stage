@@ -33,12 +33,12 @@ class StageResponse:
         self._on_success = on_success
         self._on_error = on_error
         self._on_finally = on_finally
+        self.result_ready = threading.Event()
         self._result = {
             "status": None,
             "result": None,
         }
         self._task.add_done_callback(self._on_task_done)
-        self.result_ready = threading.Event()
     
     def _on_task_done(self, future):
         try:
