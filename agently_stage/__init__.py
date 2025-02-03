@@ -1,6 +1,6 @@
 from .Events import Events
 from .Stage import Stage
-from .StageEventLoopThread import StageEventLoopThread
+from .StageDispatch import StageDispatch, StageDispatchEnvironment
 from .StageException import StageException
 from .StageFunction import StageFunction
 from .StageResponse import StageResponse
