@@ -32,6 +32,7 @@ class StageHybridGenerator:
             on_finally,
         ):
         self._stage = stage
+        self._stage._responses.add(self)
         self._task = task
         self._is_lazy = lazy
         self._wait_interval = wait_interval
@@ -46,7 +47,7 @@ class StageHybridGenerator:
         self._result = {
             "result": [],
             "exceptions": [],
-            "queue": queue.Queue()
+            "queue": queue.Queue(),
         }
         self._is_started = False
         if not self._is_lazy:
@@ -61,37 +62,49 @@ class StageHybridGenerator:
             )
             consume_result.add_done_callback(self._on_consume_async_gen_done)
     
+    async def run_handler(self, handler, *args):
+        handler_class = self._stage._classify_task(handler)
+        if handler_class == "async_func":
+            return await handler(*args)
+        elif handler_class == "func":
+            return handler(*args)
+        else:
+            raise TypeError(f"[Agently Stage] Wrong type of generator runtime handler, expect function or async function, got: { self._on_success }")
+    
     async def _consume_async_gen(self):
         try:
             async for item in self._task:
-                result = (
-                    item
-                    if self._on_success is None
-                    else self._on_success(item)
-                )
+                result = item
                 if isinstance(result, Exception):
                     raise result
+                if self._on_success is not None:
+                    result = await self.run_handler(self._on_success, result)
                 self._result["queue"].put(result)
                 self._result["result"].append(result)
         except Exception as e:
-            result = (
-                e
-                if self._on_error is None
-                else self._on_error(e)
-            )
-            self._result["queue"].put(result)
-            self._result["result"].append(result)
-            if isinstance(result, Exception):
-                self._result["exceptions"].append(result)
-                if self._on_error is None and not self._ignore_exception:
-                    self._stage._raise_exception(result)
+            try:
+                result = e
+                if self._on_error is not None:
+                    result = await self.run_handler(self._on_error, result)
+                self._result["queue"].put(result)
+                self._result["result"].append(result)
+                if isinstance(result, Exception):
+                    self._result["exceptions"].append(result)
+                    if self._on_error is None and not self._ignore_exception:
+                        self._stage._raise_exception(result)
+            except Exception as e:
+                self._stage._raise_exception(e)
         finally:
             self._result["queue"].put(StopIteration)
     
-    def _on_consume_async_gen_done(self, future):
+    def _on_consume_async_gen_done(self, _):
         if self._on_finally is not None:
-            self._on_finally(self._result["result"])
+            asyncio.run_coroutine_threadsafe(
+                self.run_handler(self._on_finally),
+                loop=self._stage._dispatch._dispatch_env.loop,
+            )
         self.result_ready.set()
+        self._stage._responses.discard(self)
         
     async def __aiter__(self):
         if self._is_lazy:
@@ -121,10 +134,13 @@ class StageHybridGenerator:
         else:
             self._iterated = True
             while True:
-                item = self._result["queue"].get()
-                if item is StopIteration:
-                    break
-                yield item
+                try:
+                    item = self._result["queue"].get_nowait()
+                    if item is StopIteration:
+                        break
+                    yield item
+                except queue.Empty:
+                    time.sleep(self._wait_interval)
 
     def is_ready(self):
         return self.result_ready.is_set()
