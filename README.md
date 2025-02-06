@@ -198,18 +198,47 @@ with Stage() as stage:
 
 By default, generator function will be processed immediately when `stage.go(<generator>)` no matter how later `StageHybridGenerator` be used. But if you want to preserve the characteristic of an iter generator that starts execution only when called, you can use parameter `lazy=True` in `stage.go()` to do so.
 
+Also, if you want to consume the original yielded value or exception and re-yield a new result as the final yielded value, you can use parameter `on_success` and `on_error` to append handlers to `StageHybridGenerator`. Those handlers will executed in Agently Stage so both sync function and async function are available.
+
 ```python
-gen = stage.go(start_gen, 5, lazy=True)
-time.sleep(5)
-# Generator function `start_gen` start here only when gen is iterated over by `for`
-for item in gen:
-    print(item)
+import time
+import asyncio
+from agently_stage import Stage
+with Stage() as stage:
+    async def start_gen(n:int):
+        for i in range(n):
+            await asyncio.sleep(1)
+            yield i+1
+        raise Exception("Some Error")
+    gen = stage.go(
+        start_gen, 5,
+        lazy=True, #<- Set generator as lazy mode
+        # Define runtime handler to consume original yielded value and re-yield the final value
+        on_success=lambda item: item * 2,
+        # Define runtime handler to consume raised exception and re-yield the final value or exception
+        on_error=lambda e: str(e)
+    )
+    time.sleep(5)
+    # Generator function `start_gen` start here only when gen is iterated over by `for`
+    for item in gen:
+        print(item)
+    print(gen.get())
 ```
 
-And when iterating over an async iter generator, we need to use await in the consumer to hand over coroutine control. If the interval between await calls is too short, it can increase CPU load, while a longer interval might affect execution efficiency. We have set this interval to `0.1 seconds` by default, but you can adjust it using parameter `async_gen_interval` in `stage.go()`.
+```text
+2
+4
+6
+8
+10
+Some Error
+[2, 4, 6, 8, 10, 'Some Error']
+```
+
+And when iterating over an async iter generator, we need to use await in the consumer to hand over coroutine control. If the interval between await calls is too short, it can increase CPU load, while a longer interval might affect execution efficiency. We have set this interval to `0.1 seconds` by default, but you can adjust it using parameter `wait_interval` in `stage.go()`.
 
 ```python
-gen = stage.go(start_gen, 5, async_gen_interval=0.5)
+gen = stage.go(start_gen, 5, wait_interval=0.5)
 ```
 
 ### `Tunnel`: Streaming Data Transportation Between Threads and Coroutines is SO EASY!
@@ -225,18 +254,21 @@ tunnel = Tunnel()
 
 with Stage() as stage:
     def consumer():
+        print("GO CONSUMER")
         time.sleep(1)
         # You can use `tunnel.get_gen()` to get a `StageHybridGenerator` from tunnel instance
-        gen = tunnel.get_gen()
+        gen = tunnel.get_generator()
         for data in gen:
             print("streaming:", data)
     
     async def async_consumer():
+        print("GO A CONSUMER")
         # Or you can just iterate over tunnel data by `for`/`async for`
         async for data in tunnel:
             print("async streaming:", data)
 
     async def provider(n:int):
+        print("GO PROVIDER")
         for i in range(n):
             tunnel.put(i + 1)
             await asyncio.sleep(0.1)
@@ -248,13 +280,16 @@ with Stage() as stage:
     stage.go(async_consumer)
     # Provider start providing data sometime later
     time.sleep(1)
-    stage.go(provider, 5)
+    stage.get(provider, 5)
 
 # You can also use `tunnel.get()` to get a final yielded item list
-print(tunnel.get())
+print(tunnel.get()[0])
 ```
 
 ```text
+GO CONSUMER
+GO A CONSUMER
+GO PROVIDER
 async streaming: 1
 async streaming: 2
 async streaming: 3
@@ -265,7 +300,7 @@ streaming: 2
 streaming: 3
 streaming: 4
 streaming: 5
-[1, 2, 3, 4, 5]
+1
 ```
 
 Sometimes, we won't know if the data transportation from upstream is done or not and want to set a timeout to stop waiting, parameter `timeout` when creating Tunnel instance or in `.get_gen()`, `.get()` will help us to do so. By default, we set this timeout to `10 seconds`. You can set timeout value as `None` manually if you want to keep waiting no matter what.
@@ -286,7 +321,7 @@ In Python, especially when you're a senior node.js coder, if you want to build a
 
 But event-driven development is so important to asynchronous and multithreaded programming, a REAL EventEmitter that WORKS EXACTLY THE SAME AS IT SHOULD BE USED IN NODEJS is required with no doubts.
 
-So Agently Stage privode you an `EventEmitter` can be used like this:
+So Agently Stage provide you an `EventEmitter` can be used like this:
 
 ```python
 from agently_stage import Stage, EventEmitter
@@ -301,6 +336,7 @@ async def listener(data):
 emitter.on("data", listener)
 
 with Stage() as stage:
+    # Submit task that wait to run later
     stage.go(lambda: emitter.emit("data", "EventEmitter is Cool!"))
 
 responses = emitter.emit("data", "I'll say it again, EventEmitter is Cool!")
@@ -311,9 +347,9 @@ for response in responses:
 ```
 
 ```text
-I got: EventEmitter is Cool!
 I got: I'll say it again, EventEmitter is Cool!
 True
+I got: EventEmitter is Cool!
 ```
 
 No `asyncio.run()`! No `await emitter.emit()`! No worries about choosing event loops! JUST `.emit()` WHEREVER YOU WANT!💪💪💪
