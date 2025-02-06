@@ -1,19 +1,17 @@
-import time
 import atexit
 import inspect
 import asyncio
 import threading
-import functools
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, Future
 from .StageException import StageException
 
 class StageDispatchEnvironment:
     def __init__(
             self,
             *,
-            exception_handler,
-            max_workers,
-            is_daemon,
+            exception_handler=None,
+            max_workers=None,
+            is_daemon=True,
         ):
         self._exception_handler = exception_handler
         self._max_workers = max_workers
@@ -26,7 +24,7 @@ class StageDispatchEnvironment:
         self.ready = threading.Event()
         self._start_loop_thread()
         self.ready.wait()
-        atexit.register(self.close)
+        self._closed = False
     
     # Start Environment
     def _start_loop(self):
@@ -70,6 +68,7 @@ class StageDispatchEnvironment:
         self.loop.call_soon(_raise_exception, e)
     
     def close(self):
+        self._closed = True
         if self.ready.is_set():
             with self._lock:
                 # Close all pending
@@ -102,16 +101,18 @@ class StageDispatchEnvironment:
                 self.loop = None
                 self.executor = None
                 self.exceptions = None
-                self.ready.clear()                
+                self.ready.clear()            
 
 class StageDispatch:
-    _instance = None
+    #_instance = None
     _dispatch_env = None
     _lock = threading.Lock()
 
+    """
     def __new__(
         cls,
         *,
+        reuse_env=True,
         exception_handler=None,
         max_workers=None,
         is_daemon=True,
@@ -125,35 +126,38 @@ class StageDispatch:
                         max_workers=max_workers,
                         is_daemon=is_daemon,
                     )
-                    def shutdown_at_exit():
-                        cls._instance.ensure_tasks_done()
-                        cls._dispatch_env.close()
-                    atexit.register(shutdown_at_exit)
         return cls._instance
+    """
 
     def __init__(
             self,
             *,
+            reuse_env=True,
             exception_handler=None,
             max_workers=None,
             is_daemon=True,
         ):
         self._all_tasks = set()
-        self._dispatch_env = StageDispatch._dispatch_env
+        if reuse_env:
+            if StageDispatch._dispatch_env is None or StageDispatch._dispatch_env._closed:
+                with StageDispatch._lock:
+                    if StageDispatch._dispatch_env is None or StageDispatch._dispatch_env._closed:
+                        StageDispatch._dispatch_env = StageDispatchEnvironment(
+                            exception_handler=exception_handler,
+                            max_workers=max_workers,
+                            is_daemon=is_daemon,
+                        )
+            self._dispatch_env = StageDispatch._dispatch_env
+        else:
+            self._dispatch_env = StageDispatchEnvironment(
+                exception_handler=exception_handler,
+                max_workers=max_workers,
+                is_daemon=is_daemon,
+            )
         self.raise_exception = self._dispatch_env.raise_exception
-    
-    def _register_task(self, task):
-        with StageDispatch._lock:
-            self._all_tasks.add(task)
-        
-        def _discard_form_tasks(_):
-            with StageDispatch._lock:
-                self._all_tasks.discard(task)
-        task.add_done_callback(_discard_form_tasks)
     
     def run_sync_function(self, func, *args, **kwargs):
         task = self.to_executor(func, *args, **kwargs)
-        self._register_task(task)
         return task
     
     def run_async_function(self, func, *args, **kwargs):
@@ -165,34 +169,27 @@ class StageDispatch:
             coro,
             loop=self._dispatch_env.loop,
         )
-        self._register_task(task)
         return task
     
     def to_executor(self, func, *args, **kwargs):
-        return self._dispatch_env.executor.submit(func, *args, **kwargs)
-    
-    def ensure_tasks_start(self):
-        def get_pending_tasks():
-            with self._lock:
-                pending_tasks = [task for task in self._all_tasks if not (task.running() or task.done())]    
-            return pending_tasks
-        
-        while get_pending_tasks():
-            time.sleep(0.01)
-    
-    def ensure_tasks_done(self):
-        with self._lock:
-            all_tasks = list(self._all_tasks)
-        
-        if len(all_tasks) > 0:
-            for task in all_tasks:
-                task.result()
-            self.ensure_tasks_done()
+        try:
+            return self._dispatch_env.executor.submit(func, *args, **kwargs)
+        except RuntimeError as e:
+            if "cannot schedule new futures after" in str(e):
+                future = Future()
+                try:
+                    future.set_result(func(*args, **kwargs))
+                except Exception as e:
+                    future.set_exception(e)
+                return future
+            raise
     
     def close(self):
-        self.ensure_tasks_done()
+        """
         if StageDispatch._instance is not None:
             with self._lock:
                 if StageDispatch._instance is not None:
                     StageDispatch._dispatch_env.close()
                     StageDispatch._instance = None
+        """
+        self._dispatch_env.close()

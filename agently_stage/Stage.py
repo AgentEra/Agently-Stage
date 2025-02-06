@@ -14,8 +14,8 @@
 
 # Contact us: Developer@Agently.tech
 
-import uuid
 import types
+import atexit
 import inspect
 import asyncio
 import functools
@@ -27,8 +27,11 @@ from .StageHybridGenerator import StageHybridGenerator
 from .StageFunction import StageFunction
 
 class Stage:
+    _atexit_registered = False
+
     def __init__(
         self,
+        reuse_env: bool=True,
         exception_handler: Callable[[Exception], Any]=None,
         max_workers: int=None,
         is_daemon: bool=True,
@@ -44,14 +47,15 @@ class Stage:
         - `is_daemon`: [Default: True] When an stage instance is set as daemon, it will try to ensure all executed tasks then close its dispatch environment with the main thread. If you come across unexpect task closing, try set `is_daemon` to `False` and close stage instance with `stage.close()` manually.
         """
         self._dispatch = StageDispatch(
+            reuse_env=reuse_env,
             exception_handler=exception_handler,
             max_workers=max_workers,
             is_daemon=is_daemon,
         )
+        self._responses = set()
         self._raise_exception = self._dispatch.raise_exception
-        self.ensure_start = self._dispatch.ensure_tasks_start
-        self.ensure_responses = self._dispatch.ensure_tasks_done
-        self.close = self._dispatch.close
+        if is_daemon:
+            atexit.register(self.close)
 
     # Basic
     def _classify_task(self, task):
@@ -75,8 +79,10 @@ class Stage:
             return "async_coro"
         if isinstance(task, Future):
             return "future"
-        if inspect.isfunction(task):
+        if inspect.isfunction(task) or inspect.isbuiltin(task):
             return "func"
+        if hasattr(task, "__call__"):
+            return self._classify_task(task.__call__)
         return None
 
     def go(
@@ -238,12 +244,28 @@ class Stage:
             **kwargs
         ).get()
 
+    def ensure_responses(self):
+        while True:
+            with self._dispatch._lock:
+                responses = self._responses.copy()
+            if not responses:
+                break
+            for response in responses:
+                try:
+                    response.get()
+                except:
+                    pass
+    
+    def close(self):
+        self.ensure_responses()
+        self._dispatch.close()
+
     # With
     def __enter__(self):
         return self
     
     def __exit__(self, type, value, traceback):
-        self._dispatch.ensure_tasks_start()
+        pass
     
     # Func
     def func(self, task)->StageFunction:
