@@ -28,6 +28,7 @@ class StageResponse:
             on_finally,
         ):
         self._stage = stage
+        self._stage._responses.add(self)
         self._task = task
         self._ignore_exception = ignore_exception
         self._on_success = on_success
@@ -47,27 +48,24 @@ class StageResponse:
                 raise result
             self._result.update({
                 "status": True,
-                "result": (
-                    result
-                    if self._on_success is None
-                    else self._on_success(result)
-                ),
-            }) 
+                "result": result,
+            })
+            if self._on_success:
+                self._stage.go(self._on_success, result)
         except Exception as e:
             self._result.update({
                 "status": False,
-                "result": (
-                    e
-                    if self._on_error is None
-                    else self._on_error(e)
-                ),
+                "result": e,
             })
+            if self._on_error:
+                self._stage.go(self._on_error, e)
             if self._on_error is None and not self._ignore_exception:
                 self._stage._raise_exception(e)
         finally:
             if self._on_finally is not None:
-                self._on_finally(self._result["result"])
+                self._stage.go(self._on_finally)
             self.result_ready.set()
+            self._stage._responses.discard(self)
     
     def is_ready(self):
         return self.result_ready.is_set()
