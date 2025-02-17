@@ -28,7 +28,6 @@ from .StageFunction import StageFunction
 
 class Stage:
     _atexit_registered = False
-    __closed = False
 
     def __init__(
         self,
@@ -118,7 +117,7 @@ class Stage:
         )
         ```
         """
-        self._checkClosed()
+        self._check_closed()
         task_class = self._classify_task(task)
 
         # Stage Function
@@ -259,7 +258,6 @@ class Stage:
                     pass
     
     def close(self):
-        self.__closed = True
         self.ensure_responses()
         self._dispatch.close()
 
@@ -268,9 +266,9 @@ class Stage:
         """
         closed: bool.  True iff the stage has been closed.
         """
-        return self.__closed
+        return self._dispatch._dispatch_env.ready.is_set()
 
-    def _checkClosed(self, msg=None):
+    def _check_closed(self, msg=None):
         """
         Internal: raise a ValueError if stage is closed
         """
@@ -281,13 +279,10 @@ class Stage:
 
     # With
     def __enter__(self):
-        self._checkClosed()
+        self._check_closed()
         return self
 
     def __exit__(self, type, value, traceback):
-        self.close()
-
-    def __del__(self):
         self.close()
 
     # Func
