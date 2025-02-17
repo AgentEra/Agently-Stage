@@ -264,9 +264,9 @@ class Stage:
     @property
     def closed(self):
         """
-        closed: bool.  True iff the stage has been closed.
+        closed: bool.  True if the stage has been closed.
         """
-        return self._dispatch._dispatch_env.ready.is_set()
+        return not self._dispatch._dispatch_env.ready.is_set()
 
     def _check_closed(self, msg=None):
         """
