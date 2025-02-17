@@ -273,7 +273,7 @@ class Stage:
         Internal: raise a ValueError if stage is closed
         """
         if self.closed:
-            raise ValueError("threading operation on closed stage."
+            raise ValueError("[Agently Stage] Can not attempt threading operation on closed stage."
                              if msg is None else msg)
 
 
