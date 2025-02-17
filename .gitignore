@@ -26,7 +26,6 @@ test.py
 test.js
 private_settings
 myenv
-*test*
 *_old
 
 .idea/

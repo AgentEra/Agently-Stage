@@ -20,7 +20,7 @@ import inspect
 import asyncio
 import functools
 from concurrent.futures import Future
-from typing import Callable, Union, Tuple, Dict, List, Any
+from typing import Callable, Union, Tuple, Dict, Any
 from .StageDispatch import StageDispatch
 from .StageResponse import StageResponse
 from .StageHybridGenerator import StageHybridGenerator
@@ -28,13 +28,14 @@ from .StageFunction import StageFunction
 
 class Stage:
     _atexit_registered = False
+    __closed = False
 
     def __init__(
         self,
         reuse_env: bool=True,
         exception_handler: Callable[[Exception], Any]=None,
         max_workers: int=None,
-        is_daemon: bool=True,
+        is_daemon: bool=False,
     ):
         """
         Agently Stage create an stage instance to help you execute sync and async tasks in its dispatch environment outside the main thread.
@@ -117,6 +118,7 @@ class Stage:
         )
         ```
         """
+        self._checkClosed()
         task_class = self._classify_task(task)
 
         # Stage Function
@@ -257,16 +259,37 @@ class Stage:
                     pass
     
     def close(self):
+        self.__closed = True
         self.ensure_responses()
         self._dispatch.close()
 
+    @property
+    def closed(self):
+        """
+        closed: bool.  True iff the stage has been closed.
+        """
+        return self.__closed
+
+    def _checkClosed(self, msg=None):
+        """
+        Internal: raise a ValueError if stage is closed
+        """
+        if self.closed:
+            raise ValueError("threading operation on closed stage."
+                             if msg is None else msg)
+
+
     # With
     def __enter__(self):
+        self._checkClosed()
         return self
-    
+
     def __exit__(self, type, value, traceback):
-        pass
-    
+        self.close()
+
+    def __del__(self):
+        self.close()
+
     # Func
     def func(self, task)->StageFunction:
         return StageFunction(self, task)
