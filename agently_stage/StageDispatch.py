@@ -1,4 +1,3 @@
-import atexit
 import inspect
 import asyncio
 import threading
