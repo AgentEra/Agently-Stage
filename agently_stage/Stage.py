@@ -265,10 +265,8 @@ class Stage:
                     pass
 
     def close(self):
-        print("Closing stage")
         self.ensure_responses()
         self._dispatch.close()
-        print("Stage closed")
 
     @property
     def closed(self):
@@ -289,11 +287,9 @@ class Stage:
     # With
     def __enter__(self):
         self._check_closed()
-        print("Stage entered")
         return self
 
     def __exit__(self, type, value, traceback):
-        print("Stage exiting")
         self.close()
 
     # Func
