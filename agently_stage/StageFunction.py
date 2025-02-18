@@ -13,8 +13,10 @@
 # limitations under the License.
 
 # Contact us: Developer@Agently.tech
+from __future__ import annotations
 
 import threading
+
 
 class StageFunction:
     def __init__(self, stage, func):
@@ -22,17 +24,17 @@ class StageFunction:
         self._func = func
         self._response = None
         self._is_started = threading.Event()
-    
+
     def __call__(self, *args, **kwargs):
         return self.go(*args, **kwargs)
-    
+
     def go(self, *args, **kwargs):
         if self._response:
             return self._response
         self._response = self._stage.go(self._func, *args, **kwargs)
         self._is_started.set()
         return self._response
-    
+
     def get(self, *args, **kwargs):
         return self.go(*args, **kwargs).get()
 
@@ -45,7 +47,7 @@ class StageFunction:
                 return None
             else:
                 raise e
-    
+
     def reset(self):
         self._is_started.clear()
         self._response = None

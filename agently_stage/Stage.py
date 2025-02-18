@@ -13,28 +13,31 @@
 # limitations under the License.
 
 # Contact us: Developer@Agently.tech
+from __future__ import annotations
 
-import types
-import atexit
-import inspect
 import asyncio
+import atexit
 import functools
+import inspect
+import types
 from concurrent.futures import Future
-from typing import Callable, Union, Tuple, Dict, Any
+from typing import Any, Callable
+
 from .StageDispatch import StageDispatch
-from .StageResponse import StageResponse
-from .StageHybridGenerator import StageHybridGenerator
 from .StageFunction import StageFunction
+from .StageHybridGenerator import StageHybridGenerator
+from .StageResponse import StageResponse
+
 
 class Stage:
     _atexit_registered = False
 
     def __init__(
         self,
-        reuse_env: bool=True,
-        exception_handler: Callable[[Exception], Any]=None,
-        max_workers: int=None,
-        is_daemon: bool=False,
+        reuse_env: bool = True,
+        exception_handler: Callable[[Exception], Any] = None,
+        max_workers: int = None,
+        is_daemon: bool = False,
     ):
         """
         Agently Stage create an stage instance to help you execute sync and async tasks in its dispatch environment outside the main thread.
@@ -81,22 +84,22 @@ class Stage:
             return "future"
         if inspect.isfunction(task) or inspect.isbuiltin(task):
             return "func"
-        if hasattr(task, "__call__"):
+        if callable(task):
             return self._classify_task(task.__call__)
         return None
 
     def go(
         self,
-        task: Callable[[Tuple[Any, ...], Dict[str, Any]], Any],
+        task: Callable[[tuple[Any, ...], dict[str, Any]], Any],
         *args,
-        lazy: bool=False,
-        on_success: Callable[[Any], Any]=None,
-        on_error: Callable[[Exception], Any]=None,
-        on_finally: Callable[[None], None]=None,
-        ignore_exception: bool=False,
-        wait_interval: Union[float, int]=0.1,
+        lazy: bool = False,
+        on_success: Callable[[Any], Any] = None,
+        on_error: Callable[[Exception], Any] = None,
+        on_finally: Callable[[None], None] = None,
+        ignore_exception: bool = False,
+        wait_interval: float = 0.1,
         **kwargs,
-    )->Union[StageResponse, StageHybridGenerator]:
+    ) -> StageResponse | StageHybridGenerator:
         """
         Start task in stage instance's dispatch environment.
 
@@ -108,7 +111,7 @@ class Stage:
             for key, value in options.items():
                 print(key, value)
             raise Exception("Some Error")
-        
+
         stage.go(
             task,
             "hello world",
@@ -150,6 +153,7 @@ class Stage:
             )
         # Sync Gen
         if task_class == "gen_func":
+
             async def async_gen():
                 for item in task(*args, **kwargs):
                     try:
@@ -157,6 +161,7 @@ class Stage:
                         yield item
                     except Exception as e:
                         yield e
+
             return StageHybridGenerator(
                 self,
                 async_gen(),
@@ -168,6 +173,7 @@ class Stage:
                 wait_interval=wait_interval,
             )
         if task_class == "gen":
+
             async def async_gen():
                 for item in task:
                     try:
@@ -175,6 +181,7 @@ class Stage:
                         yield item
                     except Exception as e:
                         yield e
+
             return StageHybridGenerator(
                 self,
                 async_gen(),
@@ -185,7 +192,7 @@ class Stage:
                 ignore_exception=ignore_exception,
                 wait_interval=wait_interval,
             )
-        
+
         # Async Func
         if task_class == "async_func" or task_class == "async_coro":
             go_task = self._dispatch.run_async_function(task, *args, **kwargs)
@@ -217,20 +224,20 @@ class Stage:
                 on_finally=on_finally,
                 ignore_exception=ignore_exception,
             )
-        
+
         # Other
-        raise Exception(f"[Agently Stage] Not a supported task type: { task }")
-    
+        raise Exception(f"[Agently Stage] Not a supported task type: {task}")
+
     def get(
         self,
-        task: Callable[[Tuple[Any, ...], Dict[str, Any]], Any],
+        task: Callable[[tuple[Any, ...], dict[str, Any]], Any],
         *args,
-        lazy: bool=False,
-        on_success: Callable[[Any], Any]=None,
-        on_error: Callable[[Exception], Any]=None,
-        on_finally: Callable[[None], None]=None,
-        ignore_exception: bool=False,
-        wait_interval: Union[float, int]=0.1,
+        lazy: bool = False,
+        on_success: Callable[[Any], Any] = None,
+        on_error: Callable[[Exception], Any] = None,
+        on_finally: Callable[[None], None] = None,
+        ignore_exception: bool = False,
+        wait_interval: float = 0.1,
         **kwargs,
     ):
         return self.go(
@@ -242,7 +249,7 @@ class Stage:
             on_finally=on_finally,
             ignore_exception=ignore_exception,
             wait_interval=wait_interval,
-            **kwargs
+            **kwargs,
         ).get()
 
     def ensure_responses(self):
@@ -254,9 +261,9 @@ class Stage:
             for response in responses:
                 try:
                     response.get()
-                except:
+                except: # noqa: E722
                     pass
-    
+
     def close(self):
         self.ensure_responses()
         self._dispatch.close()
@@ -273,9 +280,9 @@ class Stage:
         Internal: raise a ValueError if stage is closed
         """
         if self.closed:
-            raise ValueError("[Agently Stage] Can not attempt threading operation on closed stage."
-                             if msg is None else msg)
-
+            raise ValueError(
+                "[Agently Stage] Can not attempt threading operation on closed stage." if msg is None else msg
+            )
 
     # With
     def __enter__(self):
@@ -286,5 +293,5 @@ class Stage:
         self.close()
 
     # Func
-    def func(self, task)->StageFunction:
+    def func(self, task) -> StageFunction:
         return StageFunction(self, task)

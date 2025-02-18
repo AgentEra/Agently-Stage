@@ -133,7 +133,7 @@ with Stage() as stage_1:
     @stage_1.func
     async def handler(sentence):
         return f"Someone said: { sentence }"
-    
+
 # We wait this handler in another dispatch
 with Stage() as stage_2:
     def waiting():
@@ -260,7 +260,7 @@ with Stage() as stage:
         gen = tunnel.get_generator()
         for data in gen:
             print("streaming:", data)
-    
+
     async def async_consumer():
         print("GO A CONSUMER")
         # Or you can just iterate over tunnel data by `for`/`async for`
@@ -273,7 +273,7 @@ with Stage() as stage:
             tunnel.put(i + 1)
             await asyncio.sleep(0.1)
         # If you forget to .put_stop(), tunnel will close after 10s by default
-        tunnel.put_stop() 
+        tunnel.put_stop()
 
     # State consumer first
     stage.go(consumer)

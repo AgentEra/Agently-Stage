@@ -13,9 +13,12 @@
 # limitations under the License.
 
 # Contact us: Developer@Agently.tech
+from __future__ import annotations
 
-from typing import Union, Callable, List
+from typing import Callable
+
 from .Stage import Stage
+
 
 class EventEmitter:
     """
@@ -34,11 +37,12 @@ class EventEmitter:
     emitter.emit("data", "Agently Stage EventEmitter is so easy to use!")
     ```
     """
+
     def __init__(self):
         self._listeners = {}
         self._once = {}
-    
-    def add_listener(self, event:str, listener:Callable[[any], any]):
+
+    def add_listener(self, event: str, listener: Callable[[any], any]):
         """
         Add a listener to event.
 
@@ -50,12 +54,12 @@ class EventEmitter:
         - `listener`
         """
         if event not in self._listeners:
-            self._listeners.update({ event: [] })
+            self._listeners.update({event: []})
         if listener not in self._listeners[event]:
             self._listeners[event].append(listener)
         return listener
-    
-    def remove_listener(self, event:str, listener:Callable[[any], any]):
+
+    def remove_listener(self, event: str, listener: Callable[[any], any]):
         """
         Remove a listener from event.
 
@@ -66,7 +70,7 @@ class EventEmitter:
         if event in self._listeners and listener in self._listeners[event]:
             self._listeners[event].remove(listener)
 
-    def remove_all_listeners(self, event_list:Union[str, List[str]]):
+    def remove_all_listeners(self, event_list: str | list[str]):
         """
         Remove all listeners from event.
 
@@ -76,9 +80,9 @@ class EventEmitter:
         if isinstance(event_list, str):
             event_list = [event_list]
         for event in event_list:
-            self._listeners.update({ event: [] })
+            self._listeners.update({event: []})
 
-    def on(self, event:str, listener:Callable[[any], any]):
+    def on(self, event: str, listener: Callable[[any], any]):
         """
         Alias to `.add_listener()`. Add a listener to event.
 
@@ -90,8 +94,8 @@ class EventEmitter:
         - `listener`
         """
         return self.add_listener(event, listener)
-    
-    def off(self, event:str, listener:Callable[[any], any]):
+
+    def off(self, event: str, listener: Callable[[any], any]):
         """
         Alias to `.remove_listener()`. Remove a listener from event.
 
@@ -101,7 +105,7 @@ class EventEmitter:
         """
         return self.remove_listener(event, listener)
 
-    def once(self, event:str, listener:Callable[[any], any]):
+    def once(self, event: str, listener: Callable[[any], any]):
         """
         Add a listener that will only run once to event.
 
@@ -113,12 +117,12 @@ class EventEmitter:
         - `listener`
         """
         if event not in self._once:
-            self._once.update({ event: [] })
+            self._once.update({event: []})
         if listener not in self._listeners[event] and listener not in self._once[event]:
             self._once[event].append(listener)
         return listener
-    
-    def listener_count(self, event:str)->int:
+
+    def listener_count(self, event: str) -> int:
         """
         Count registered listener number of event including normal listeners and once listeners.
 
@@ -129,8 +133,8 @@ class EventEmitter:
         - count of listeners
         """
         return len(self._listeners[event]) + len(self._once[event])
-        
-    def emit(self, event:str, *args, **kwargs):
+
+    def emit(self, event: str, *args, **kwargs):
         """
         Emit event with args and kwargs.
 
@@ -149,7 +153,7 @@ class EventEmitter:
         if event in self._once:
             for listener in self._once[event]:
                 listeners_to_execute.append((listener, args, kwargs))
-            self._once.update({ event: [] })
+            self._once.update({event: []})
         with Stage() as stage:
             for listener, args, kwargs in listeners_to_execute:
                 on_going_listeners.append(stage.go(listener, *args, **kwargs))
