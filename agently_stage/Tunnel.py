@@ -13,13 +13,15 @@
 # limitations under the License.
 
 # Contact us: Developer@Agently.tech
+from __future__ import annotations
 
-import time
-import queue
 import asyncio
+import queue
 import threading
-from typing import Callable
+import time
+
 from .Stage import Stage
+
 
 class Tunnel:
     """
@@ -46,12 +48,13 @@ class Tunnel:
     print(tunnel.get())
     ```
     """
+
     def __init__(
-            self,
-            wait_interval:float=0.1,
-            timeout:int=10,
-            timeout_after_start:bool=True,
-        ):
+        self,
+        wait_interval: float = 0.1,
+        timeout: int = 10,
+        timeout_after_start: bool = True,
+    ):
         self._wait_interval = wait_interval
         self._timeout = timeout
         self._timeout_after_start = timeout_after_start
@@ -61,7 +64,7 @@ class Tunnel:
         self._close_event = threading.Event()
         self._NODATA = object()
         self.generator = self._create_generator()
-    
+
     def _create_generator(self):
         async def run_hybrid_generator():
             start_time = time.time()
@@ -84,26 +87,26 @@ class Tunnel:
                         break
                 if data is not self._NODATA:
                     yield data
+
         return self._stage.go(run_hybrid_generator, lazy=True)
 
     def get_generator(self):
         return self.generator
 
     def __iter__(self):
-        for item in self.generator:
-            yield item
-    
+        yield from self.generator
+
     async def __aiter__(self):
         async for item in self.generator:
             yield item
-    
+
     def __call__(self):
         return self.generator()
-    
+
     def get(self):
         return self.generator.get()
-    
-    def put(self, data:any):
+
+    def put(self, data: any):
         """
         Put data into tunnel.
 
@@ -111,7 +114,7 @@ class Tunnel:
         - `data` (any)
         """
         self._data_queue.put(data)
-    
+
     def put_stop(self):
         """
         Put stop sign into tunnel to tell all consumers data transportation is done.
