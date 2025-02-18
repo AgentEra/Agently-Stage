@@ -261,7 +261,7 @@ class Stage:
             for response in responses:
                 try:
                     response.get()
-                except: # noqa: E722
+                except:  # noqa: E722
                     pass
 
     def close(self):

@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import time
+
 from agently_stage import Stage
+
 
 class Counter:
     def __init__(self):
@@ -9,10 +13,12 @@ class Counter:
     def increment(self, value: str):
         self.value.append(value)
 
+
 def test_with():
     counter = Counter()
 
     with Stage() as stage:
+
         async def async_task(value: str):
             counter.increment(f"async_task start {value}")
             await asyncio.sleep(1)
