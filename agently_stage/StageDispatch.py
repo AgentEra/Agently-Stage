@@ -87,7 +87,7 @@ class StageDispatchEnvironment:
                                 asyncio.gather(*pending, return_exceptions=True),
                                 self.loop,
                             )
-                        except: # noqa: E722
+                        except:  # noqa: E722
                             pass
                 # Stop loop
                 if self.loop and self.loop.is_running():
