@@ -13,24 +13,27 @@
 # limitations under the License.
 
 # Contact us: Developer@Agently.tech
+from __future__ import annotations
 
-import time
-import queue
 import asyncio
+import queue
 import threading
+import time
+
 
 class StageHybridGenerator:
-    def __init__(self,
-            stage,
-            task,
-            *,
-            lazy,
-            wait_interval,
-            ignore_exception,
-            on_success,
-            on_error,
-            on_finally,
-        ):
+    def __init__(
+        self,
+        stage,
+        task,
+        *,
+        lazy,
+        wait_interval,
+        ignore_exception,
+        on_success,
+        on_error,
+        on_finally,
+    ):
         self._stage = stage
         self._stage._responses.add(self)
         self._task = task
@@ -52,16 +55,16 @@ class StageHybridGenerator:
         self._is_started = False
         if not self._is_lazy:
             self._start_consume_async_gen()
-    
+
     def _start_consume_async_gen(self):
         if not self._consumer_start.is_set():
             self._consumer_start.set()
             consume_result = asyncio.run_coroutine_threadsafe(
                 self._consume_async_gen(),
-                loop = self._stage._dispatch._dispatch_env.loop,
+                loop=self._stage._dispatch._dispatch_env.loop,
             )
             consume_result.add_done_callback(self._on_consume_async_gen_done)
-    
+
     async def run_handler(self, handler, *args):
         handler_class = self._stage._classify_task(handler)
         if handler_class == "async_func":
@@ -69,8 +72,10 @@ class StageHybridGenerator:
         elif handler_class == "func":
             return handler(*args)
         else:
-            raise TypeError(f"[Agently Stage] Wrong type of generator runtime handler, expect function or async function, got: { self._on_success }")
-    
+            raise TypeError(
+                f"[Agently Stage] Wrong type of generator runtime handler, expect function or async function, got: {self._on_success}"
+            )
+
     async def _consume_async_gen(self):
         try:
             async for item in self._task:
@@ -96,7 +101,7 @@ class StageHybridGenerator:
                 self._stage._raise_exception(e)
         finally:
             self._result["queue"].put(StopIteration)
-    
+
     def _on_consume_async_gen_done(self, _):
         if self._on_finally is not None:
             asyncio.run_coroutine_threadsafe(
@@ -105,7 +110,7 @@ class StageHybridGenerator:
             )
         self.result_ready.set()
         self._stage._responses.discard(self)
-        
+
     async def __aiter__(self):
         if self._is_lazy:
             self._start_consume_async_gen()
@@ -150,6 +155,6 @@ class StageHybridGenerator:
             self._start_consume_async_gen()
         self.result_ready.wait()
         return self._result["result"]
-    
+
     def __call__(self):
         return self.get()

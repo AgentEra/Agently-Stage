@@ -13,20 +13,22 @@
 # limitations under the License.
 
 # Contact us: Developer@Agently.tech
+from __future__ import annotations
 
 import threading
 
+
 class StageResponse:
     def __init__(
-            self,
-            stage,
-            task,
-            *,
-            ignore_exception,
-            on_success,
-            on_error,
-            on_finally,
-        ):
+        self,
+        stage,
+        task,
+        *,
+        ignore_exception,
+        on_success,
+        on_error,
+        on_finally,
+    ):
         self._stage = stage
         self._stage._responses.add(self)
         self._task = task
@@ -40,23 +42,27 @@ class StageResponse:
             "result": None,
         }
         self._task.add_done_callback(self._on_task_done)
-    
+
     def _on_task_done(self, future):
         try:
             result = future.result()
             if isinstance(result, Exception):
                 raise result
-            self._result.update({
-                "status": True,
-                "result": result,
-            })
+            self._result.update(
+                {
+                    "status": True,
+                    "result": result,
+                }
+            )
             if self._on_success:
                 self._stage.go(self._on_success, result)
         except Exception as e:
-            self._result.update({
-                "status": False,
-                "result": e,
-            })
+            self._result.update(
+                {
+                    "status": False,
+                    "result": e,
+                }
+            )
             if self._on_error:
                 self._stage.go(self._on_error, e)
             if self._on_error is None and not self._ignore_exception:
@@ -66,10 +72,10 @@ class StageResponse:
                 self._stage.go(self._on_finally)
             self.result_ready.set()
             self._stage._responses.discard(self)
-    
+
     def is_ready(self):
         return self.result_ready.is_set()
-    
+
     def get(self):
         self.result_ready.wait()
         return self._result["result"]
