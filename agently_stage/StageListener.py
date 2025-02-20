@@ -24,7 +24,6 @@ class StageListener:
                 cls._tack_dict[stage_id].close()
             with cls._lock:
                 cls._tack_dict.pop(stage_id)
-                print(f"_tack_dict: {cls._tack_dict}")
                 if len(cls._tack_dict) == 0:
                     # clean up connections
                     cls._recv_conn.close()
@@ -32,10 +31,6 @@ class StageListener:
                     cls._recv_conn = None
                     cls._send_conn = None
                     break
-
-        print(f"_recv_conn: {cls._recv_conn}")
-        print(f"_send_conn: {cls._send_conn}")
-        print("processor exit")
 
     @classmethod
     def unreg(cls, stage: Stage):
@@ -46,7 +41,7 @@ class StageListener:
         with cls._lock:
             if cls._send_conn is None or cls._recv_conn is None:
                 cls._send_conn, cls._recv_conn = Pipe()
-            if cls._threading is None:
+            if not cls.is_running():
                 cls._threading = threading.Thread(target=cls.processor)
                 cls._threading.start()
             cls._tack_dict[id(stage)] = stage
