@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class StageListener:
-    _threading: threading.Thread | None = None
+    _thread: threading.Thread | None = None
     _lock = threading.Lock()
     _send_conn: Connection[int] | None = None
     _recv_conn: Connection[int] | None = None
@@ -21,7 +21,7 @@ class StageListener:
     def processor(cls):
         while stage_id := cls._recv_conn.recv():
             if cls._tack_dict[stage_id]._dispatch._dispatch_env.ready.is_set():
-                cls._tack_dict[stage_id].close()
+                cls._tack_dict[stage_id]._close()
             with cls._lock:
                 cls._tack_dict.pop(stage_id)
                 if len(cls._tack_dict) == 0:
@@ -42,8 +42,8 @@ class StageListener:
             if cls._send_conn is None or cls._recv_conn is None:
                 cls._send_conn, cls._recv_conn = Pipe()
             if not cls.is_running():
-                cls._threading = threading.Thread(target=cls.processor)
-                cls._threading.start()
+                cls._thread = threading.Thread(target=cls.processor)
+                cls._thread.start()
             cls._tack_dict[id(stage)] = stage
 
     @classmethod
@@ -52,18 +52,19 @@ class StageListener:
 
     @classmethod
     def is_running(cls):
-        return cls._threading.is_alive() if cls._threading else False
+        return cls._thread.is_alive() if cls._thread else False
 
     @classmethod
     def has_stage(cls, stage: Stage):
-        return id(stage) in cls._tack_dict
+        return id(stage) in cls.get_tack_dict()
 
     @classmethod
     def reset(cls):
-        cls._tack_dict = {}
-        if cls._threading:
-            cls._threading = None
-        if cls._send_conn:
-            cls._send_conn = None
-        if cls._recv_conn:
-            cls._recv_conn = None
+        with cls._lock:
+            cls._tack_dict = {}
+            if cls._thread:
+                cls._thread = None
+            if cls._send_conn:
+                cls._send_conn = None
+            if cls._recv_conn:
+                cls._recv_conn = None

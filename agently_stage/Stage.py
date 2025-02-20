@@ -267,10 +267,13 @@ class Stage:
                 except:  # noqa: E722
                     pass
 
-    def close(self):
-        self._closed = True
+    def _close(self):
         self.ensure_responses()
         self._dispatch.close()
+
+    def close(self):
+        self._closed = True
+        StageListener.unreg(self)
 
     @property
     def closed(self):
@@ -294,9 +297,7 @@ class Stage:
         return self
 
     def __exit__(self, type, value, traceback):
-        # 这里会提前做关闭标记，为了防止让用户提交新的任务
-        self._closed = True
-        StageListener.unreg(self)
+        self.close()
 
     # Func
     def func(self, task) -> StageFunction:
