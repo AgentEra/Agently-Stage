@@ -14,7 +14,7 @@ class Counter:
         self.value.append(value)
 
 
-def test_with():
+def test_with_outclose():
     counter = Counter()
 
     with Stage() as stage:
@@ -43,7 +43,3 @@ def test_with():
         "sync_task end 2",
     ]
     assert all(value in counter.value for value in expected_values)
-
-
-if __name__ == "__main__":
-    test_with()

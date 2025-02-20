@@ -26,6 +26,7 @@ from typing import Any, Callable
 from .StageDispatch import StageDispatch
 from .StageFunction import StageFunction
 from .StageHybridGenerator import StageHybridGenerator
+from .StageListener import StageListener
 from .StageResponse import StageResponse
 
 
@@ -47,7 +48,7 @@ class Stage:
         Args:
 
         - `exception_handler`: [Optional] Customize exception handler to handle runtime exception.
-        - `is_daemon`: [Default: True] When an stage instance is set as daemon, it will try to ensure all executed tasks then close its dispatch environment with the main thread. If you come across unexpect task closing, try set `is_daemon` to `False` and close stage instance with `stage.close()` manually.
+        - `is_daemon`: [Default: False] When an stage instance is set as daemon, it will try to ensure all executed tasks then close its dispatch environment with the main thread. If you come across unexpect task closing, try set `is_daemon` to `False` and close stage instance with `stage.close()` manually.
         """
         self._dispatch = StageDispatch(
             reuse_env=reuse_env,
@@ -57,6 +58,8 @@ class Stage:
         )
         self._responses = set()
         self._raise_exception = self._dispatch.raise_exception
+        self._closed = False
+        StageListener.reg(self)
         if is_daemon:
             atexit.register(self.close)
 
@@ -265,6 +268,7 @@ class Stage:
                     pass
 
     def close(self):
+        self._closed = True
         self.ensure_responses()
         self._dispatch.close()
 
@@ -273,7 +277,7 @@ class Stage:
         """
         closed: bool.  True if the stage has been closed.
         """
-        return not self._dispatch._dispatch_env.ready.is_set()
+        return self._closed
 
     def _check_closed(self, msg=None):
         """
@@ -290,7 +294,9 @@ class Stage:
         return self
 
     def __exit__(self, type, value, traceback):
-        self.close()
+        # 这里会提前做关闭标记，为了防止让用户提交新的任务
+        self._closed = True
+        StageListener.unreg(self)
 
     # Func
     def func(self, task) -> StageFunction:
