@@ -253,7 +253,8 @@ class Stage:
         ).get()
 
     def ensure_responses(self):
-        while True:
+        loop_flag = True
+        while loop_flag:
             with self._dispatch._lock:
                 responses = self._responses.copy()
             if not responses:
@@ -261,8 +262,11 @@ class Stage:
             for response in responses:
                 try:
                     response.get()
-                except:  # noqa: E722
+                except Exception:
+                    # TODO: log
                     pass
+                except KeyboardInterrupt:
+                    loop_flag = False
 
     def close(self):
         self.ensure_responses()
