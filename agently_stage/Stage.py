@@ -35,7 +35,7 @@ class Stage:
 
     def __init__(
         self,
-        reuse_env: bool = True,
+        reuse_env: bool = False,
         exception_handler: Callable[[Exception], Any] = None,
         max_workers: int = None,
         is_daemon: bool = False,

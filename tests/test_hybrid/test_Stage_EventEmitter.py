@@ -40,7 +40,8 @@ def test_stage_eventemitter():
 
     responses = emitter.emit("data", "I'll say it again, EventEmitter is Cool!")
 
-    stage.close()
     # Get responses from all event listeners
     for response in responses:
         assert response.get()
+
+    stage.close()

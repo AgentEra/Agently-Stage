@@ -14,6 +14,8 @@ def test_with_stage():
     # NOTE: 在关闭的过程中, 会有一定的延迟
     time.sleep(0.1)
     assert not StageListener.is_running()
+    assert not StageListener.has_stage(stage)
+    assert stage._dispatch._dispatch_env.loop_thread is None
     assert StageListener._recv_conn is None
     assert StageListener._send_conn is None
     assert res.get() == 2

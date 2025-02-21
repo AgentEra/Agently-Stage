@@ -34,6 +34,8 @@ class StageListener:
 
     @classmethod
     def unreg(cls, stage: Stage):
+        assert cls._recv_conn is not None and not cls._recv_conn.closed
+        assert cls._send_conn is not None and not cls._send_conn.closed
         cls._send_conn.send(id(stage))
 
     @classmethod
