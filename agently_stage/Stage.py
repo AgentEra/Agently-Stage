@@ -58,7 +58,7 @@ class Stage:
         )
         self._responses = set()
         self._raise_exception = self._dispatch.raise_exception
-        self._closed = False
+        self._is_closing = False
         StageListener.reg(self)
         if is_daemon:
             atexit.register(self.close)
@@ -123,7 +123,8 @@ class Stage:
         )
         ```
         """
-        self._check_closed()
+        if not self.is_available:
+            raise RuntimeError(f"[Agently Stage] Can not attempt threading operation on unavailable stage.")
         task_class = self._classify_task(task)
 
         # Stage Function
@@ -272,29 +273,31 @@ class Stage:
         self._dispatch.close()
 
     def close(self):
-        self._closed = True
+        self._is_closing = True
         StageListener.unreg(self)
 
     @property
-    def closed(self):
+    def is_closing(self):
         """
-        closed: bool.  True if the stage has been closed.
+        is_closing: bool.  True if stage instance is trying to close and can not accept new task.
         """
-        return self._closed
+        return self._is_closing
 
-    def _check_closed(self, msg=None):
+    @property
+    def is_available(self):
         """
-        Internal: raise a ValueError if stage is closed
+        is_available: bool.  True if stage environment is ready and can accept new task.
         """
-        if self.closed:
-            raise ValueError(
-                "[Agently Stage] Can not attempt threading operation on closed stage." if msg is None else msg
-            )
+        if self._dispatch._dispatch_env.ready.is_set() and not self._is_closing:
+            return True
+        return False
 
     # With
     def __enter__(self):
-        self._check_closed()
-        return self
+        if self.is_available:
+            return self
+        else:
+            raise RuntimeError(f"[Agently Stage] Can not start stage { self } because it is not available.")
 
     def __exit__(self, type, value, traceback):
         self.close()
