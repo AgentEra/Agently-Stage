@@ -48,7 +48,7 @@ uv run pre-commit run --all-files
 uv run ruff check .
 
 # 手动运行 ruff 检查并输出简洁格式
-ruv run ruff check . --output-format concise
+uv run ruff check . --output-format concise
 
 # 运行格式化
 uv run ruff format .
