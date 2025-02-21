@@ -31,9 +31,9 @@ def test_with_outclose():
 
         async_response = stage.go(async_task, "1")
         sync_response = stage.go(sync_task, "2")
-        assert stage.closed is False
+        assert stage.is_closing is False
 
-    assert stage.closed is True
+    assert stage.is_closing is True
     async_response.get()
     sync_response.get()
     expected_values = [
