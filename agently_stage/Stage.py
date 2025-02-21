@@ -257,8 +257,7 @@ class Stage:
         ).get()
 
     def ensure_responses(self):
-        loop_flag = True
-        while loop_flag:
+        while True:
             with self._dispatch._lock:
                 responses = self._responses.copy()
             if not responses:
@@ -269,8 +268,6 @@ class Stage:
                 except Exception:
                     # TODO: log
                     pass
-                except KeyboardInterrupt:
-                    loop_flag = False
 
     def _close(self):
         self.ensure_responses()
