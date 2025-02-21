@@ -26,6 +26,7 @@ from typing import Any, Callable
 from .StageDispatch import StageDispatch
 from .StageFunction import StageFunction
 from .StageHybridGenerator import StageHybridGenerator
+from .StageListener import StageListener
 from .StageResponse import StageResponse
 
 
@@ -34,7 +35,7 @@ class Stage:
 
     def __init__(
         self,
-        reuse_env: bool = True,
+        reuse_env: bool = False,
         exception_handler: Callable[[Exception], Any] = None,
         max_workers: int = None,
         is_daemon: bool = False,
@@ -47,7 +48,7 @@ class Stage:
         Args:
 
         - `exception_handler`: [Optional] Customize exception handler to handle runtime exception.
-        - `is_daemon`: [Default: True] When an stage instance is set as daemon, it will try to ensure all executed tasks then close its dispatch environment with the main thread. If you come across unexpect task closing, try set `is_daemon` to `False` and close stage instance with `stage.close()` manually.
+        - `is_daemon`: [Default: False] When an stage instance is set as daemon, it will try to ensure all executed tasks then close its dispatch environment with the main thread. If you come across unexpect task closing, try set `is_daemon` to `False` and close stage instance with `stage.close()` manually.
         """
         self._dispatch = StageDispatch(
             reuse_env=reuse_env,
@@ -57,6 +58,8 @@ class Stage:
         )
         self._responses = set()
         self._raise_exception = self._dispatch.raise_exception
+        self._is_closing = False
+        StageListener.reg(self)
         if is_daemon:
             atexit.register(self.close)
 
@@ -120,7 +123,8 @@ class Stage:
         )
         ```
         """
-        self._check_closed()
+        if not self.is_available:
+            raise RuntimeError("[Agently Stage] Can not attempt threading operation on unavailable stage.")
         task_class = self._classify_task(task)
 
         # Stage Function
@@ -268,30 +272,33 @@ class Stage:
                 except KeyboardInterrupt:
                     loop_flag = False
 
-    def close(self):
+    def _close(self):
         self.ensure_responses()
         self._dispatch.close()
 
-    @property
-    def closed(self):
-        """
-        closed: bool.  True if the stage has been closed.
-        """
-        return not self._dispatch._dispatch_env.ready.is_set()
+    def close(self):
+        self._is_closing = True
+        StageListener.unreg(self)
 
-    def _check_closed(self, msg=None):
+    @property
+    def is_closing(self):
         """
-        Internal: raise a ValueError if stage is closed
+        is_closing: bool.  True if stage instance is trying to close and can not accept new task.
         """
-        if self.closed:
-            raise ValueError(
-                "[Agently Stage] Can not attempt threading operation on closed stage." if msg is None else msg
-            )
+        return self._is_closing
+
+    @property
+    def is_available(self):
+        """
+        is_available: bool.  True if stage environment is ready and can accept new task.
+        """
+        return self._dispatch._dispatch_env.ready.is_set() and not self._is_closing
 
     # With
     def __enter__(self):
-        self._check_closed()
-        return self
+        if self.is_available:
+            return self
+        raise RuntimeError(f"[Agently Stage] Can not start stage {self} because it is not available.")
 
     def __exit__(self, type, value, traceback):
         self.close()
