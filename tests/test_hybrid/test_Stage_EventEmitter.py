@@ -45,3 +45,24 @@ def test_stage_eventemitter():
         assert response.get()
 
     stage.close()
+
+
+def test_stage_eventemitter_timeout():
+    stage = Stage(auto_close=True)
+    emitter = EventEmitter()
+
+    async def listener(data):
+        print(f"I got: {data}")
+        # You can return value to emitter
+        return True
+
+    emitter.on("data", listener)
+
+    # Submit task that wait to run later
+    stage.go(lambda: emitter.emit("data", "EventEmitter is Cool!"))
+
+    responses = emitter.emit("data", "I'll say it again, EventEmitter is Cool!")
+
+    # Get responses from all event listeners
+    for response in responses:
+        assert response.get()

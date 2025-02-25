@@ -3,9 +3,13 @@ from __future__ import annotations
 import asyncio
 import inspect
 import threading
+import time
+import tracemalloc
 from concurrent.futures import Future, ThreadPoolExecutor
 
-from .StageException import StageException
+# from .StageException import StageException
+
+tracemalloc.start()
 
 
 class StageDispatchEnvironment:
@@ -14,42 +18,93 @@ class StageDispatchEnvironment:
         *,
         exception_handler=None,
         max_workers=None,
+        auto_close_timeout=10,
+        check_interval=2,
         is_daemon=True,
     ):
         self._exception_handler = exception_handler
         self._max_workers = max_workers
-        self._is_daemon = is_daemon
-        self._lock = threading.Lock()
         self.loop = None
         self.loop_thread = None
         self.executor = None
         self.exceptions = None
-        self.ready = threading.Event()
+        self._is_daemon = is_daemon
+        if self._is_daemon:
+            self._active_tasks = 0
+            self._active_tasks_lock = threading.Lock()
+            self._auto_close_timeout = auto_close_timeout  # 无任务状态持续多少秒后自动关闭
+            self._check_interval = check_interval  # 检查间隔（秒）
+            self._last_activity = time.time()
+        self._closing_lock = threading.Lock()
+        self.closing = False
+        self._auto_close_task = None
+        self._shutdown_event = threading.Event()  # 关闭事件标志
+        self._shutdown_monitor_thread = None  # 关闭监控线程
         self._start_loop_thread()
-        self.ready.wait()
-        self._closed = False
+        if self._is_daemon:
+            self._start_shutdown_monitor()  # 启动关闭监控线程
 
     # Start Environment
     def _start_loop(self):
         self.loop = asyncio.new_event_loop()
         self.executor = ThreadPoolExecutor(max_workers=self._max_workers)
         self.loop.set_default_executor(self.executor)
-        self.exceptions = StageException()
-        self.loop.set_exception_handler(self._loop_exception_handler)
+        # self.exceptions = StageException()
+        # self.loop.set_exception_handler(self._loop_exception_handler)
         asyncio.set_event_loop(self.loop)
-        self.loop.call_soon_threadsafe(lambda: self.ready.set())
+        if self._is_daemon:
+            # 启动自动关闭检查任务
+            self._auto_close_task = self.loop.create_task(self._auto_close_checker())
         self.loop.run_forever()
 
     def _start_loop_thread(self):
-        with self._lock:
-            if not self.ready.is_set():
-                self.loop_thread = threading.Thread(
-                    target=self._start_loop,
-                    name="AgentlyStageDispatchThread",
-                    daemon=self._is_daemon,
-                )
-                self.loop_thread.start()
-                self.ready.wait()
+        self.loop_thread = threading.Thread(target=self._start_loop, name="AgentlyStageDispatchThread")
+        self.loop_thread.start()
+        while self.loop is None or not self.loop.is_running():
+            time.sleep(0.1)
+
+    def _start_shutdown_monitor(self):
+        """启动一个监控线程，用于在需要时安全地关闭事件循环"""
+        self._shutdown_monitor_thread = threading.Thread(
+            target=self._shutdown_monitor_func, name="shutdown_monitor_thread", daemon=True
+        )
+        self._shutdown_monitor_thread.start()
+
+    def _shutdown_monitor_func(self):
+        """监控线程函数，等待关闭信号并执行关闭操作"""
+        self._shutdown_event.wait()  # 等待关闭信号
+        if not self.closing:
+            self.close()  # 在单独的线程中执行关闭操作
+
+    async def _auto_close_checker(self):
+        """定期检查是否有活跃任务，如果长时间无任务则自动关闭"""
+        try:
+            while not self.closing:
+                await asyncio.sleep(self._check_interval)
+
+                # 检查是否有活跃任务
+                with self._active_tasks_lock:
+                    active_count = self._active_tasks
+
+                tasks = [
+                    t
+                    for t in asyncio.all_tasks(self.loop)
+                    if t is not asyncio.current_task(self.loop) and t is not self._auto_close_task
+                ]
+
+                # 如果没有活跃任务且事件循环中没有其他任务
+                if active_count == 0 and len(tasks) == 0:
+                    time_since_last = time.time() - self._last_activity
+                    if time_since_last >= self._auto_close_timeout:
+                        print(f"空闲时间超过 {self._auto_close_timeout}秒，自动关闭")
+                        # 触发关闭事件而不是直接调用close
+                        self._shutdown_event.set()
+                        break
+                else:
+                    # 如果有活动，更新最后活动时间
+                    self._last_activity = time.time()
+        except Exception as e:
+            print(f"自动关闭检查器出错: {e}")
 
     # Handle Exception
     def _loop_exception_handler(self, loop, context):
@@ -73,40 +128,49 @@ class StageDispatchEnvironment:
         self.loop.call_soon(_raise_exception, e)
 
     def close(self):
-        self._closed = True
-        if self.ready.is_set():
-            with self._lock:
-                # Close all pending
-                if self.loop:
-                    pending = asyncio.all_tasks(self.loop)
-                    if pending:
-                        for task in pending:
-                            task.cancel()
-                        try:
-                            asyncio.run_coroutine_threadsafe(
-                                asyncio.gather(*pending, return_exceptions=True),
-                                self.loop,
-                            )
-                        except:  # noqa: E722
-                            pass
-                # Stop loop
-                if self.loop and self.loop.is_running():
-                    self.loop.call_soon_threadsafe(self.loop.stop)
-                # Join Thread
-                if self.loop_thread and self.loop_thread.is_alive():
-                    self.loop_thread.join()
-                    self.loop_thread = None
-                # Close loop
-                if self.loop and not self.loop.is_closed():
-                    self.loop.close()
-                # Shutdown executor
-                self.executor.shutdown(wait=True)
-                # Clean
-                self.loop_thread = None
-                self.loop = None
-                self.executor = None
-                self.exceptions = None
-                self.ready.clear()
+        with self._closing_lock:
+            if self.closing:
+                return
+
+            self.closing = True
+        print("run close")
+
+        # 等待所有任务完成并关闭事件循环
+        future = asyncio.run_coroutine_threadsafe(self._shutdown_loop(), self.loop)
+        try:
+            # 给一个超时，以防有些任务永远不会结束
+            future.result(timeout=None)  # 5秒超时
+        except TimeoutError:
+            print("Warning: Some tasks did not complete within timeout")
+
+        # 现在可以安全停止事件循环
+        if self.loop.is_running():
+            self.loop.call_soon_threadsafe(self.loop.stop)
+        self.loop_thread.join()
+        self.loop.close()
+
+        # 关闭线程池和等待线程结束
+        self.executor.shutdown(wait=True)
+        # 这是无意义的, 线程已经结束了
+        self.loop_thread.join()
+        print("所有资源已释放")
+
+    async def _shutdown_loop(self):
+        """安全地关闭事件循环，等待所有任务完成"""
+        # 获取所有待处理的任务
+        tasks = [
+            t
+            for t in asyncio.all_tasks(self.loop)
+            if t is not asyncio.current_task(self.loop) and t is not self._auto_close_task
+        ]
+
+        if not tasks:
+            return
+
+        print(f"等待 {len(tasks)} 个任务完成")
+        # 等待所有任务完成
+        await asyncio.gather(*tasks, return_exceptions=True)
+        print("所有任务已完成")
 
 
 class StageDispatch:
@@ -138,7 +202,7 @@ class StageDispatch:
     def __init__(
         self,
         *,
-        reuse_env=True,
+        reuse_env=False,
         exception_handler=None,
         max_workers=None,
         is_daemon=True,
@@ -151,7 +215,6 @@ class StageDispatch:
                         StageDispatch._dispatch_env = StageDispatchEnvironment(
                             exception_handler=exception_handler,
                             max_workers=max_workers,
-                            is_daemon=is_daemon,
                         )
             self._dispatch_env = StageDispatch._dispatch_env
         else:
@@ -163,19 +226,48 @@ class StageDispatch:
         self.raise_exception = self._dispatch_env.raise_exception
 
     def run_sync_function(self, func, *args, **kwargs):
-        task = self.to_executor(func, *args, **kwargs)
+        if self._dispatch_env._is_daemon:
+            with self._dispatch_env._active_tasks_lock:
+                self._dispatch_env._active_tasks += 1
+        task = self.to_executor(self._wrap_sync_func, func, *args, **kwargs)
         return task
 
+    def _wrap_sync_func(self, func, *args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        finally:
+            if self._dispatch_env._is_daemon:
+                with self._dispatch_env._active_tasks_lock:
+                    self._dispatch_env._active_tasks -= 1
+
     def run_async_function(self, func, *args, **kwargs):
+        if self._dispatch_env._is_daemon:
+            with self._dispatch_env._active_tasks_lock:
+                self._dispatch_env._active_tasks += 1
         if inspect.iscoroutinefunction(func):
             coro = func(*args, **kwargs)
         elif inspect.iscoroutine(func):
             coro = func
+        else:
+            if self._dispatch_env._is_daemon:
+                with self._dispatch_env._active_tasks_lock:
+                    self._dispatch_env._active_tasks -= 1
+            raise ValueError("func must be a coroutine function or coroutine")
+
         task = asyncio.run_coroutine_threadsafe(
-            coro,
+            self._wrap_async_func(coro),
             loop=self._dispatch_env.loop,
         )
+        self._dispatch_env._last_activity = time.time()
         return task
+
+    async def _wrap_async_func(self, coro):
+        try:
+            return await coro
+        finally:
+            if self._dispatch_env._is_daemon:
+                with self._dispatch_env._active_tasks_lock:
+                    self._dispatch_env._active_tasks -= 1
 
     def to_executor(self, func, *args, **kwargs):
         try:
