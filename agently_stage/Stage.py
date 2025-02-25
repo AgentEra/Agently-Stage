@@ -59,7 +59,7 @@ class Stage:
         )
         self._responses = set()
         self._raise_exception = self._dispatch.raise_exception
-        # self._is_closing = False
+        self._is_closing = False
         # StageListener.reg(self)
         # if is_daemon:
         #     atexit.register(self.close)
@@ -274,16 +274,23 @@ class Stage:
     #     self._dispatch.close()
 
     def close(self):
-        # self._is_closing = True
+        self._is_closing = True
         # StageListener.unreg(self)
         self._dispatch.close()
+
+    @property
+    def is_closing(self):
+        """
+        is_closing: bool.  True if stage instance is trying to close and can not accept new task.
+        """
+        return self._is_closing
 
     @property
     def is_available(self):
         """
         is_available: bool.  True if stage environment is ready and can accept new task.
         """
-        return not self._dispatch._dispatch_env.closing
+        return not self._dispatch._dispatch_env.closing and not self._is_closing
 
     # With
     def __enter__(self):

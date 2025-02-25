@@ -151,8 +151,6 @@ class StageDispatchEnvironment:
 
         # 关闭线程池和等待线程结束
         self.executor.shutdown(wait=True)
-        # 这是无意义的, 线程已经结束了
-        self.loop_thread.join()
         print("所有资源已释放")
 
     async def _shutdown_loop(self):
