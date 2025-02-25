@@ -41,8 +41,7 @@ class StageDispatchEnvironment:
         self._shutdown_event = threading.Event()  # 关闭事件标志
         self._shutdown_monitor_thread = None  # 关闭监控线程
         self._start_loop_thread()
-        if self._is_daemon:
-            self._start_shutdown_monitor()  # 启动关闭监控线程
+        self._start_shutdown_monitor()  # 启动关闭监控线程
 
     # Start Environment
     def _start_loop(self):
@@ -288,4 +287,4 @@ class StageDispatch:
                     StageDispatch._dispatch_env.close()
                     StageDispatch._instance = None
         """
-        self._dispatch_env.close()
+        self._dispatch_env._shutdown_event.set()
