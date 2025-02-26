@@ -51,10 +51,11 @@ class Stage:
         - `exception_handler`: [Optional] Customize exception handler to handle runtime exception.
         - `is_daemon`: [Default: False] When an stage instance is set as daemon, it will try to ensure all executed tasks then close its dispatch environment with the main thread. If you come across unexpect task closing, try set `is_daemon` to `False` and close stage instance with `stage.close()` manually.
         """
+        self.max_workers = max_workers
         self._dispatch = StageDispatch(
             reuse_env=reuse_env,
             exception_handler=exception_handler,
-            max_workers=max_workers,
+            max_workers=self.max_workers,
             is_daemon=auto_close,
         )
         self._responses = set()
