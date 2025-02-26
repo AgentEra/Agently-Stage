@@ -48,14 +48,14 @@ class StageResponse:
         stage: Stage,
         task: Future,
         *,
-        ignore_exception,
-        on_success,
-        on_error,
-        on_finally,
+        ignore_exception: bool = False,
+        on_success: Callable = None,
+        on_error: Callable = None,
+        on_finally: Callable = None,
     ):
         self._stage = stage
 
-        # 默认值 copy 自 ThreadPoolExecutor.__init__
+        # 默认值 copy 自 ThreadPoolExecutor.__init__, TODO: 在 3.13 版本中应该使用 process_cpu_count()
         max_workers = self._stage.max_workers if self._stage.max_workers else min(32, (os.cpu_count() or 1) + 4)
         # 计算非空回调函数的数量
         callback_count = sum(1 for cb in [on_success, on_error, on_finally] if cb is not None)
@@ -77,6 +77,7 @@ class StageResponse:
         if on_finally is not None:
             self._finally_func_data = CallbackFunctionData(func=on_finally, event=threading.Event())
             self._stage.go(self._go_callback_function, self._finally_func_data)
+
         self.result_ready = threading.Event()
         self._result = TaskResult()
         self._task.add_done_callback(self._on_task_done)
@@ -97,6 +98,9 @@ class StageResponse:
                 # 始终设置参数，如果result为None则使用空元组
                 self._success_func_data.args = (result,) if result is not None else ()
                 self._success_func_data.event.set()
+            if getattr(self, "_error_func_data", None):
+                self._error_func_data.run = False
+                self._error_func_data.event.set()
         except Exception as e:
             self._result = TaskResult(status=False, result=e)
 
