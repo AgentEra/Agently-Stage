@@ -22,6 +22,7 @@ Issues = "https://github.com/AgentEra/Agently-Stage/issues"
 [dependency-groups]
 dev = [
     "pytest>=8.3.4",
+    "pytest-benchmark>=5.1.0",
     "pytest-rerunfailures>=15.0",
 ]
 
