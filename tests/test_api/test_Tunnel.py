@@ -17,7 +17,7 @@ def test_put_get():
 
 
 def test_not_get():
-    tunnel = Tunnel(timeout=1, lazy=False)
+    tunnel = Tunnel(timeout=1)
     tunnel.put(1)
     # NOTE: 如果没有正常结束，说明有问题
 

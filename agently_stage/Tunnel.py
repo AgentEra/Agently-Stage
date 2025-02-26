@@ -55,21 +55,17 @@ class Tunnel:
         wait_interval: float = 0.1,
         timeout: int = 10,
         timeout_after_start: bool = True,
-        lazy: bool = True,
     ):
         self._wait_interval = wait_interval
         self._timeout = timeout
         self._timeout_after_start = timeout_after_start
         self._started = False
-        self._stage = Stage()
         self._data_queue = queue.Queue()
-        self._close_event = threading.Event()
+        self._creage_generator_lock = threading.Lock()
         self._NODATA = object()
-        # NOTE: 如果只有 put, 没有使用到 get, 那么可能会导致线程不回收
-        self._lazy = lazy
-        self.generator = self._create_generator()
+        self.generator = None
 
-    def _create_generator(self):
+    def _create_generator(self, stage: Stage):
         async def run_hybrid_generator():
             start_time = time.time()
             while True:
@@ -91,24 +87,34 @@ class Tunnel:
                         break
                 if data is not self._NODATA:
                     yield data
-            self._stage.close()
+            stage.close()
 
-        return self._stage.go(run_hybrid_generator, lazy=self._lazy)
+        return stage.go(run_hybrid_generator)
+
+    def _create_generator_stage(self):
+        with self._creage_generator_lock:
+            if self.generator is None:
+                self.generator = self._create_generator(Stage())
 
     def get_generator(self):
+        self._create_generator_stage()
         return self.generator
 
     def __iter__(self):
+        self._create_generator_stage()
         yield from self.generator
 
     async def __aiter__(self):
+        self._create_generator_stage()
         async for item in self.generator:
             yield item
 
     def __call__(self):
+        self._create_generator_stage()
         return self.generator()
 
     def get(self):
+        self._create_generator_stage()
         return self.generator.get()
 
     def put(self, data: any):
