@@ -42,7 +42,7 @@ class EventEmitter:
         self._listeners = {}
         self._once = {}
 
-    def add_listener(self, event: str, listener: Callable[[any], any]):
+    def add_listener(self, event: str, listener: Callable[[any], any]) -> Callable:
         """
         Add a listener to event.
 
@@ -57,6 +57,23 @@ class EventEmitter:
             self._listeners.update({event: []})
         if listener not in self._listeners[event]:
             self._listeners[event].append(listener)
+        return listener
+
+    def add_once_listener(self, event: str, listener: Callable[[any], any]) -> Callable:
+        """
+        Add a listener that will only run once to event.
+
+        Args:
+        - `event` (str): Event string to be listened.
+        - `listener` (function(*args, **kwargs)->any): Listener/handler that will only run once to handle data from event that will be emitted, after that this listener will be removed.
+
+        Return:
+        - `listener`
+        """
+        if event not in self._once:
+            self._once.update({event: []})
+        if listener not in self._listeners[event] and listener not in self._once[event]:
+            self._once[event].append(listener)
         return listener
 
     def remove_listener(self, event: str, listener: Callable[[any], any]):
@@ -82,18 +99,25 @@ class EventEmitter:
         for event in event_list:
             self._listeners.update({event: []})
 
-    def on(self, event: str, listener: Callable[[any], any]):
+    def on(self, event: str, listener: Callable[[any], any] = None) -> Callable:
         """
         Alias to `.add_listener()`. Add a listener to event.
 
         Args:
         - `event` (str): Event string to be listened.
-        - `listener` (function(*args, **kwargs)->any): Listener/handler to handle data from event that will be emitted.
+        - `listener` (function(*args, **kwargs)->any, optional): Listener/handler to handle data from event that will be emitted. Can be used as a listener function decorator if not provided.
 
         Return:
-        - `listener`
+        - `listener` if used as method
+        - `decorator` if used as a decorator
         """
-        return self.add_listener(event, listener)
+        if listener is not None:
+            return self.add_listener(event, listener)
+
+        def decorator(func: Callable[[any], any]) -> Callable:
+            return self.add_listener(event, func)
+
+        return decorator
 
     def off(self, event: str, listener: Callable[[any], any]):
         """
@@ -105,22 +129,25 @@ class EventEmitter:
         """
         return self.remove_listener(event, listener)
 
-    def once(self, event: str, listener: Callable[[any], any]):
+    def once(self, event: str, listener: Callable[[any], any] = None):
         """
-        Add a listener that will only run once to event.
+        Alias to `.add_once_listener()`. Add a listener that will only run once to event.
 
         Args:
         - `event` (str): Event string to be listened.
-        - `listener` (function(*args, **kwargs)->any): Listener/handler that will only run once to handle data from event that will be emitted, after that this listener will be removed.
+        - `listener` (function(*args, **kwargs)->any): Listener/handler that will only run once to handle data from event that will be emitted, after that this listener will be removed. Can be used as a listener function decorator if not provided.
 
         Return:
-        - `listener`
+        - `listener` if used as method
+        - `decorator` if used as a decorator
         """
-        if event not in self._once:
-            self._once.update({event: []})
-        if listener not in self._listeners[event] and listener not in self._once[event]:
-            self._once[event].append(listener)
-        return listener
+        if listener is not None:
+            return self.add_once_listener(event, listener)
+
+        def decorator(func: Callable[[any], any]) -> Callable:
+            return self.add_once_listener(event, func)
+
+        return decorator
 
     def listener_count(self, event: str) -> int:
         """
@@ -134,12 +161,13 @@ class EventEmitter:
         """
         return len(self._listeners[event]) + len(self._once[event])
 
-    def emit(self, event: str, *args, **kwargs):
+    def emit(self, event: str, *args, wait: bool = False, **kwargs):
         """
         Emit event with args and kwargs.
 
         Args:
         - `event` (str): Event string to be emit.
+        - `wait` (bool): Wait until all handlers done or not, defaults to False.
         - `*args`, `**kwargs`: Args and kwargs that can be accepted by listeners.
 
         Return:
@@ -154,7 +182,10 @@ class EventEmitter:
             for listener in self._once[event]:
                 listeners_to_execute.append((listener, args, kwargs))
             self._once.update({event: []})
-        with Stage() as stage:
+        with Stage(reuse_env=True) as stage:
             for listener, args, kwargs in listeners_to_execute:
                 on_going_listeners.append(stage.go(listener, *args, **kwargs))
+            if wait:
+                for listener_response in on_going_listeners:
+                    listener_response.get()
         return on_going_listeners
