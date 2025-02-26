@@ -102,6 +102,9 @@ class StageDispatchEnvironment:
                 else:
                     # 如果有活动，更新最后活动时间
                     self._last_activity = time.time()
+        except asyncio.CancelledError:
+            # 任务被取消时正常退出
+            print("自动关闭检查器已取消")
         except Exception as e:
             print(f"自动关闭检查器出错: {e}")
 
@@ -154,12 +157,16 @@ class StageDispatchEnvironment:
 
     async def _shutdown_loop(self):
         """安全地关闭事件循环，等待所有任务完成"""
+        # 首先取消自动关闭检查任务
+        if self._auto_close_task and not self._auto_close_task.done():
+            self._auto_close_task.cancel()
+            try:
+                await asyncio.wait_for(self._auto_close_task, timeout=1.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                pass  # 这是预期的行为
+
         # 获取所有待处理的任务
-        tasks = [
-            t
-            for t in asyncio.all_tasks(self.loop)
-            if t is not asyncio.current_task(self.loop) and t is not self._auto_close_task
-        ]
+        tasks = [t for t in asyncio.all_tasks(self.loop) if t is not asyncio.current_task(self.loop)]
 
         if not tasks:
             return
@@ -206,9 +213,9 @@ class StageDispatch:
     ):
         self._all_tasks = set()
         if reuse_env:
-            if StageDispatch._dispatch_env is None or StageDispatch._dispatch_env._closed:
+            if StageDispatch._dispatch_env is None or StageDispatch._dispatch_env.closing:
                 with StageDispatch._lock:
-                    if StageDispatch._dispatch_env is None or StageDispatch._dispatch_env._closed:
+                    if StageDispatch._dispatch_env is None or StageDispatch._dispatch_env.closing:
                         StageDispatch._dispatch_env = StageDispatchEnvironment(
                             exception_handler=exception_handler,
                             max_workers=max_workers,
