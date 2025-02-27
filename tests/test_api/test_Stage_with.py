@@ -173,6 +173,7 @@ def test_stage_task_decorator_cancel():
         stage1.go(lambda: counter.increment(task.wait()))
 
     task.cancel()
+    assert task.is_cancel() is True
     stage.close()
     assert len(counter.value) == 0
 

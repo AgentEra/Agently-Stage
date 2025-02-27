@@ -46,7 +46,7 @@ class StageTask:
     def wait(self, timeout=None, no_exception=True):
         try:
             self._is_started.wait(timeout=timeout)
-            if self._response:
+            if not self._cancel and self._response:
                 return self._response.get()
         except Exception as e:
             if no_exception:
@@ -61,7 +61,7 @@ class StageTask:
 
     def cancel(self):
         self._is_started.set()
-        self._cancel = False
+        self._cancel = True
         return self
 
     def is_cancel(self):
