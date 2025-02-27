@@ -46,7 +46,7 @@ class StageDispatchEnvironment:
     # Start Environment
     def _start_loop(self):
         self.loop = asyncio.new_event_loop()
-        self.executor = ThreadPoolExecutor(max_workers=self._max_workers)
+        self.executor = ThreadPoolExecutor(max_workers=self._max_workers, thread_name_prefix="AgentlyStageThreadPool")
         self.loop.set_default_executor(self.executor)
         # self.exceptions = StageException()
         # self.loop.set_exception_handler(self._loop_exception_handler)

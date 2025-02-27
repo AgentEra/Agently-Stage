@@ -16,6 +16,12 @@
 from __future__ import annotations
 
 import threading
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from concurrent.futures import Future
+
+    from . import Stage
 
 
 class StageResponse:
@@ -29,9 +35,9 @@ class StageResponse:
         on_error,
         on_finally,
     ):
-        self._stage = stage
+        self._stage: Stage = stage
         self._stage._responses.add(self)
-        self._task = task
+        self._task: Future = task
         self._ignore_exception = ignore_exception
         self._on_success = on_success
         self._on_error = on_error
