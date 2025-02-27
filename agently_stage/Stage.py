@@ -265,7 +265,8 @@ class Stage:
             for response in responses:
                 try:
                     response.get()
-                except:  # noqa: E722
+                except Exception:
+                    # TODO: log
                     pass
 
     def _close(self):
