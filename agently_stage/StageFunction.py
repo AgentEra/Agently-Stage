@@ -16,14 +16,19 @@
 from __future__ import annotations
 
 import threading
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from agently_stage import Stage
 
 
-class StageFunction:
-    def __init__(self, stage, func):
+class StageTask:
+    def __init__(self, stage: Stage, func: Callable):
         self._stage = stage
         self._func = func
         self._response = None
         self._is_started = threading.Event()
+        self._cancel = False
 
     def __call__(self, *args, **kwargs):
         return self.go(*args, **kwargs)
@@ -41,14 +46,38 @@ class StageFunction:
     def wait(self, timeout=None, no_exception=True):
         try:
             self._is_started.wait(timeout=timeout)
-            return self._response.get()
+            if self._response:
+                return self._response.get()
         except Exception as e:
             if no_exception:
                 return None
-            else:
-                raise e
+            raise e
 
     def reset(self):
         self._is_started.clear()
         self._response = None
+        self._cancel = False
         return self
+
+    def cancel(self):
+        self._is_started.set()
+        self._cancel = False
+        return self
+
+    def is_cancel(self):
+        return self._cancel
+
+
+class StageFunction:
+    def __init__(self, stage: Stage, func: Callable):
+        self._stage = stage
+        self._func = func
+
+    def __call__(self, *args, **kwargs):
+        return self.go(*args, **kwargs)
+
+    def go(self, *args, **kwargs):
+        return self._stage.go(self._func, *args, **kwargs)
+
+    def get(self, *args, **kwargs):
+        return self.go(*args, **kwargs).get()
