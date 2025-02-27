@@ -19,6 +19,7 @@ import asyncio
 import queue
 import threading
 import time
+import warnings
 
 from .Stage import Stage
 
@@ -59,11 +60,10 @@ class Tunnel:
         self._timeout = timeout
         self._timeout_after_start = timeout_after_start
         self._started = False
-        self._stage = Stage()
         self._data_queue = queue.Queue()
-        self._close_event = threading.Event()
+        self._creage_generator_lock = threading.Lock()
         self._NODATA = object()
-        self.generator = self._create_generator()
+        self.generator = None
 
     def _create_generator(self):
         async def run_hybrid_generator():
@@ -88,22 +88,33 @@ class Tunnel:
                 if data is not self._NODATA:
                     yield data
 
-        return self._stage.go(run_hybrid_generator, lazy=True)
+        with Stage() as stage:
+            return stage.go(run_hybrid_generator())
+
+    def _create_generator_stage(self):
+        with self._creage_generator_lock:
+            if self.generator is None:
+                self.generator = self._create_generator()
 
     def get_generator(self):
+        self._create_generator_stage()
         return self.generator
 
     def __iter__(self):
+        self._create_generator_stage()
         yield from self.generator
 
     async def __aiter__(self):
+        self._create_generator_stage()
         async for item in self.generator:
             yield item
 
     def __call__(self):
+        self._create_generator_stage()
         return self.generator()
 
     def get(self):
+        self._create_generator_stage()
         return self.generator.get()
 
     def put(self, data: any):
@@ -113,6 +124,9 @@ class Tunnel:
         Args:
         - `data` (any)
         """
+        if not self._data_queue.empty() and self._data_queue.queue[-1] is StopIteration:
+            warnings.warn("You can't put data into tunnel after put_stop()", RuntimeWarning, stacklevel=2)
+            return
         self._data_queue.put(data)
 
     def put_stop(self):
