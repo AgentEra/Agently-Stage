@@ -65,7 +65,7 @@ class Tunnel:
         self._NODATA = object()
         self.generator = None
 
-    def _create_generator(self, stage: Stage):
+    def _create_generator(self):
         async def run_hybrid_generator():
             start_time = time.time()
             while True:
@@ -87,14 +87,14 @@ class Tunnel:
                         break
                 if data is not self._NODATA:
                     yield data
-            stage.close()
 
-        return stage.go(run_hybrid_generator)
+        with Stage() as stage:
+            return stage.go(run_hybrid_generator())
 
     def _create_generator_stage(self):
         with self._creage_generator_lock:
             if self.generator is None:
-                self.generator = self._create_generator(Stage())
+                self.generator = self._create_generator()
 
     def get_generator(self):
         self._create_generator_stage()

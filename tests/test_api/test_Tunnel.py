@@ -5,8 +5,6 @@ import time
 
 from agently_stage import Stage, Tunnel
 
-# NOTE: pytest 的 timeout 是不会管其他线程的，所以不会报错
-
 
 def test_put_get():
     tunnel = Tunnel()
