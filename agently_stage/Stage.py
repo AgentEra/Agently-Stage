@@ -26,7 +26,8 @@ from typing import Any, Callable
 from .StageDispatch import StageDispatch
 from .StageFunction import StageFunction
 from .StageHybridGenerator import StageHybridGenerator
-from .StageListener import StageListener
+
+# from .StageListener import StageListener
 from .StageResponse import StageResponse
 
 
@@ -38,7 +39,7 @@ class Stage:
         reuse_env: bool = False,
         exception_handler: Callable[[Exception], Any] = None,
         max_workers: int = None,
-        is_daemon: bool = False,
+        auto_close: bool = False,
     ):
         """
         Agently Stage create an stage instance to help you execute sync and async tasks in its dispatch environment outside the main thread.
@@ -54,14 +55,14 @@ class Stage:
             reuse_env=reuse_env,
             exception_handler=exception_handler,
             max_workers=max_workers,
-            is_daemon=is_daemon,
+            is_daemon=auto_close,
         )
         self._responses = set()
         self._raise_exception = self._dispatch.raise_exception
         self._is_closing = False
-        StageListener.reg(self)
-        if is_daemon:
-            atexit.register(self.close)
+        # StageListener.reg(self)
+        # if is_daemon:
+        #     atexit.register(self.close)
 
     # Basic
     def _classify_task(self, task):
@@ -256,26 +257,27 @@ class Stage:
             **kwargs,
         ).get()
 
-    def ensure_responses(self):
-        while True:
-            with self._dispatch._lock:
-                responses = self._responses.copy()
-            if not responses:
-                break
-            for response in responses:
-                try:
-                    response.get()
-                except Exception:
-                    # TODO: log
-                    pass
+    # def ensure_responses(self):
+    #     while True:
+    #         with self._dispatch._lock:
+    #             responses = self._responses.copy()
+    #         if not responses:
+    #             break
+    #         for response in responses:
+    #             try:
+    #                 response.get()
+    #             except Exception:
+    #                 # TODO: log
+    #                 pass
 
-    def _close(self):
-        self.ensure_responses()
-        self._dispatch.close()
+    # def _close(self):
+    #     self.ensure_responses()
+    #     self._dispatch.close()
 
     def close(self):
         self._is_closing = True
-        StageListener.unreg(self)
+        # StageListener.unreg(self)
+        self._dispatch.close()
 
     @property
     def is_closing(self):
@@ -289,7 +291,7 @@ class Stage:
         """
         is_available: bool.  True if stage environment is ready and can accept new task.
         """
-        return self._dispatch._dispatch_env.ready.is_set() and not self._is_closing
+        return not self._dispatch._dispatch_env.closing and not self._is_closing
 
     # With
     def __enter__(self):
