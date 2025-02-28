@@ -7,6 +7,8 @@ import time
 import tracemalloc
 from concurrent.futures import Future, ThreadPoolExecutor
 
+from .TaskThreadPool import TaskThreadPool
+
 # from .StageException import StageException
 
 tracemalloc.start()
@@ -38,10 +40,12 @@ class StageDispatchEnvironment:
         self._closing_lock = threading.Lock()
         self.closing = False
         self._auto_close_task = None
-        self._shutdown_event = threading.Event()  # 关闭事件标志
         self._shutdown_monitor_thread = None  # 关闭监控线程
+        self._loop_ready_event = threading.Event()  # 事件循环准备就绪事件
         self._start_loop_thread()
-        self._start_shutdown_monitor()  # 启动关闭监控线程
+        if self._is_daemon:
+            self._shutdown_event = threading.Event()  # 关闭事件标志
+            self._start_shutdown_monitor()  # 启动关闭监控线程
 
     # Start Environment
     def _start_loop(self):
@@ -54,13 +58,14 @@ class StageDispatchEnvironment:
         if self._is_daemon:
             # 启动自动关闭检查任务
             self._auto_close_task = self.loop.create_task(self._auto_close_checker())
+        self._loop_ready_event.set()  # 事件循环准备就绪
         self.loop.run_forever()
 
     def _start_loop_thread(self):
         self.loop_thread = threading.Thread(target=self._start_loop, name="AgentlyStageDispatchThread")
         self.loop_thread.start()
-        while self.loop is None or not self.loop.is_running():
-            time.sleep(0.1)
+        self._loop_ready_event.wait()  # 等待事件循环准备就绪
+        del self._loop_ready_event  # 删除事件循环准备就绪事件
 
     def _start_shutdown_monitor(self):
         """启动一个监控线程，用于在需要时安全地关闭事件循环"""
@@ -294,4 +299,4 @@ class StageDispatch:
                     StageDispatch._dispatch_env.close()
                     StageDispatch._instance = None
         """
-        self._dispatch_env._shutdown_event.set()
+        TaskThreadPool().submit(self._dispatch_env.close)
