@@ -266,7 +266,8 @@ class Stage:
     #         for response in responses:
     #             try:
     #                 response.get()
-    #             except:
+    #             except Exception:
+    #                 # TODO: log
     #                 pass
 
     # def _close(self):
