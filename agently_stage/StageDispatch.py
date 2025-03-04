@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import threading
 import warnings
+from asyncio import AbstractEventLoop
 from concurrent.futures import Future, ThreadPoolExecutor
 
 from .StageException import StageException
@@ -33,7 +34,6 @@ class StageDispatchEnvironment:
             self.auto_close_event: threading.Event | None = None
         self._closing_lock = threading.Lock()
         self.closing = False
-        self._shutdown_monitor_thread = None  # 关闭监控线程
         self._loop_ready_event = threading.Event()  # 事件循环准备就绪事件
         self._start_loop_thread()
         if self.auto_close:
@@ -59,10 +59,10 @@ class StageDispatchEnvironment:
 
     def _start_shutdown_monitor(self):
         """Start a monitoring thread to safely close the event loop if needed"""
-        self._shutdown_monitor_thread = threading.Thread(
+        shutdown_monitor_thread = threading.Thread(
             target=self._shutdown_monitor_func, name="shutdown_monitor_thread", daemon=True
         )
-        self._shutdown_monitor_thread.start()
+        shutdown_monitor_thread.start()
 
     def _shutdown_monitor_func(self):
         """Monitor the thread function, wait for the shutdown signal and perform the shutdown operation"""
@@ -82,7 +82,7 @@ class StageDispatchEnvironment:
         self._shutdown_event.set()  # 设置关闭事件标志
 
     # Handle Exception
-    def _loop_exception_handler(self, loop, context):
+    def _loop_exception_handler(self, loop: AbstractEventLoop, context):
         if self._exception_handler is not None:
             if inspect.iscoroutinefunction(self._exception_handler):
                 loop.call_soon_threadsafe(
@@ -111,11 +111,7 @@ class StageDispatchEnvironment:
 
         # 等待所有任务完成并关闭事件循环
         future = asyncio.run_coroutine_threadsafe(self._shutdown_loop(), self.loop)
-        try:
-            # 给一个超时，以防有些任务永远不会结束
-            future.result(timeout=None)  # 5秒超时
-        except TimeoutError:
-            print("Warning: Some tasks did not complete within timeout")
+        future.result()
 
         # 现在可以安全停止事件循环
         if self.loop.is_running():
