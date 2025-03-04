@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import inspect
 import threading
-import time
 import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
 
