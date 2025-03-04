@@ -58,20 +58,20 @@ class StageDispatchEnvironment:
         del self._loop_ready_event  # 删除事件循环准备就绪事件
 
     def _start_shutdown_monitor(self):
-        """启动一个监控线程，用于在需要时安全地关闭事件循环"""
+        """Start a monitoring thread to safely close the event loop if needed"""
         self._shutdown_monitor_thread = threading.Thread(
             target=self._shutdown_monitor_func, name="shutdown_monitor_thread", daemon=True
         )
         self._shutdown_monitor_thread.start()
 
     def _shutdown_monitor_func(self):
-        """监控线程函数，等待关闭信号并执行关闭操作"""
+        """Monitor the thread function, wait for the shutdown signal and perform the shutdown operation"""
         self._shutdown_event.wait()  # 等待关闭信号
         if not self.closing:
             self.close()  # 在单独的线程中执行关闭操作
 
     async def auto_close_checker(self):
-        """定期检查是否有活跃任务，如果长时间无任务则自动关闭"""
+        """check if the event loop can be closed"""
         self.auto_close_event = threading.Event()
         result = self.auto_close_event.wait(self._auto_close_timeout)
         if result:
