@@ -33,7 +33,6 @@ class StageDispatchEnvironment:
             self.auto_close_event: threading.Event | None = None
         self._closing_lock = threading.Lock()
         self.closing = False
-        self._auto_close_task = None
         self._shutdown_monitor_thread = None  # 关闭监控线程
         self._loop_ready_event = threading.Event()  # 事件循环准备就绪事件
         self._start_loop_thread()
@@ -49,9 +48,6 @@ class StageDispatchEnvironment:
         self.exceptions = StageException()
         self.loop.set_exception_handler(self._loop_exception_handler)
         asyncio.set_event_loop(self.loop)
-        # if self._is_daemon:
-        #     # 启动自动关闭检查任务
-        #     self._auto_close_task = self.loop.create_task(self.auto_close_checker())
         self._loop_ready_event.set()  # 事件循环准备就绪
         self.loop.run_forever()
 
@@ -79,11 +75,10 @@ class StageDispatchEnvironment:
         self.auto_close_event = threading.Event()
         result = self.auto_close_event.wait(self._auto_close_timeout)
         if result:
+            # 有任务在运行，重置自动关闭事件
             self.auto_close_event = None
-            print("自动关闭检查器已取消")
             return
         # 任务被取消时正常退出
-        print("自动关闭检查器超时，准备关闭")
         self._shutdown_event.set()  # 设置关闭事件标志
 
     # Handle Exception
@@ -113,7 +108,6 @@ class StageDispatchEnvironment:
                 return
 
             self.closing = True
-        print("run close")
 
         # 等待所有任务完成并关闭事件循环
         future = asyncio.run_coroutine_threadsafe(self._shutdown_loop(), self.loop)
@@ -131,28 +125,17 @@ class StageDispatchEnvironment:
 
         # 关闭线程池和等待线程结束
         self.executor.shutdown(wait=True)
-        print("所有资源已释放")
 
     async def _shutdown_loop(self):
-        """安全地关闭事件循环，等待所有任务完成"""
-        # 首先取消自动关闭检查任务
-        if self._auto_close_task and not self._auto_close_task.done():
-            self._auto_close_task.cancel()
-            try:
-                await asyncio.wait_for(self._auto_close_task, timeout=1.0)
-            except (asyncio.CancelledError, asyncio.TimeoutError):
-                pass  # 这是预期的行为
-
+        """Safely close the event loop and wait for all tasks to complete"""
         # 获取所有待处理的任务
         tasks = [t for t in asyncio.all_tasks(self.loop) if t is not asyncio.current_task(self.loop)]
 
         if not tasks:
             return
 
-        print(f"等待 {len(tasks)} 个任务完成")
         # 等待所有任务完成
         await asyncio.gather(*tasks, return_exceptions=True)
-        print("所有任务已完成")
 
 
 class StageDispatch:
@@ -209,12 +192,7 @@ class StageDispatch:
         self.raise_exception = self._dispatch_env.raise_exception
 
     def run_sync_function(self, func, *args, **kwargs):
-        if self._is_daemon:
-            with self._dispatch_env.active_tasks_lock:
-                self._dispatch_env.active_tasks += 1
-                print(f"sync active_tasks start: {self._dispatch_env.active_tasks}")
-                if self._dispatch_env.auto_close_event is not None:
-                    self._dispatch_env.auto_close_event.set()
+        self._add_task()
         task = self.to_executor(self._wrap_sync_func, func, *args, **kwargs)
         return task
 
@@ -222,24 +200,10 @@ class StageDispatch:
         try:
             return func(*args, **kwargs)
         finally:
-            if self._is_daemon:
-                with self._dispatch_env.active_tasks_lock:
-                    self._dispatch_env.active_tasks -= 1
-                    print(f"sync active_tasks end: {self._dispatch_env.active_tasks}")
-                    if self._dispatch_env.active_tasks == 0:
-                        # self._dispatch_env.loop.create_task(self._dispatch_env.auto_close_checker())
-                        asyncio.run_coroutine_threadsafe(
-                            self._dispatch_env.auto_close_checker(),
-                            loop=self._dispatch_env.loop,
-                        )
+            self._decrease_task()
 
     def run_async_function(self, func, *args, **kwargs):
-        if self._is_daemon:
-            with self._dispatch_env.active_tasks_lock:
-                self._dispatch_env.active_tasks += 1
-                print(f"async active_tasks start: {self._dispatch_env.active_tasks}")
-                if self._dispatch_env.auto_close_event is not None:
-                    self._dispatch_env.auto_close_event.set()  # 重置自动关闭事件
+        self._add_task()
         if inspect.iscoroutinefunction(func):
             coro = func(*args, **kwargs)
         elif inspect.iscoroutine(func):
@@ -260,12 +224,26 @@ class StageDispatch:
         try:
             return await coro
         finally:
-            if self._is_daemon:
-                with self._dispatch_env.active_tasks_lock:
-                    self._dispatch_env.active_tasks -= 1
-                    print(f"async active_tasks end: {self._dispatch_env.active_tasks}")
-                    if self._dispatch_env.active_tasks == 0:
-                        self._dispatch_env.loop.create_task(self._dispatch_env.auto_close_checker())
+            self._decrease_task()
+
+    def _add_task(self):
+        """add a task to the event loop"""
+        if self._is_daemon:
+            with self._dispatch_env.active_tasks_lock:
+                self._dispatch_env.active_tasks += 1
+                if self._dispatch_env.auto_close_event is not None:
+                    self._dispatch_env.auto_close_event.set()
+
+    def _decrease_task(self):
+        """decrease the number of tasks in the event loop"""
+        if self._is_daemon:
+            with self._dispatch_env.active_tasks_lock:
+                self._dispatch_env.active_tasks -= 1
+                if self._dispatch_env.active_tasks == 0:
+                    asyncio.run_coroutine_threadsafe(
+                        self._dispatch_env.auto_close_checker(),
+                        loop=self._dispatch_env.loop,
+                    )
 
     def to_executor(self, func, *args, **kwargs):
         try:
