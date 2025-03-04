@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 import asyncio
-import atexit
 import functools
 import inspect
 import types
@@ -26,8 +25,6 @@ from typing import Any, Callable
 from .StageDispatch import StageDispatch
 from .StageFunction import StageFunction
 from .StageHybridGenerator import StageHybridGenerator
-
-# from .StageListener import StageListener
 from .StageResponse import StageResponse
 
 
@@ -60,9 +57,6 @@ class Stage:
         self._responses = set()
         self._raise_exception = self._dispatch.raise_exception
         self._is_closing = False
-        # StageListener.reg(self)
-        # if is_daemon:
-        #     atexit.register(self.close)
 
     # Basic
     def _classify_task(self, task):
@@ -257,26 +251,8 @@ class Stage:
             **kwargs,
         ).get()
 
-    # def ensure_responses(self):
-    #     while True:
-    #         with self._dispatch._lock:
-    #             responses = self._responses.copy()
-    #         if not responses:
-    #             break
-    #         for response in responses:
-    #             try:
-    #                 response.get()
-    #             except Exception:
-    #                 # TODO: log
-    #                 pass
-
-    # def _close(self):
-    #     self.ensure_responses()
-    #     self._dispatch.close()
-
     def close(self):
         self._is_closing = True
-        # StageListener.unreg(self)
         self._dispatch.close()
 
     @property
