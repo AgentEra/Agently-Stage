@@ -52,7 +52,7 @@ class Stage:
             reuse_env=reuse_env,
             exception_handler=exception_handler,
             max_workers=max_workers,
-            is_daemon=auto_close,
+            auto_close=auto_close,
         )
         self._responses = set()
         self._raise_exception = self._dispatch.raise_exception

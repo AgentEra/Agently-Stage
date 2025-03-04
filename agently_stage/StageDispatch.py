@@ -17,7 +17,7 @@ class StageDispatchEnvironment:
         exception_handler=None,
         max_workers=None,
         auto_close_timeout=10,
-        is_daemon=True,
+        auto_close=False,
     ):
         self._exception_handler = exception_handler
         self._max_workers = max_workers
@@ -25,8 +25,8 @@ class StageDispatchEnvironment:
         self.loop_thread = None
         self.executor = None
         self.exceptions = None
-        self._is_daemon = is_daemon
-        if self._is_daemon:
+        self.auto_close = auto_close
+        if self.auto_close:
             self.active_tasks = 0
             self.active_tasks_lock = threading.Lock()
             self._auto_close_timeout = auto_close_timeout  # 无任务状态持续多少秒后自动关闭
@@ -36,7 +36,7 @@ class StageDispatchEnvironment:
         self._shutdown_monitor_thread = None  # 关闭监控线程
         self._loop_ready_event = threading.Event()  # 事件循环准备就绪事件
         self._start_loop_thread()
-        if self._is_daemon:
+        if self.auto_close:
             self._shutdown_event = threading.Event()  # 关闭事件标志
             self._start_shutdown_monitor()  # 启动关闭监控线程
 
@@ -170,10 +170,10 @@ class StageDispatch:
         reuse_env=False,
         exception_handler=None,
         max_workers=None,
-        is_daemon=True,
+        auto_close=False,
     ):
         self._all_tasks = set()
-        self._is_daemon = is_daemon
+        self.auto_close = auto_close
         if reuse_env:
             if StageDispatch._dispatch_env is None or StageDispatch._dispatch_env.closing:
                 with StageDispatch._lock:
@@ -187,7 +187,7 @@ class StageDispatch:
             self._dispatch_env = StageDispatchEnvironment(
                 exception_handler=exception_handler,
                 max_workers=max_workers,
-                is_daemon=is_daemon,
+                auto_close=auto_close,
             )
         self.raise_exception = self._dispatch_env.raise_exception
 
@@ -209,7 +209,7 @@ class StageDispatch:
         elif inspect.iscoroutine(func):
             coro = func
         else:
-            if self._is_daemon:
+            if self.auto_close:
                 with self._dispatch_env.active_tasks_lock:
                     self._dispatch_env.active_tasks -= 1
             raise ValueError("func must be a coroutine function or coroutine")
@@ -228,7 +228,7 @@ class StageDispatch:
 
     def _add_task(self):
         """add a task to the event loop"""
-        if self._is_daemon:
+        if self.auto_close:
             with self._dispatch_env.active_tasks_lock:
                 self._dispatch_env.active_tasks += 1
                 if self._dispatch_env.auto_close_event is not None:
@@ -236,7 +236,7 @@ class StageDispatch:
 
     def _decrease_task(self):
         """decrease the number of tasks in the event loop"""
-        if self._is_daemon:
+        if self.auto_close:
             with self._dispatch_env.active_tasks_lock:
                 self._dispatch_env.active_tasks -= 1
                 if self._dispatch_env.active_tasks == 0:
