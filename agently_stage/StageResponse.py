@@ -20,20 +20,12 @@ import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable
 
+from .TaskThreadPool import TaskThreadPool
+
 if TYPE_CHECKING:
     from concurrent.futures import Future
 
     from agently_stage import Stage
-
-
-@dataclass
-class CallbackFunctionData:
-    func: Callable = field(default_factory=lambda: lambda: None)
-    args: tuple = field(default_factory=tuple)
-    kwargs: dict = field(default_factory=dict)
-    event: threading.Event = field(default_factory=threading.Event)
-    # 需不需要运行
-    run: bool = field(default=True)
 
 
 @dataclass
@@ -67,25 +59,12 @@ class StageResponse:
         self._stage._responses.add(self)
         self._task = task
         self._ignore_exception = ignore_exception
-        # 目前只保证有跑, 不保证马上跑, 并且会完整的占用掉一个线程
-        if on_success is not None:
-            self._success_func_data = CallbackFunctionData(func=on_success, event=threading.Event())
-            self._stage.go(self._go_callback_function, self._success_func_data)
-        if on_error is not None:
-            self._error_func_data = CallbackFunctionData(func=on_error, event=threading.Event())
-            self._stage.go(self._go_callback_function, self._error_func_data)
-        if on_finally is not None:
-            self._finally_func_data = CallbackFunctionData(func=on_finally, event=threading.Event())
-            self._stage.go(self._go_callback_function, self._finally_func_data)
-
+        self._on_success = on_success
+        self._on_error = on_error
+        self._on_finally = on_finally
         self.result_ready = threading.Event()
         self._result = TaskResult()
         self._task.add_done_callback(self._on_task_done)
-
-    def _go_callback_function(self, callbackfunctionData: CallbackFunctionData):
-        callbackfunctionData.event.wait()
-        if callbackfunctionData.run:
-            callbackfunctionData.func(*callbackfunctionData.args, **callbackfunctionData.kwargs)
 
     def _on_task_done(self, future):
         try:
@@ -94,29 +73,18 @@ class StageResponse:
                 raise result
             self._result = TaskResult(status=True, result=result)
 
-            if getattr(self, "_success_func_data", None):
-                # 始终设置参数，如果result为None则使用空元组
-                self._success_func_data.args = (result,) if result is not None else ()
-                self._success_func_data.event.set()
-            if getattr(self, "_error_func_data", None):
-                self._error_func_data.run = False
-                self._error_func_data.event.set()
+            if self._on_success:
+                TaskThreadPool().submit(self._on_success, result)
         except Exception as e:
             self._result = TaskResult(status=False, result=e)
 
-            # 取消运行 success
-            if getattr(self, "_success_func_data", None):
-                self._success_func_data.run = False
-                self._success_func_data.event.set()
-
-            if getattr(self, "_error_func_data", None):
-                self._error_func_data.args = (e,)
-                self._error_func_data.event.set()
+            if self._on_error:
+                TaskThreadPool().submit(self._on_error, e)
             elif not self._ignore_exception:
                 self._stage._raise_exception(e)
         finally:
-            if getattr(self, "_finally_func_data", None):
-                self._finally_func_data.event.set()
+            if self._on_finally:
+                TaskThreadPool().submit(self._on_finally)
             self.result_ready.set()
             self._stage._responses.discard(self)
 
