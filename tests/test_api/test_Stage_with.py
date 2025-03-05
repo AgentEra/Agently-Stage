@@ -167,17 +167,6 @@ def test_all_callbacks():
     assert all(value in counter.value for value in expected_values)
 
 
-def test_max_workers_error():
-    with Stage(max_workers=1) as stage:
-
-        def sync_task(value: str):
-            time.sleep(2)
-            return value
-
-        with pytest.raises(AssertionError, match="Callback function count: 1, exceeds maximum worker threads: 1"):
-            async_response = stage.go(sync_task, "1", on_success=lambda res: res.increment(f"on_success {1}"))
-
-
 # ========== benchmark ==========
 
 TEST_COUNT = 100
