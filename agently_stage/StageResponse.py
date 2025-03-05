@@ -15,7 +15,6 @@
 # Contact us: Developer@Agently.tech
 from __future__ import annotations
 
-import os
 import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable
@@ -46,16 +45,6 @@ class StageResponse:
         on_finally: Callable = None,
     ):
         self._stage = stage
-
-        # 默认值 copy 自 ThreadPoolExecutor.__init__, TODO: 在 3.13 版本中应该使用 process_cpu_count()
-        max_workers = self._stage.max_workers if self._stage.max_workers else min(32, (os.cpu_count() or 1) + 4)
-        # 计算非空回调函数的数量
-        callback_count = sum(1 for cb in [on_success, on_error, on_finally] if cb is not None)
-        # 确保回调函数数量不超过最大工作线程数
-        assert max_workers >= callback_count + 1, (
-            f"Callback function count: {callback_count}, exceeds maximum worker threads: {max_workers}"
-        )
-
         self._stage._responses.add(self)
         self._task = task
         self._ignore_exception = ignore_exception
