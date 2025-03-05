@@ -13,7 +13,6 @@ class TaskThreadPool:
     def __new__(cls):
         with cls._lock:
             if cls._executor is None:
-                print("Initializing the thread pool...")
                 cls._executor = ThreadPoolExecutor()
         return cls._executor
 
