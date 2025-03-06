@@ -263,4 +263,4 @@ class StageDispatch:
                     StageDispatch._dispatch_env.close()
                     StageDispatch._instance = None
         """
-        TaskThreadPool().submit(self._dispatch_env.close)
+        TaskThreadPool.submit(self._dispatch_env.close)
