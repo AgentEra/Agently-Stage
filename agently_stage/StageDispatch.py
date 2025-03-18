@@ -3,15 +3,12 @@ from __future__ import annotations
 import asyncio
 import inspect
 import threading
-import time
-import tracemalloc
+import warnings
+from asyncio import AbstractEventLoop
 from concurrent.futures import Future, ThreadPoolExecutor
 
+from .StageException import StageException
 from .TaskThreadPool import TaskThreadPool
-
-# from .StageException import StageException
-
-tracemalloc.start()
 
 
 class StageDispatchEnvironment:
@@ -21,8 +18,7 @@ class StageDispatchEnvironment:
         exception_handler=None,
         max_workers=None,
         auto_close_timeout=10,
-        check_interval=2,
-        is_daemon=True,
+        auto_close=False,
     ):
         self._exception_handler = exception_handler
         self._max_workers = max_workers
@@ -30,20 +26,17 @@ class StageDispatchEnvironment:
         self.loop_thread = None
         self.executor = None
         self.exceptions = None
-        self._is_daemon = is_daemon
-        if self._is_daemon:
-            self._active_tasks = 0
-            self._active_tasks_lock = threading.Lock()
+        self.auto_close = auto_close
+        if self.auto_close:
+            self.active_tasks = 0
+            self.active_tasks_lock = threading.Lock()
             self._auto_close_timeout = auto_close_timeout  # 无任务状态持续多少秒后自动关闭
-            self._check_interval = check_interval  # 检查间隔（秒）
-            self._last_activity = time.time()
+            self.auto_close_event: threading.Event | None = None
         self._closing_lock = threading.Lock()
         self.closing = False
-        self._auto_close_task = None
-        self._shutdown_monitor_thread = None  # 关闭监控线程
         self._loop_ready_event = threading.Event()  # 事件循环准备就绪事件
         self._start_loop_thread()
-        if self._is_daemon:
+        if self.auto_close:
             self._shutdown_event = threading.Event()  # 关闭事件标志
             self._start_shutdown_monitor()  # 启动关闭监控线程
 
@@ -52,12 +45,9 @@ class StageDispatchEnvironment:
         self.loop = asyncio.new_event_loop()
         self.executor = ThreadPoolExecutor(max_workers=self._max_workers, thread_name_prefix="AgentlyStageThreadPool")
         self.loop.set_default_executor(self.executor)
-        # self.exceptions = StageException()
-        # self.loop.set_exception_handler(self._loop_exception_handler)
+        self.exceptions = StageException()
+        self.loop.set_exception_handler(self._loop_exception_handler)
         asyncio.set_event_loop(self.loop)
-        if self._is_daemon:
-            # 启动自动关闭检查任务
-            self._auto_close_task = self.loop.create_task(self._auto_close_checker())
         self._loop_ready_event.set()  # 事件循环准备就绪
         self.loop.run_forever()
 
@@ -68,53 +58,31 @@ class StageDispatchEnvironment:
         del self._loop_ready_event  # 删除事件循环准备就绪事件
 
     def _start_shutdown_monitor(self):
-        """启动一个监控线程，用于在需要时安全地关闭事件循环"""
-        self._shutdown_monitor_thread = threading.Thread(
+        """Start a monitoring thread to safely close the event loop if needed"""
+        shutdown_monitor_thread = threading.Thread(
             target=self._shutdown_monitor_func, name="shutdown_monitor_thread", daemon=True
         )
-        self._shutdown_monitor_thread.start()
+        shutdown_monitor_thread.start()
 
     def _shutdown_monitor_func(self):
-        """监控线程函数，等待关闭信号并执行关闭操作"""
+        """Monitor the thread function, wait for the shutdown signal and perform the shutdown operation"""
         self._shutdown_event.wait()  # 等待关闭信号
         if not self.closing:
             self.close()  # 在单独的线程中执行关闭操作
 
-    async def _auto_close_checker(self):
-        """定期检查是否有活跃任务，如果长时间无任务则自动关闭"""
-        try:
-            while not self.closing:
-                await asyncio.sleep(self._check_interval)
-
-                # 检查是否有活跃任务
-                with self._active_tasks_lock:
-                    active_count = self._active_tasks
-
-                tasks = [
-                    t
-                    for t in asyncio.all_tasks(self.loop)
-                    if t is not asyncio.current_task(self.loop) and t is not self._auto_close_task
-                ]
-
-                # 如果没有活跃任务且事件循环中没有其他任务
-                if active_count == 0 and len(tasks) == 0:
-                    time_since_last = time.time() - self._last_activity
-                    if time_since_last >= self._auto_close_timeout:
-                        print(f"空闲时间超过 {self._auto_close_timeout}秒，自动关闭")
-                        # 触发关闭事件而不是直接调用close
-                        self._shutdown_event.set()
-                        break
-                else:
-                    # 如果有活动，更新最后活动时间
-                    self._last_activity = time.time()
-        except asyncio.CancelledError:
-            # 任务被取消时正常退出
-            print("自动关闭检查器已取消")
-        except Exception as e:
-            print(f"自动关闭检查器出错: {e}")
+    async def auto_close_checker(self):
+        """check if the event loop can be closed"""
+        self.auto_close_event = threading.Event()
+        result = self.auto_close_event.wait(self._auto_close_timeout)
+        if result:
+            # 有任务在运行，重置自动关闭事件
+            self.auto_close_event = None
+            return
+        # 任务被取消时正常退出
+        self._shutdown_event.set()  # 设置关闭事件标志
 
     # Handle Exception
-    def _loop_exception_handler(self, loop, context):
+    def _loop_exception_handler(self, loop: AbstractEventLoop, context):
         if self._exception_handler is not None:
             if inspect.iscoroutinefunction(self._exception_handler):
                 loop.call_soon_threadsafe(
@@ -140,15 +108,10 @@ class StageDispatchEnvironment:
                 return
 
             self.closing = True
-        print("run close")
 
         # 等待所有任务完成并关闭事件循环
         future = asyncio.run_coroutine_threadsafe(self._shutdown_loop(), self.loop)
-        try:
-            # 给一个超时，以防有些任务永远不会结束
-            future.result(timeout=None)  # 5秒超时
-        except TimeoutError:
-            print("Warning: Some tasks did not complete within timeout")
+        future.result()
 
         # 现在可以安全停止事件循环
         if self.loop.is_running():
@@ -158,28 +121,17 @@ class StageDispatchEnvironment:
 
         # 关闭线程池和等待线程结束
         self.executor.shutdown(wait=True)
-        print("所有资源已释放")
 
     async def _shutdown_loop(self):
-        """安全地关闭事件循环，等待所有任务完成"""
-        # 首先取消自动关闭检查任务
-        if self._auto_close_task and not self._auto_close_task.done():
-            self._auto_close_task.cancel()
-            try:
-                await asyncio.wait_for(self._auto_close_task, timeout=1.0)
-            except (asyncio.CancelledError, asyncio.TimeoutError):
-                pass  # 这是预期的行为
-
+        """Safely close the event loop and wait for all tasks to complete"""
         # 获取所有待处理的任务
         tasks = [t for t in asyncio.all_tasks(self.loop) if t is not asyncio.current_task(self.loop)]
 
         if not tasks:
             return
 
-        print(f"等待 {len(tasks)} 个任务完成")
         # 等待所有任务完成
         await asyncio.gather(*tasks, return_exceptions=True)
-        print("所有任务已完成")
 
 
 class StageDispatch:
@@ -214,9 +166,10 @@ class StageDispatch:
         reuse_env=False,
         exception_handler=None,
         max_workers=None,
-        is_daemon=True,
+        auto_close=False,
     ):
         self._all_tasks = set()
+        self.auto_close = auto_close
         if reuse_env:
             if StageDispatch._dispatch_env is None or StageDispatch._dispatch_env.closing:
                 with StageDispatch._lock:
@@ -230,14 +183,12 @@ class StageDispatch:
             self._dispatch_env = StageDispatchEnvironment(
                 exception_handler=exception_handler,
                 max_workers=max_workers,
-                is_daemon=is_daemon,
+                auto_close=auto_close,
             )
         self.raise_exception = self._dispatch_env.raise_exception
 
     def run_sync_function(self, func, *args, **kwargs):
-        if self._dispatch_env._is_daemon:
-            with self._dispatch_env._active_tasks_lock:
-                self._dispatch_env._active_tasks += 1
+        self._add_task()
         task = self.to_executor(self._wrap_sync_func, func, *args, **kwargs)
         return task
 
@@ -245,44 +196,57 @@ class StageDispatch:
         try:
             return func(*args, **kwargs)
         finally:
-            if self._dispatch_env._is_daemon:
-                with self._dispatch_env._active_tasks_lock:
-                    self._dispatch_env._active_tasks -= 1
+            self._decrease_task()
 
     def run_async_function(self, func, *args, **kwargs):
-        if self._dispatch_env._is_daemon:
-            with self._dispatch_env._active_tasks_lock:
-                self._dispatch_env._active_tasks += 1
+        self._add_task()
         if inspect.iscoroutinefunction(func):
             coro = func(*args, **kwargs)
         elif inspect.iscoroutine(func):
             coro = func
         else:
-            if self._dispatch_env._is_daemon:
-                with self._dispatch_env._active_tasks_lock:
-                    self._dispatch_env._active_tasks -= 1
+            if self.auto_close:
+                with self._dispatch_env.active_tasks_lock:
+                    self._dispatch_env.active_tasks -= 1
             raise ValueError("func must be a coroutine function or coroutine")
 
         task = asyncio.run_coroutine_threadsafe(
             self._wrap_async_func(coro),
             loop=self._dispatch_env.loop,
         )
-        self._dispatch_env._last_activity = time.time()
         return task
 
     async def _wrap_async_func(self, coro):
         try:
             return await coro
         finally:
-            if self._dispatch_env._is_daemon:
-                with self._dispatch_env._active_tasks_lock:
-                    self._dispatch_env._active_tasks -= 1
+            self._decrease_task()
+
+    def _add_task(self):
+        """add a task to the event loop"""
+        if self.auto_close:
+            with self._dispatch_env.active_tasks_lock:
+                self._dispatch_env.active_tasks += 1
+                if self._dispatch_env.auto_close_event is not None:
+                    self._dispatch_env.auto_close_event.set()
+
+    def _decrease_task(self):
+        """decrease the number of tasks in the event loop"""
+        if self.auto_close:
+            with self._dispatch_env.active_tasks_lock:
+                self._dispatch_env.active_tasks -= 1
+                if self._dispatch_env.active_tasks == 0:
+                    asyncio.run_coroutine_threadsafe(
+                        self._dispatch_env.auto_close_checker(),
+                        loop=self._dispatch_env.loop,
+                    )
 
     def to_executor(self, func, *args, **kwargs):
         try:
             return self._dispatch_env.executor.submit(func, *args, **kwargs)
         except RuntimeError as e:
             if "cannot schedule new futures after" in str(e):
+                warnings.warn("cannot schedule new futures after shutdown", RuntimeWarning, stacklevel=2)
                 future = Future()
                 try:
                     future.set_result(func(*args, **kwargs))
@@ -299,4 +263,4 @@ class StageDispatch:
                     StageDispatch._dispatch_env.close()
                     StageDispatch._instance = None
         """
-        TaskThreadPool().submit(self._dispatch_env.close)
+        TaskThreadPool.submit(self._dispatch_env.close)
