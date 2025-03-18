@@ -4,8 +4,6 @@ import asyncio
 import concurrent.futures
 import time
 
-import pytest
-
 from agently_stage import Stage
 
 
