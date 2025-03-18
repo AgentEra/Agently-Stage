@@ -4,8 +4,6 @@ import asyncio
 import random
 import time
 
-import pytest
-
 from agently_stage import EventEmitter, Stage
 
 
@@ -79,7 +77,6 @@ def test_decorator():
     assert counter == 2
 
 
-@pytest.mark.skip(reason="Something wrong when go out of with context that may cause on going tasks stuck.")
 def test_stress():
     emitter = EventEmitter()
     test_times = 1000

@@ -7,6 +7,5 @@ from .StageDispatch import StageDispatch, StageDispatchEnvironment
 from .StageException import StageException
 from .StageFunction import StageFunction
 from .StageHybridGenerator import StageHybridGenerator
-from .StageListener import StageListener
 from .StageResponse import StageResponse
 from .Tunnel import Tunnel
