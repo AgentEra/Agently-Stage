@@ -22,12 +22,12 @@ def test_with_outclose():
 
         async def async_task(value: str):
             counter.increment(f"async_task start {value}")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(1)
             counter.increment(f"async_task end {value}")
 
         def sync_task(value: str):
             counter.increment(f"sync_task start {value}")
-            time.sleep(0.1)
+            time.sleep(2)
             counter.increment(f"sync_task end {value}")
 
         async_response = stage.go(async_task, "1")
@@ -183,7 +183,7 @@ def test_on_success():
 
         def sync_task(value: str):
             counter.increment(f"sync_task start {value}")
-            time.sleep(0.1)
+            time.sleep(2)
             counter.increment(f"sync_task end {value}")
             return counter
 
@@ -235,7 +235,7 @@ def test_on_finally():
 
         def sync_task(value: str):
             counter.increment(f"sync_task start {value}")
-            time.sleep(0.1)
+            time.sleep(2)
             counter.increment(f"sync_task end {value}")
             return counter
 
@@ -264,7 +264,7 @@ def test_all_callbacks():
 
         def sync_task(value: str):
             counter.increment(f"sync_task start {value}")
-            time.sleep(0.1)
+            time.sleep(2)
             counter.increment(f"sync_task end {value}")
             return counter
 
