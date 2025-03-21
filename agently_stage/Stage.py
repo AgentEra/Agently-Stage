@@ -23,7 +23,7 @@ from concurrent.futures import Future
 from typing import Any, Callable
 
 from .StageDispatch import StageDispatch
-from .StageFunction import StageFunction
+from .StageFunction import StageFunction, StageTask
 from .StageHybridGenerator import StageHybridGenerator
 from .StageResponse import StageResponse
 
@@ -60,7 +60,7 @@ class Stage:
 
     # Basic
     def _classify_task(self, task):
-        if isinstance(task, StageFunction):
+        if isinstance(task, (StageFunction, StageTask)):
             return "stage_func"
         if isinstance(task, functools.partial):
             return self._classify_task(task.func)
@@ -281,3 +281,7 @@ class Stage:
     # Func
     def func(self, task) -> StageFunction:
         return StageFunction(self, task)
+
+    # task
+    def task(self, task) -> StageTask:
+        return StageTask(self, task)

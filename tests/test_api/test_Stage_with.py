@@ -46,6 +46,136 @@ def test_with_outclose():
     assert all(value in counter.value for value in expected_values)
 
 
+def test_stage_func_decorator():
+    stage = Stage()
+    counter = Counter()
+
+    @stage.func
+    def sync_task(value: str):
+        counter.increment(f"sync_task start {value}")
+        time.sleep(0.1)
+        counter.increment(f"sync_task end {value}")
+
+    @stage.func
+    async def async_task(value: str):
+        counter.increment(f"async_task start {value}")
+        await asyncio.sleep(0.1)
+        counter.increment(f"async_task end {value}")
+
+    sync_task("1")
+    async_task("2")
+    res_3 = sync_task.go("3")
+    res_4 = async_task.go("4")
+    sync_task.get("5")
+    async_task.get("6")
+    res_3.get()
+    res_4.get()
+    stage.close()
+    time.sleep(0.1)
+    expected_values = [
+        "sync_task start 1",
+        "async_task start 2",
+        "sync_task end 1",
+        "async_task end 2",
+        "sync_task start 3",
+        "async_task start 4",
+        "sync_task end 3",
+        "async_task end 4",
+        "sync_task start 5",
+        "async_task start 6",
+        "sync_task end 5",
+        "async_task end 6",
+    ]
+    # TODO: 断言失败可能会导致 stage 不能正确 close, 导致 pytest 不能正确结束
+    assert all(value in counter.value for value in expected_values)
+
+
+def test_stage_task_decorator():
+    counter = Counter()
+    with Stage() as stage:
+
+        @stage.task
+        def sync_task(value: str):
+            counter.increment(f"sync_task start {value}")
+            time.sleep(0.1)
+            counter.increment(f"sync_task end {value}")
+
+        @stage.task
+        async def async_task(value: str):
+            counter.increment(f"async_task start {value}")
+            await asyncio.sleep(0.1)
+            counter.increment(f"async_task end {value}")
+
+        sync_task("1")
+        async_task("2")
+        sync_task.reset()
+        async_task.reset()
+        res_3 = sync_task.go("3")
+        res_4 = async_task.go("4")
+        sync_task.reset()
+        async_task.reset()
+        sync_task.get("5")
+        async_task.get("6")
+        sync_task.reset()
+        async_task.reset()
+        res_3.get()
+        res_4.get()
+
+    time.sleep(0.1)
+    expected_values = [
+        "sync_task start 1",
+        "async_task start 2",
+        "sync_task end 1",
+        "async_task end 2",
+        "sync_task start 3",
+        "async_task start 4",
+        "sync_task end 3",
+        "async_task end 4",
+        "sync_task start 5",
+        "async_task start 6",
+        "sync_task end 5",
+        "async_task end 6",
+    ]
+    # TODO: 断言失败可能会导致 stage 不能正确 close, 导致 pytest 不能正确结束
+    assert all(value in counter.value for value in expected_values)
+
+
+def test_stage_task_decorator_cross_thread_waiting():
+    stage = Stage()
+    counter = Counter()
+
+    @stage.task
+    def task():
+        counter.increment("task start")
+        return "task end"
+
+    with Stage() as stage1:
+        res = stage1.go(lambda: counter.increment(task.wait()))
+
+    task()
+    res.get()
+    stage.close()
+    assert counter.value == ["task start", "task end"]
+
+
+def test_stage_task_decorator_cancel():
+    stage = Stage()
+    counter = Counter()
+
+    @stage.task
+    def task():
+        counter.increment("task start")
+        return "task end"
+
+    with Stage() as stage1:
+        stage1.go(lambda: counter.increment(task.wait()))
+
+    task.cancel()
+    assert task.is_cancel() is True
+    stage.close()
+    assert len(counter.value) == 0
+
+
 def test_on_success():
     counter = Counter()
 
