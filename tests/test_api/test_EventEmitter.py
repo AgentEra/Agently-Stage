@@ -100,6 +100,6 @@ def test_stress():
             stage.go(emitter.emit, "data", i)
             # stage.go(handler, i)
 
-    time.sleep(10)
-    print("sub end")
+    time.sleep(2)
+    # print("sub end")
     assert sum(counter.values()) == test_times
