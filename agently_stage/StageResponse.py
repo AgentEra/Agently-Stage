@@ -16,37 +16,43 @@
 from __future__ import annotations
 
 import threading
-from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Callable
+
+from .TaskThreadPool import TaskThreadPool
 
 if TYPE_CHECKING:
     from concurrent.futures import Future
 
-    from . import Stage
+    from agently_stage import Stage
+
+
+@dataclass
+class TaskResult:
+    result: any | None = field(default=None)
+    status: bool | None = field(default=None)
 
 
 class StageResponse:
     def __init__(
         self,
-        stage,
-        task,
+        stage: Stage,
+        task: Future,
         *,
-        ignore_exception,
-        on_success,
-        on_error,
-        on_finally,
+        ignore_exception: bool = False,
+        on_success: Callable = None,
+        on_error: Callable = None,
+        on_finally: Callable = None,
     ):
-        self._stage: Stage = stage
+        self._stage = stage
         self._stage._responses.add(self)
-        self._task: Future = task
+        self._task = task
         self._ignore_exception = ignore_exception
         self._on_success = on_success
         self._on_error = on_error
         self._on_finally = on_finally
         self.result_ready = threading.Event()
-        self._result = {
-            "status": None,
-            "result": None,
-        }
+        self._result = TaskResult()
         self._task.add_done_callback(self._on_task_done)
 
     def _on_task_done(self, future):
@@ -54,28 +60,20 @@ class StageResponse:
             result = future.result()
             if isinstance(result, Exception):
                 raise result
-            self._result.update(
-                {
-                    "status": True,
-                    "result": result,
-                }
-            )
+            self._result = TaskResult(status=True, result=result)
+
             if self._on_success:
-                self._stage.go(self._on_success, result)
+                TaskThreadPool().submit(self._on_success, result)
         except Exception as e:
-            self._result.update(
-                {
-                    "status": False,
-                    "result": e,
-                }
-            )
+            self._result = TaskResult(status=False, result=e)
+
             if self._on_error:
-                self._stage.go(self._on_error, e)
-            if self._on_error is None and not self._ignore_exception:
+                TaskThreadPool().submit(self._on_error, e)
+            elif not self._ignore_exception:
                 self._stage._raise_exception(e)
         finally:
-            if self._on_finally is not None:
-                self._stage.go(self._on_finally)
+            if self._on_finally:
+                TaskThreadPool().submit(self._on_finally)
             self.result_ready.set()
             self._stage._responses.discard(self)
 
@@ -84,4 +82,4 @@ class StageResponse:
 
     def get(self):
         self.result_ready.wait()
-        return self._result["result"]
+        return self._result.result
