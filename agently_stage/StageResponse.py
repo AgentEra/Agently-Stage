@@ -17,9 +17,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable
-
-from .TaskThreadPool import TaskThreadPool
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from concurrent.futures import Future
@@ -38,19 +36,10 @@ class StageResponse:
         self,
         stage: Stage,
         task: Future,
-        *,
-        ignore_exception: bool = False,
-        on_success: Callable = None,
-        on_error: Callable = None,
-        on_finally: Callable = None,
     ):
         self._stage = stage
         self._stage._responses.add(self)
         self._task = task
-        self._ignore_exception = ignore_exception
-        self._on_success = on_success
-        self._on_error = on_error
-        self._on_finally = on_finally
         self.result_ready = threading.Event()
         self._result = TaskResult()
         self._task.add_done_callback(self._on_task_done)
@@ -61,19 +50,9 @@ class StageResponse:
             if isinstance(result, Exception):
                 raise result
             self._result = TaskResult(status=True, result=result)
-
-            if self._on_success:
-                TaskThreadPool().submit(self._on_success, result)
         except Exception as e:
             self._result = TaskResult(status=False, result=e)
-
-            if self._on_error:
-                TaskThreadPool().submit(self._on_error, e)
-            elif not self._ignore_exception:
-                self._stage._raise_exception(e)
         finally:
-            if self._on_finally:
-                TaskThreadPool().submit(self._on_finally)
             self.result_ready.set()
             self._stage._responses.discard(self)
 

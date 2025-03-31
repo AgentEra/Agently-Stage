@@ -8,4 +8,5 @@ from .StageException import StageException
 from .StageFunction import StageFunction
 from .StageHybridGenerator import StageHybridGenerator
 from .StageResponse import StageResponse
+from .StageTask import StageTask
 from .Tunnel import Tunnel
