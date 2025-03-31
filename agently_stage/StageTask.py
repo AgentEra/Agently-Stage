@@ -43,8 +43,6 @@ class Task:
         th.start()
 
     def __call__(self, *args: tuple[Any], **kwargs: dict[str, Any]):
-        if self._func is None:
-            return
         if self._stage and self._stage.is_available:
             return self._stage.go(self._func, *args, **kwargs)
         if self._use_async:
@@ -64,9 +62,9 @@ class StageTask:
         use_async: bool = False,
     ):
         self._func = func
-        self._on_success = Task(on_success, stage, use_async)
-        self._on_error = Task(on_error, stage, use_async)
-        self._on_finally = Task(on_finally, stage, use_async)
+        self._on_success = Task(on_success, stage, use_async) if on_success else None
+        self._on_error = Task(on_error, stage, use_async) if on_error else None
+        self._on_finally = Task(on_finally, stage, use_async) if on_finally else None
         self._ignore_exception = ignore_exception
         self._use_async = use_async
 
