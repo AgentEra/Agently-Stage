@@ -50,7 +50,7 @@ class Task:
         return self.sync_run(*args, **kwargs)
 
 
-class StageTask:
+class StageTaskProxy:
     def __init__(
         self,
         func: Callable,

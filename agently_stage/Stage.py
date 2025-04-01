@@ -26,7 +26,7 @@ from .StageDispatch import StageDispatch
 from .StageFunction import StageFunction
 from .StageHybridGenerator import StageHybridGenerator
 from .StageResponse import StageResponse
-from .StageTask import StageTask
+from .StageTask import StageTaskProxy
 
 
 class Stage:
@@ -196,7 +196,7 @@ class Stage:
         # Async Func
         if task_class in ["async_func", "async_coro"]:
             go_task = self._dispatch.run_async_function(
-                StageTask(
+                StageTaskProxy(
                     task,
                     self,
                     on_success=on_success,
@@ -215,7 +215,7 @@ class Stage:
         if task_class == "future":
             return StageResponse(
                 self,
-                StageTask(
+                StageTaskProxy(
                     task,
                     self,
                     on_success,
@@ -228,7 +228,7 @@ class Stage:
         # Sync Func
         if task_class == "func":
             go_task = self._dispatch.run_sync_function(
-                StageTask(
+                StageTaskProxy(
                     task,
                     self,
                     on_success=on_success,

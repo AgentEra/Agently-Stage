@@ -23,7 +23,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Future, ThreadPoolExecutor
 
 from .StageException import StageException
-from .StageTask import StageTask
+from .StageTask import StageTaskProxy
 from .TaskThreadPool import TaskThreadPool
 
 
@@ -216,7 +216,7 @@ class StageDispatch:
 
     def run_async_function(self, func, *args, **kwargs):
         self._add_task()
-        if inspect.iscoroutinefunction(func) or isinstance(func, StageTask):
+        if inspect.iscoroutinefunction(func) or isinstance(func, StageTaskProxy):
             coro = func(*args, **kwargs)
         elif inspect.iscoroutine(func):
             coro = func
