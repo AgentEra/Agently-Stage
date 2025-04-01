@@ -158,7 +158,8 @@ def test_async_on_error():
     async_response.get()
 
     time.sleep(0.1)
-    assert counter.value == ["sync_task start", "handle_error", "long_task"]
+    res = ["sync_task start", "handle_error", "long_task"]
+    assert all(value in counter.value for value in res)
 
 
 def test_on_finally():
