@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from .Stage import Stage
 
 
-class StageTask:
+class StageCallBackTask:
     def __init__(self, func: Callable, stage: Stage | None = None):
         from .Stage import Stage
 
@@ -75,21 +75,21 @@ class StageTaskProxy:
         use_async: bool = False,
     ):
         self._func = func
-        self._on_success = StageTask(on_success, stage) if on_success else None
-        self._on_error = StageTask(on_error, stage) if on_error else None
-        self._on_finally = StageTask(on_finally, stage) if on_finally else None
+        self._on_success = StageCallBackTask(on_success, stage) if on_success else None
+        self._on_error = StageCallBackTask(on_error, stage) if on_error else None
+        self._on_finally = StageCallBackTask(on_finally, stage) if on_finally else None
         self._ignore_exception = ignore_exception
         self._use_async = use_async
 
-    def add_on_success(self, on_success: StageTask[Callable]):
+    def add_on_success(self, on_success: StageCallBackTask[Callable]):
         self._on_success = on_success
         return self
 
-    def add_on_error(self, on_error: StageTask[Callable]):
+    def add_on_error(self, on_error: StageCallBackTask[Callable]):
         self._on_error = on_error
         return self
 
-    def add_on_finally(self, on_finally: StageTask[Callable]):
+    def add_on_finally(self, on_finally: StageCallBackTask[Callable]):
         self._on_finally = on_finally
         return self
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from agently_stage import StageTask, StageTaskProxy
+from agently_stage import StageCallBackTask, StageTaskProxy
 
 from .test_base import Counter
 
@@ -17,9 +17,9 @@ class TestStageTaskProxy(unittest.TestCase):
         self.assertIsNone(stp._on_error)
         self.assertIsNone(stp._on_finally)
 
-        stp.add_on_success(StageTask(lambda res: counter.increment("on_success 1")))
-        stp.add_on_error(StageTask(lambda: counter.increment("on_error 1")))
-        stp.add_on_finally(StageTask(lambda: counter.increment("on_finally 1")))
+        stp.add_on_success(StageCallBackTask(lambda res: counter.increment("on_success 1")))
+        stp.add_on_error(StageCallBackTask(lambda: counter.increment("on_error 1")))
+        stp.add_on_finally(StageCallBackTask(lambda: counter.increment("on_finally 1")))
 
         self.assertIsNotNone(stp._on_success)
         self.assertIsNotNone(stp._on_error)
