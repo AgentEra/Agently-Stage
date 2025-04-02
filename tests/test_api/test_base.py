@@ -7,3 +7,7 @@ class Counter:
 
     def increment(self, value: str):
         self.value.append(value)
+
+    @property
+    def count(self):
+        return len(self.value)

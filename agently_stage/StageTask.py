@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 from threading import Thread
 from typing import TYPE_CHECKING, Any
 
@@ -24,18 +25,30 @@ if TYPE_CHECKING:
     from .Stage import Stage
 
 
-class Task:
-    def __init__(self, func: Callable, stage: Stage | None = None, use_async: bool = False):
+class StageTask:
+    def __init__(self, func: Callable, stage: Stage | None = None):
         from .Stage import Stage
 
         assert stage is None or isinstance(stage, Stage), "stage must be None or Stage"
         self._func = func
         self._stage = stage
-        self._use_async = use_async
+        if inspect.iscoroutinefunction(func):
+            self._use_async = True
+        else:
+            self._use_async = False
 
     def async_run(self, *args: tuple[Any], **kwargs: dict[str, Any]):
         assert self._func, "Function is None"
-        asyncio.create_task(self._func(*args, **kwargs))
+        try:
+            if asyncio.get_running_loop().is_running():
+                asyncio.create_task(self._func(*args, **kwargs))
+        except RuntimeError:
+            # If the loop is not running, create a new one
+            def tf():
+                asyncio.run(self._func(*args, **kwargs))
+
+            th = Thread(target=tf)
+            th.start()
 
     def sync_run(self, *args: tuple[Any], **kwargs: dict[str, Any]):
         assert self._func, "Function is None"
@@ -62,21 +75,21 @@ class StageTaskProxy:
         use_async: bool = False,
     ):
         self._func = func
-        self._on_success = Task(on_success, stage, use_async) if on_success else None
-        self._on_error = Task(on_error, stage, use_async) if on_error else None
-        self._on_finally = Task(on_finally, stage, use_async) if on_finally else None
+        self._on_success = StageTask(on_success, stage) if on_success else None
+        self._on_error = StageTask(on_error, stage) if on_error else None
+        self._on_finally = StageTask(on_finally, stage) if on_finally else None
         self._ignore_exception = ignore_exception
         self._use_async = use_async
 
-    def add_on_success(self, on_success: Task[Callable]):
+    def add_on_success(self, on_success: StageTask[Callable]):
         self._on_success = on_success
         return self
 
-    def add_on_error(self, on_error: Task[Callable]):
+    def add_on_error(self, on_error: StageTask[Callable]):
         self._on_error = on_error
         return self
 
-    def add_on_finally(self, on_finally: Task[Callable]):
+    def add_on_finally(self, on_finally: StageTask[Callable]):
         self._on_finally = on_finally
         return self
 

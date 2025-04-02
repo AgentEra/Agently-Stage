@@ -50,7 +50,18 @@ def test_on_success():
             counter.increment(f"sync_task end {value}")
             return counter
 
-        async_response = stage.go(sync_task, "1", on_success=lambda res: res.increment(f"on_success {1}"))
+        async def async_on_success(res):
+            await asyncio.sleep(0)
+            counter.increment("on_success 2")
+
+        async_response = stage.go(sync_task, "1", on_success=lambda res: res.increment("on_success 1"))
+        assert "sync_task start 1" in counter.value
+        stage.go(sync_task, "2", on_success=async_on_success)
+        assert "sync_task start 2" in counter.value
+        assert "on_success 1" not in counter.value
+        assert "on_success 2" not in counter.value
+        assert "sync_task end 1" not in counter.value
+        assert "sync_task end 2" not in counter.value
         assert stage.is_closing is False
 
     assert stage.is_closing is True
@@ -59,6 +70,9 @@ def test_on_success():
         "sync_task start 1",
         "sync_task end 1",
         "on_success 1",
+        "sync_task start 2",
+        "sync_task end 2",
+        "on_success 2",
     ]
     time.sleep(0.1)
     assert all(value in counter.value for value in expected_values)
