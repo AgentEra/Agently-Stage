@@ -26,6 +26,7 @@ from .StageDispatch import StageDispatch
 from .StageFunction import StageFunction
 from .StageHybridGenerator import StageHybridGenerator
 from .StageResponse import StageResponse
+from .StageTask import StageTaskProxy
 
 
 class Stage:
@@ -193,35 +194,55 @@ class Stage:
             )
 
         # Async Func
-        if task_class == "async_func" or task_class == "async_coro":
-            go_task = self._dispatch.run_async_function(task, *args, **kwargs)
+        if task_class in ["async_func", "async_coro"]:
+            go_task = self._dispatch.run_async_function(
+                StageTaskProxy(
+                    task,
+                    self,
+                    on_success=on_success,
+                    on_error=on_error,
+                    on_finally=on_finally,
+                    ignore_exception=ignore_exception,
+                    use_async=True,
+                ),
+                *args,
+                **kwargs,
+            )
             return StageResponse(
                 self,
                 go_task,
-                on_success=on_success,
-                on_error=on_error,
-                on_finally=on_finally,
-                ignore_exception=ignore_exception,
             )
         if task_class == "future":
             return StageResponse(
                 self,
-                task,
-                on_success=on_success,
-                on_error=on_error,
-                on_finally=on_finally,
-                ignore_exception=ignore_exception,
+                StageTaskProxy(
+                    task,
+                    self,
+                    on_success,
+                    on_error,
+                    on_finally,
+                    ignore_exception,
+                    use_async=False,
+                ),
             )
         # Sync Func
         if task_class == "func":
-            go_task = self._dispatch.run_sync_function(task, *args, **kwargs)
+            go_task = self._dispatch.run_sync_function(
+                StageTaskProxy(
+                    task,
+                    self,
+                    on_success=on_success,
+                    on_error=on_error,
+                    on_finally=on_finally,
+                    ignore_exception=ignore_exception,
+                    use_async=False,
+                ),
+                *args,
+                **kwargs,
+            )
             return StageResponse(
                 self,
                 go_task,
-                on_success=on_success,
-                on_error=on_error,
-                on_finally=on_finally,
-                ignore_exception=ignore_exception,
             )
 
         # Other
