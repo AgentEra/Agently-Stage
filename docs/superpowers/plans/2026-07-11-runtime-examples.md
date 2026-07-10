@@ -31,7 +31,7 @@
 - Consumes: `Tunnel(timeout: float | None = 10)`, independent `_TunnelIterator` and `_TunnelAsyncIterator` cursors.
 - Produces: `Tunnel(timeout=10)` as the default, while `close()`/`fail()` remain the only channel terminal transitions.
 
-- [ ] **Step 1: Add failing default and reader-isolation tests**
+- [x] **Step 1: Add failing default and reader-isolation tests**
 
 ```python
 import inspect
@@ -50,13 +50,13 @@ def test_timed_out_reader_does_not_close_tunnel() -> None:
     assert list(tunnel) == [1]
 ```
 
-- [ ] **Step 2: Run the focused tests and verify the default test fails**
+- [x] **Step 2: Run the focused tests and verify the default test fails**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_tunnel_races.py -q`
 
 Expected: the new default assertion fails with `None != 10`; existing reader-isolation behavior passes.
 
-- [ ] **Step 3: Change only the public constructor default**
+- [x] **Step 3: Change only the public constructor default**
 
 ```python
 class Tunnel(Generic[T]):
@@ -71,17 +71,17 @@ class Tunnel(Generic[T]):
 
 Do not add timer threads, mutate `_closed` on timeout, or restore the old shared queue/generator implementation.
 
-- [ ] **Step 4: Update README lifecycle wording**
+- [x] **Step 4: Update README lifecycle wording**
 
 Document that producer `close()` publishes EOF, the default 10-second inactivity timeout ends only the waiting reader, and `timeout=None` opts into indefinite waiting. Remove wording that implies a timeout automatically closes the Tunnel.
 
-- [ ] **Step 5: Run focused verification**
+- [x] **Step 5: Run focused verification**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_tunnel_races.py tests/test_api/test_Tunnel.py -q`
 
 Expected: all Tunnel tests pass without warnings.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add agently_stage/Tunnel.py tests/test_runtime/test_tunnel_races.py README.md

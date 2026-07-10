@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import threading
 
 import pytest
@@ -11,6 +12,11 @@ from agently_stage.StageException import TunnelClosedError
 
 async def _collect_async(tunnel: Tunnel[int]) -> list[int]:
     return [item async for item in tunnel]
+
+
+def test_default_timeout_preserves_original_ten_second_safety_posture() -> None:
+    timeout = inspect.signature(Tunnel).parameters["timeout"].default
+    assert timeout == 10
 
 
 def test_each_subscriber_replays_the_full_sequence() -> None:
@@ -75,6 +81,16 @@ def test_timeout_ends_only_that_reader() -> None:
     tunnel.put(2)
     tunnel.close()
     assert tunnel.get() == [1, 2]
+
+
+def test_timed_out_reader_does_not_close_tunnel() -> None:
+    tunnel: Tunnel[int] = Tunnel(timeout=0.01)
+
+    assert list(tunnel) == []
+
+    tunnel.put(1)
+    tunnel.close()
+    assert list(tunnel) == [1]
 
 
 def test_concurrent_producers_publish_one_total_order() -> None:

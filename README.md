@@ -204,10 +204,14 @@ Multiple threads or coroutines may publish. Accepted values have one total
 order, and every sync/async subscriber receives that same sequence from its own
 cursor. `close()` is idempotent; `put_stop()` is its compatibility alias.
 `fail(error)` publishes a terminal error after accepted values. Writes after a
-terminal state raise `TunnelClosedError`.
+terminal state raise `TunnelClosedError`. Here `close()` means that the
+producer publishes EOF; it is not a runtime-resource cleanup operation.
 
-`Tunnel(timeout=seconds)` applies a reader-local wait timeout. Timing out one
-reader does not close or mutate the channel.
+The default `Tunnel(timeout=10)` applies a reader-local inactivity timeout while
+waiting for the next value, providing a safety exit if a producer forgets EOF.
+Timing out one reader does not close or mutate the channel, and later readers
+can still receive subsequent values. Use `timeout=None` when a reader should
+wait indefinitely for explicit `close()` or `fail()`.
 
 ## EventEmitter
 

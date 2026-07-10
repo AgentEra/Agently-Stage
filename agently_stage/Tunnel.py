@@ -123,7 +123,7 @@ class Tunnel(Generic[T]):
     def __init__(
         self,
         wait_interval: float = 0.1,
-        timeout: float | None = None,
+        timeout: float | None = 10,
         timeout_after_start: bool = True,
     ) -> None:
         self._condition = threading.Condition(threading.RLock())
