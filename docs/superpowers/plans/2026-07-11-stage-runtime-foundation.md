@@ -486,7 +486,7 @@ Commit: `git commit -m "feat: add settlement-aware StageStream"`
 - Consumes: Stage and StageHandle.
 - Produces: thread-safe `on`, `off`, `once`, `listener_count`, `emit`, `async_emit`, `close`, and `async_close`.
 
-- [ ] **Step 1: Write failing concurrent-once and pending-close tests**
+- [x] **Step 1: Write failing concurrent-once and pending-close tests**
 
 ```python
 def test_concurrent_emit_invokes_once_listener_once():
@@ -514,13 +514,13 @@ def test_close_waits_for_fire_and_forget_listeners():
     assert finished.is_set()
 ```
 
-- [ ] **Step 2: Run EventEmitter tests and verify RED**
+- [x] **Step 2: Run EventEmitter tests and verify RED**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_event_emitter_races.py -q`
 
 Expected: listener dictionaries race and current per-emit Stage contexts do not provide emitter-owned pending settlement.
 
-- [ ] **Step 3: Implement one emitter-owned Stage scope and atomic listener snapshotting**
+- [x] **Step 3: Implement one emitter-owned Stage scope and atomic listener snapshotting**
 
 ```python
 class EventEmitter:
@@ -535,7 +535,7 @@ class EventEmitter:
 
 Remove once listeners inside the registry lock before invoking them. Snapshot ordinary listeners under the same lock. Submit listeners through one emitter-owned unpinned Stage; `wait=False` returns handles immediately, and emitter close seals admission then waits pending listener settlement.
 
-- [ ] **Step 4: Verify EventEmitter and commit**
+- [x] **Step 4: Verify EventEmitter and commit**
 
 Run: `.venv/bin/python -m pytest tests/test_api/test_EventEmitter.py tests/test_hybrid/test_Stage_EventEmitter.py tests/test_runtime/test_event_emitter_races.py -q`
 

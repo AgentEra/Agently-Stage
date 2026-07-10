@@ -1,4 +1,4 @@
-# Copyright 2024 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
+# Copyright 2024-2026 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,180 +12,151 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Contact us: Developer@Agently.tech
 from __future__ import annotations
 
-from typing import Callable
+import threading
+from typing import TYPE_CHECKING, Any
 
 from .Stage import Stage
+from .StageException import StageClosedError, StageSettlementError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
+    from .StageHandle import StageHandle
+    from .StageStream import StageStream
+
+    Listener = Callable[..., Any]
+    ListenerHandle = StageHandle[Any] | StageStream[Any]
 
 
 class EventEmitter:
-    """
-    Agently Stage EventEmitter provide an event-driven dispatch center to help developers to build event-driven application.
+    """Thread-safe process-local listener fan-out backed by one Stage scope."""
 
-    Args:
-    - `private_max_workers` (`int`): If you want to use a private thread pool executor, declare worker number here and the private thread pool executor will execute tasks instead of the global one in Agently Stage dispatch environment. Value `None` means use the global thread pool executor.
-    - `max_concurrent_tasks` (`int`): If you want to limit the max concurrent task number that running in async event loop, declare max task number here. Value `None` means no limitation.
-    - `on_error` (`function(Exception)->any`): Register a callback function to handle exceptions when running.
+    def __init__(self) -> None:
+        self._registry_lock = threading.RLock()
+        self._listeners: dict[str, list[Listener]] = {}
+        self._once: dict[str, list[Listener]] = {}
+        self._stage = Stage()
+        self._closed = False
 
-    Example:
-    ```
-    from agently-stage import EventEmitter
-    emitter = EventEmitter()
-    emitter.on("data", lambda data: print(data))
-    emitter.emit("data", "Agently Stage EventEmitter is so easy to use!")
-    ```
-    """
+    def _ensure_open_locked(self) -> None:
+        if self._closed:
+            raise StageClosedError("Cannot use a closed EventEmitter")
 
-    def __init__(self):
-        self._listeners = {}
-        self._once = {}
-
-    def add_listener(self, event: str, listener: Callable[[any], any]) -> Callable:
-        """
-        Add a listener to event.
-
-        Args:
-        - `event` (str): Event string to be listened.
-        - `listener` (function(*args, **kwargs)->any): Listener/handler to handle data from event that will be emitted.
-
-        Return:
-        - `listener`
-        """
-        if event not in self._listeners:
-            self._listeners.update({event: []})
-        if listener not in self._listeners[event]:
-            self._listeners[event].append(listener)
+    def add_listener(self, event: str, listener: Listener) -> Listener:
+        with self._registry_lock:
+            self._ensure_open_locked()
+            listeners = self._listeners.setdefault(event, [])
+            if listener not in listeners:
+                listeners.append(listener)
         return listener
 
-    def add_once_listener(self, event: str, listener: Callable[[any], any]) -> Callable:
-        """
-        Add a listener that will only run once to event.
-
-        Args:
-        - `event` (str): Event string to be listened.
-        - `listener` (function(*args, **kwargs)->any): Listener/handler that will only run once to handle data from event that will be emitted, after that this listener will be removed.
-
-        Return:
-        - `listener`
-        """
-        if event not in self._once:
-            self._once.update({event: []})
-        if listener not in self._listeners[event] and listener not in self._once[event]:
-            self._once[event].append(listener)
+    def add_once_listener(self, event: str, listener: Listener) -> Listener:
+        with self._registry_lock:
+            self._ensure_open_locked()
+            listeners = self._listeners.setdefault(event, [])
+            once_listeners = self._once.setdefault(event, [])
+            if listener not in listeners and listener not in once_listeners:
+                once_listeners.append(listener)
         return listener
 
-    def remove_listener(self, event: str, listener: Callable[[any], any]):
-        """
-        Remove a listener from event.
+    def remove_listener(self, event: str, listener: Listener) -> None:
+        with self._registry_lock:
+            listeners = self._listeners.get(event)
+            if listeners is not None and listener in listeners:
+                listeners.remove(listener)
+            once_listeners = self._once.get(event)
+            if once_listeners is not None and listener in once_listeners:
+                once_listeners.remove(listener)
 
-        Args:
-        - `event` (str): Event string to be listened.
-        - `listener` (function(*args, **kwargs)->any): The same listener pointer/address that was added.
-        """
-        if event in self._listeners and listener in self._listeners[event]:
-            self._listeners[event].remove(listener)
+    def remove_all_listeners(self, event_list: str | Iterable[str]) -> None:
+        events = (event_list,) if isinstance(event_list, str) else tuple(event_list)
+        with self._registry_lock:
+            for event in events:
+                self._listeners[event] = []
+                self._once[event] = []
 
-    def remove_all_listeners(self, event_list: str | list[str]):
-        """
-        Remove all listeners from event.
-
-        Args:
-        - `event` (str | list): Event string or event string list that all listeners to be removed.
-        """
-        if isinstance(event_list, str):
-            event_list = [event_list]
-        for event in event_list:
-            self._listeners.update({event: []})
-
-    def on(self, event: str, listener: Callable[[any], any] = None) -> Callable:
-        """
-        Alias to `.add_listener()`. Add a listener to event.
-
-        Args:
-        - `event` (str): Event string to be listened.
-        - `listener` (function(*args, **kwargs)->any, optional): Listener/handler to handle data from event that will be emitted. Can be used as a listener function decorator if not provided.
-
-        Return:
-        - `listener` if used as method
-        - `decorator` if used as a decorator
-        """
+    def on(self, event: str, listener: Listener | None = None) -> Listener:
         if listener is not None:
             return self.add_listener(event, listener)
 
-        def decorator(func: Callable[[any], any]) -> Callable:
-            return self.add_listener(event, func)
+        def decorator(function: Listener) -> Listener:
+            return self.add_listener(event, function)
 
         return decorator
 
-    def off(self, event: str, listener: Callable[[any], any]):
-        """
-        Alias to `.remove_listener()`. Remove a listener from event.
+    def off(self, event: str, listener: Listener) -> None:
+        self.remove_listener(event, listener)
 
-        Args:
-        - `event` (str): Event string to be listened.
-        - `listener` (function(*args, **kwargs)->any): The same listener pointer/address that was added.
-        """
-        return self.remove_listener(event, listener)
-
-    def once(self, event: str, listener: Callable[[any], any] = None):
-        """
-        Alias to `.add_once_listener()`. Add a listener that will only run once to event.
-
-        Args:
-        - `event` (str): Event string to be listened.
-        - `listener` (function(*args, **kwargs)->any): Listener/handler that will only run once to handle data from event that will be emitted, after that this listener will be removed. Can be used as a listener function decorator if not provided.
-
-        Return:
-        - `listener` if used as method
-        - `decorator` if used as a decorator
-        """
+    def once(self, event: str, listener: Listener | None = None) -> Listener:
         if listener is not None:
             return self.add_once_listener(event, listener)
 
-        def decorator(func: Callable[[any], any]) -> Callable:
-            return self.add_once_listener(event, func)
+        def decorator(function: Listener) -> Listener:
+            return self.add_once_listener(event, function)
 
         return decorator
 
     def listener_count(self, event: str) -> int:
-        """
-        Count registered listener number of event including normal listeners and once listeners.
+        with self._registry_lock:
+            return len(self._listeners.get(event, ())) + len(self._once.get(event, ()))
 
-        Args:
-        - `event` (str): Event string to be listened.
+    @staticmethod
+    def _wait_handles(handles: list[ListenerHandle]) -> None:
+        for handle in handles:
+            try:
+                handle.get()
+            except BaseException:
+                pass
+            try:
+                handle.wait_settled()
+            except StageSettlementError:
+                pass
 
-        Return:
-        - count of listeners
-        """
-        return len(self._listeners[event]) + len(self._once[event])
+    @staticmethod
+    async def _async_wait_handles(handles: list[ListenerHandle]) -> None:
+        for handle in handles:
+            try:
+                await handle.async_get()
+            except BaseException:
+                pass
+            try:
+                await handle.async_wait_settled()
+            except StageSettlementError:
+                pass
 
-    def emit(self, event: str, *args, wait: bool = False, **kwargs):
-        """
-        Emit event with args and kwargs.
+    def emit(self, event: str, *args: Any, wait: bool = False, **kwargs: Any) -> list[ListenerHandle]:
+        with self._registry_lock:
+            self._ensure_open_locked()
+            listeners = [*self._listeners.get(event, ()), *self._once.pop(event, ())]
+            handles = [self._stage.go(listener, *args, **kwargs) for listener in listeners]
+        if wait:
+            self._wait_handles(handles)
+        return handles
 
-        Args:
-        - `event` (str): Event string to be emit.
-        - `wait` (bool): Wait until all handlers done or not, defaults to False.
-        - `*args`, `**kwargs`: Args and kwargs that can be accepted by listeners.
+    async def async_emit(
+        self,
+        event: str,
+        *args: Any,
+        wait: bool = False,
+        **kwargs: Any,
+    ) -> list[ListenerHandle]:
+        handles = self.emit(event, *args, wait=False, **kwargs)
+        if wait:
+            await self._async_wait_handles(handles)
+        return handles
 
-        Return:
-        - `[<StageResponse | StageHybridGenerator>, ...]`: A list of responses of all ongoing Agently Stage tasks.
-        """
-        listeners_to_execute = []
-        on_going_listeners = []
-        if event in self._listeners:
-            for listener in self._listeners[event]:
-                listeners_to_execute.append((listener, args, kwargs))
-        if event in self._once:
-            for listener in self._once[event]:
-                listeners_to_execute.append((listener, args, kwargs))
-            self._once.update({event: []})
-        with Stage(reuse_env=True) as stage:
-            for listener, args, kwargs in listeners_to_execute:
-                on_going_listeners.append(stage.go(listener, *args, **kwargs))
-            if wait:
-                for listener_response in on_going_listeners:
-                    listener_response.get()
-        return on_going_listeners
+    def close(self) -> None:
+        with self._registry_lock:
+            if self._closed:
+                return
+            self._closed = True
+        self._stage.close()
+
+    async def async_close(self) -> None:
+        with self._registry_lock:
+            if self._closed:
+                return
+            self._closed = True
+        await self._stage.async_close()
