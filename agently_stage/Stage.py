@@ -127,13 +127,23 @@ class Stage:
         ignore_exception: bool = False,
         wait_interval: float = 0.1,
         **kwargs: Any,
-    ) -> StageHandle[T]:
-        del lazy, wait_interval
+    ) -> StageHandle[T] | Any:
+        del wait_interval
         task_class = self._classify_task(task)
         if task_class == "stage_func":
             return cast(StageHandle[T], task(*args, **kwargs))
         if task_class in {"async_gen_func", "async_gen", "gen_func", "gen"}:
-            raise NotImplementedError("Generator execution moves to StageStream in the next refactor phase")
+            return self._go_stream(
+                task,
+                task_class,
+                args,
+                kwargs,
+                lazy=lazy,
+                on_success=cast(Any, on_success),
+                on_error=on_error,
+                on_finally=on_finally,
+                ignore_exception=ignore_exception,
+            )
         if task_class is None:
             raise TypeError(f"Unsupported Stage task: {task!r}")
 
@@ -172,6 +182,71 @@ class Stage:
 
             _RUNTIME_CARRIER.submit(handle, runner, preferred=preferred)
         return handle
+
+    def _go_stream(
+        self,
+        task: Any,
+        task_class: str,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+        *,
+        lazy: bool,
+        on_success: Callable[[list[Any]], object | Awaitable[object]] | None,
+        on_error: Callable[[BaseException], object | Awaitable[object]] | None,
+        on_finally: Callable[[], object | Awaitable[object]] | None,
+        ignore_exception: bool,
+    ) -> Any:
+        from .StageStream import StageStream
+        from .Tunnel import Tunnel
+
+        tunnel: Tunnel[Any] = Tunnel()
+
+        if task_class in {"async_gen_func", "async_gen"}:
+
+            async def consume_async_source() -> list[Any]:
+                source = task(*args, **kwargs) if task_class == "async_gen_func" else task
+                values: list[Any] = []
+                try:
+                    async for item in source:
+                        values.append(item)
+                        tunnel.put(item)
+                except BaseException as error:
+                    tunnel.fail(error)
+                    raise
+                tunnel.close()
+                return values
+
+            consume_source: Callable[..., Any] = consume_async_source
+        else:
+
+            def consume_sync_source() -> list[Any]:
+                source = task(*args, **kwargs) if task_class == "gen_func" else task
+                values: list[Any] = []
+                try:
+                    for item in source:
+                        values.append(item)
+                        tunnel.put(item)
+                except BaseException as error:
+                    tunnel.fail(error)
+                    raise
+                tunnel.close()
+                return values
+
+            consume_source = consume_sync_source
+
+        def start() -> StageHandle[list[Any]]:
+            return cast(
+                StageHandle[list[Any]],
+                self.go(
+                    consume_source,
+                    on_success=on_success,
+                    on_error=on_error,
+                    on_finally=on_finally,
+                    ignore_exception=ignore_exception,
+                ),
+            )
+
+        return StageStream(start, tunnel, lazy=lazy)
 
     def get(
         self,

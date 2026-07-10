@@ -9,5 +9,6 @@ from .StageFunction import StageFunction
 from .StageHandle import StageHandle
 from .StageHybridGenerator import StageHybridGenerator
 from .StageResponse import StageResponse
+from .StageStream import StageStream
 from .StageTask import StageCallBackTask, StageTaskProxy
 from .Tunnel import Tunnel

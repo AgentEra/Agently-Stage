@@ -418,7 +418,7 @@ Commit: `git commit -m "refactor: rebuild Tunnel as replay channel"`
 - Consumes: Tunnel, Stage scalar submission, StageHandle settlement.
 - Produces: `StageStream[T]` with sync/async iteration, `get`, `async_get`, callback delegation, cancellation, and settlement waits.
 
-- [ ] **Step 1: Write failing sync/async generator stream tests**
+- [x] **Step 1: Write failing sync/async generator stream tests**
 
 ```python
 def test_generator_returns_read_only_stage_stream():
@@ -445,13 +445,13 @@ def test_async_generator_can_be_consumed_from_user_loop():
     asyncio.run(scenario())
 ```
 
-- [ ] **Step 2: Run StageStream tests and verify RED**
+- [x] **Step 2: Run StageStream tests and verify RED**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_stage_stream.py -q`
 
 Expected: StageStream does not exist and StageHybridGenerator uses polling/shared queue behavior.
 
-- [ ] **Step 3: Implement StageStream composition and generator consumption**
+- [x] **Step 3: Implement StageStream composition and generator consumption**
 
 ```python
 class StageStream(Generic[T]):
@@ -466,7 +466,7 @@ class StageStream(Generic[T]):
 
 Consume async generators on the Stage loop. Consume synchronous generators on the blocking executor. Publish every value to a private Tunnel, publish failure after prior values, close exactly once, and return the collected list as the source body result. Keep `StageHybridGenerator` importable as a StageStream subclass or alias without a polling thread.
 
-- [ ] **Step 4: Verify generator compatibility and commit**
+- [x] **Step 4: Verify generator compatibility and commit**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_stage_stream.py tests/test_api/test_Tunnel.py -q`
 
