@@ -293,7 +293,7 @@ Commit: `git commit -m "feat: add Stage scope and settlement callbacks"`
 - Consumes: Stage, StageHandle, and the carrier's blocking executor.
 - Produces: import-compatible StageResponse, StageDispatch, StageDispatchEnvironment, StageCallBackTask, StageTaskProxy, TaskThreadPool, and StageFunction without new loop or bridge threads.
 
-- [ ] **Step 1: Write failing compatibility-owner tests**
+- [x] **Step 1: Write failing compatibility-owner tests**
 
 ```python
 def test_legacy_facades_do_not_create_additional_control_threads():
@@ -304,13 +304,13 @@ def test_legacy_facades_do_not_create_additional_control_threads():
     assert not _daemon_stage_threads()
 ```
 
-- [ ] **Step 2: Run compatibility tests and verify RED**
+- [x] **Step 2: Run compatibility tests and verify RED**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_compatibility.py -q`
 
 Expected: current StageDispatch creates a separate event-loop thread and TaskThreadPool owns another pool.
 
-- [ ] **Step 3: Replace compatibility implementations with delegating facades**
+- [x] **Step 3: Replace compatibility implementations with delegating facades**
 
 ```python
 class StageResponse(StageHandle[T], Generic[T]):
@@ -325,11 +325,11 @@ class StageDispatch:
 
 `TaskThreadPool.submit()` delegates only to the shared blocking executor. `StageCallBackTask` uses its provided Stage or a plain Stage carrier submission; it never creates a raw thread or calls `asyncio.run()`.
 
-- [ ] **Step 4: Update old tests to the reviewed body-error contract**
+- [x] **Step 4: Update old tests to the reviewed body-error contract**
 
 Replace assertions that expect `StageResponse.get()` to return an exception object with `pytest.raises(...)`; retain `ignore_exception=True` returning `None` and ensure `on_error` still observes the original error.
 
-- [ ] **Step 5: Verify all scalar compatibility tests and commit**
+- [x] **Step 5: Verify all scalar compatibility tests and commit**
 
 Run: `.venv/bin/python -m pytest tests/test_api/test_Stage_with.py tests/test_api/test_StageTaskProxy.py tests/test_runtime -q`
 

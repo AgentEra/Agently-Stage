@@ -1,79 +1,43 @@
-# Copyright 2024 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from __future__ import annotations
 
-import asyncio
 import inspect
-from threading import Thread
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
-    from .Stage import Stage
+    from .StageHandle import StageHandle
+
+T = TypeVar("T")
 
 
 class StageCallBackTask:
-    def __init__(self, func: Callable, stage: Stage | None = None):
-        from .Stage import Stage
+    """Compatibility callback adapter using Stage instead of raw threads."""
 
-        assert stage is None or isinstance(stage, Stage), "stage must be None or Stage"
+    def __init__(self, func: Callable[..., Any], stage: Any | None = None) -> None:
         self._func = func
         self._stage = stage
-        if inspect.iscoroutinefunction(func):
-            self._use_async = True
-        else:
-            self._use_async = False
 
-    def async_run(self, *args: tuple[Any], **kwargs: dict[str, Any]):
-        assert self._func, "Function is None"
-        try:
-            if asyncio.get_running_loop().is_running():
-                asyncio.create_task(self._func(*args, **kwargs))
-        except RuntimeError:
-            # If the loop is not running, create a new one
-            def tf():
-                asyncio.run(self._func(*args, **kwargs))
+    def __call__(self, *args: Any, **kwargs: Any) -> StageHandle[Any]:
+        from .Stage import Stage
 
-            th = Thread(target=tf)
-            th.start()
-
-    def sync_run(self, *args: tuple[Any], **kwargs: dict[str, Any]):
-        assert self._func, "Function is None"
-        th = Thread(target=self._func, args=args, kwargs=kwargs)
-        th.start()
-
-    def __call__(self, *args: tuple[Any], **kwargs: dict[str, Any]):
-        if self._stage and self._stage.is_available:
-            return self._stage.go(self._func, *args, **kwargs)
-        if self._use_async:
-            return self.async_run(*args, **kwargs)
-        return self.sync_run(*args, **kwargs)
+        stage = self._stage if self._stage is not None and self._stage.is_available else Stage()
+        return stage.go(self._func, *args, **kwargs)
 
 
 class StageTaskProxy:
+    """Compatibility callable retaining the legacy callback constructor shape."""
+
     def __init__(
         self,
-        func: Callable,
-        stage: Stage | None = None,
-        on_success: Callable | None = None,
-        on_error: Callable | None = None,
-        on_finally: Callable | None = None,
+        func: Callable[..., T] | Callable[..., Awaitable[T]],
+        stage: Any | None = None,
+        on_success: Callable[[T], object] | None = None,
+        on_error: Callable[[BaseException], object] | None = None,
+        on_finally: Callable[[], object] | None = None,
         ignore_exception: bool = False,
         use_async: bool = False,
-    ):
+    ) -> None:
         self._func = func
         self._on_success = StageCallBackTask(on_success, stage) if on_success else None
         self._on_error = StageCallBackTask(on_error, stage) if on_error else None
@@ -81,55 +45,69 @@ class StageTaskProxy:
         self._ignore_exception = ignore_exception
         self._use_async = use_async
 
-    def add_on_success(self, on_success: StageCallBackTask[Callable]):
+    def add_on_success(self, on_success: StageCallBackTask) -> StageTaskProxy:
         self._on_success = on_success
         return self
 
-    def add_on_error(self, on_error: StageCallBackTask[Callable]):
+    def add_on_error(self, on_error: StageCallBackTask) -> StageTaskProxy:
         self._on_error = on_error
         return self
 
-    def add_on_finally(self, on_finally: StageCallBackTask[Callable]):
+    def add_on_finally(self, on_finally: StageCallBackTask) -> StageTaskProxy:
         self._on_finally = on_finally
         return self
 
-    async def async_run(self, *args: tuple[Any], **kwargs: dict[str, Any]):
-        assert self._func, "Function is None"
+    @staticmethod
+    def _wait_callback(handle: StageHandle[Any] | None) -> None:
+        if handle is None:
+            return
+        handle.get()
+        handle.wait_settled()
 
-        try:
-            result = await self._func(*args, **kwargs)
-            if self._on_success:
-                self._on_success(result)
-            return result
-        except Exception as e:
-            if self._on_error:
-                self._on_error(e)
-            if self._ignore_exception:
-                return
-            raise e
-        finally:
-            if self._on_finally:
-                self._on_finally()
+    @staticmethod
+    async def _async_wait_callback(handle: StageHandle[Any] | None) -> None:
+        if handle is None:
+            return
+        await handle.async_get()
+        await handle.async_wait_settled()
 
-    def sync_run(self, *args: tuple[Any], **kwargs: dict[str, Any]):
-        assert self._func, "Function is None"
-
+    async def async_run(self, *args: Any, **kwargs: Any) -> T | None:
         try:
             result = self._func(*args, **kwargs)
-            if self._on_success:
-                self._on_success(result)
+            if inspect.isawaitable(result):
+                result = await result
+            if self._on_success is not None:
+                await self._async_wait_callback(self._on_success(result))
             return result
-        except Exception as e:
-            if self._on_error:
-                self._on_error(e)
+        except Exception as error:
+            if self._on_error is not None:
+                await self._async_wait_callback(self._on_error(error))
             if self._ignore_exception:
-                return
-            raise e
+                return None
+            raise
         finally:
-            if self._on_finally:
-                self._on_finally()
+            if self._on_finally is not None:
+                await self._async_wait_callback(self._on_finally())
 
-    def __call__(self, *args: tuple[Any], **kwargs: dict[str, Any]):
+    def sync_run(self, *args: Any, **kwargs: Any) -> T | None:
+        try:
+            result = self._func(*args, **kwargs)
+            if inspect.isawaitable(result):
+                raise TypeError("Async StageTaskProxy call requires use_async=True")
+            if self._on_success is not None:
+                self._wait_callback(self._on_success(result))
+            return result
+        except Exception as error:
+            if self._on_error is not None:
+                self._wait_callback(self._on_error(error))
+            if self._ignore_exception:
+                return None
+            raise
+        finally:
+            if self._on_finally is not None:
+                self._wait_callback(self._on_finally())
+
+    def __call__(self, *args: Any, **kwargs: Any) -> T | None | Awaitable[T | None]:
         if self._use_async:
             return self.async_run(*args, **kwargs)
         return self.sync_run(*args, **kwargs)

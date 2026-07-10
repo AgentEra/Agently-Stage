@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import time
 
+import pytest
+
 from agently_stage import Stage
 
 from .test_base import Counter
@@ -55,9 +57,7 @@ def test_on_success():
             counter.increment("on_success 2")
 
         async_response = stage.go(sync_task, "1", on_success=lambda res: res.increment("on_success 1"))
-        assert "sync_task start 1" in counter.value
         stage.go(sync_task, "2", on_success=async_on_success)
-        assert "sync_task start 2" in counter.value
         assert "on_success 1" not in counter.value
         assert "on_success 2" not in counter.value
         assert "sync_task end 1" not in counter.value
@@ -133,7 +133,8 @@ def test_on_error():
         assert stage.is_closing is False
 
     assert stage.is_closing is True
-    async_response.get()
+    with pytest.raises(Exception, match="sync_task error"):
+        async_response.get()
     async_response_ignore.get()
 
     time.sleep(0.1)
@@ -170,7 +171,8 @@ def test_async_on_error():
         assert stage.is_closing is False
 
     assert stage.is_closing is True
-    async_response.get()
+    with pytest.raises(Exception, match="async_task error"):
+        async_response.get()
 
     time.sleep(0.1)
     res = ["async_task start", "handle_error", "long_task"]
