@@ -17,6 +17,34 @@ from __future__ import annotations
 
 import traceback
 import types
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+
+class StageError(Exception):
+    """Base class for Stage-owned lifecycle and settlement failures."""
+
+
+class StageClosedError(StageError):
+    """Raised when work is submitted to an already closed Stage scope."""
+
+
+class StageLifecycleError(StageError):
+    """Raised when the private runtime carrier cannot preserve its contract."""
+
+
+class StageSettlementError(StageError):
+    """Raised after body completion when retained settlement work failed."""
+
+    def __init__(self, errors: Iterable[BaseException]):
+        self.errors = tuple(errors)
+        super().__init__(f"{len(self.errors)} Stage settlement task(s) failed")
+
+
+class TunnelClosedError(StageError):
+    """Raised when a value is written after a Tunnel reaches terminal state."""
 
 
 class StageException(Exception):

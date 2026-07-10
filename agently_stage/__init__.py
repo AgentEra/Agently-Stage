@@ -6,6 +6,7 @@ from .Stage import Stage
 from .StageDispatch import StageDispatch, StageDispatchEnvironment
 from .StageException import StageException
 from .StageFunction import StageFunction
+from .StageHandle import StageHandle
 from .StageHybridGenerator import StageHybridGenerator
 from .StageResponse import StageResponse
 from .StageTask import StageCallBackTask, StageTaskProxy

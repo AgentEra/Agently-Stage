@@ -59,7 +59,7 @@
 - Produces: `Stage.go(callable, *args, **kwargs) -> StageHandle[T]`, `Stage.get(...) -> T`, `StageHandle.get(timeout=None) -> T`, `StageHandle.async_get(timeout=None) -> T`, `StageHandle.wait_settled(timeout=None) -> None`, `StageHandle.async_wait_settled(timeout=None) -> None`, and private `_RUNTIME_CARRIER`.
 - Produces: `StageClosedError`, `StageLifecycleError`, and `StageSettlementError(errors)`.
 
-- [ ] **Step 1: Write failing lazy-generation and repeated-generation tests**
+- [x] **Step 1: Write failing lazy-generation and repeated-generation tests**
 
 ```python
 def test_stage_is_lazy_and_repeated_batches_use_finite_generations():
@@ -78,13 +78,13 @@ def test_stage_is_lazy_and_repeated_batches_use_finite_generations():
     assert second.generation_id > first.generation_id
 ```
 
-- [ ] **Step 2: Run the generation test and verify RED**
+- [x] **Step 2: Run the generation test and verify RED**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_generation.py -q`
 
 Expected: collection fails because `_runtime_snapshot`, `StageHandle`, and finite carrier generations do not exist.
 
-- [ ] **Step 3: Implement the private carrier state machine and scalar submission path**
+- [x] **Step 3: Implement the private carrier state machine and scalar submission path**
 
 ```python
 class _GenerationState(Enum):
@@ -115,7 +115,7 @@ class _RuntimeCarrier:
 
 Use one admission lock for reservation and seal decisions. Queue submissions on a not-yet-started generation rather than blocking `Stage.go()` behind the prior generation's drain.
 
-- [ ] **Step 4: Implement the one-shot body result and quiescence barrier**
+- [x] **Step 4: Implement the one-shot body result and quiescence barrier**
 
 ```python
 class StageHandle(Generic[T]):
@@ -130,13 +130,13 @@ class StageHandle(Generic[T]):
 
 The body outcome uses `concurrent.futures.Future[T]`. The settlement barrier uses a condition and outstanding-work count so later legal callback admission can create a new unsettled epoch while the Stage scope is open.
 
-- [ ] **Step 5: Run scalar and generation tests and verify GREEN**
+- [x] **Step 5: Run scalar and generation tests and verify GREEN**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_generation.py tests/test_runtime/test_scalar_handle.py -q`
 
 Expected: all scalar and generation tests pass with no runtime warnings.
 
-- [ ] **Step 6: Write and verify subprocess exit tests RED then GREEN**
+- [x] **Step 6: Write and verify subprocess exit tests RED then GREEN**
 
 ```python
 def test_process_waits_for_retained_stage_work(tmp_path):
@@ -162,7 +162,7 @@ print(Stage().get(root))
 
 Run the single test before descendant tracking and confirm it fails because the child is cancelled or omitted. Then install a context-aware task factory on each private Stage loop, retain descendant tasks against the active handle and generation, and rerun until it passes.
 
-- [ ] **Step 7: Verify Task 1 and commit**
+- [x] **Step 7: Verify Task 1 and commit**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime -q`
 
@@ -186,7 +186,7 @@ Commit: `git commit -m "refactor: add finite Stage runtime generations"`
 - Consumes: Task 1 carrier reservation and StageHandle quiescence primitives.
 - Produces: `with Stage()`/`async with Stage()` pinned generation leases, `Stage.close()`, `Stage.async_close()`, and chainable `on_success`, `on_error`, `on_finally`.
 
-- [ ] **Step 1: Write failing pinned-scope and close-race tests**
+- [x] **Step 1: Write failing pinned-scope and close-race tests**
 
 ```python
 def test_pinned_context_keeps_loop_affinity_across_idle_gap():
@@ -208,13 +208,13 @@ def test_scope_close_rejects_late_callback_registration():
         handle.on_success(lambda value: value)
 ```
 
-- [ ] **Step 2: Run scope tests and verify RED**
+- [x] **Step 2: Run scope tests and verify RED**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_scope.py -q`
 
 Expected: failures show context calls are not pinned and callback admission is not sealed atomically with close.
 
-- [ ] **Step 3: Implement lazy pinned leases and synchronous/asynchronous scope close**
+- [x] **Step 3: Implement lazy pinned leases and synchronous/asynchronous scope close**
 
 ```python
 class Stage:
@@ -228,7 +228,7 @@ class Stage:
 
 An empty context creates no generation. First submission in a context acquires one lease; close atomically seals the scope, releases the lease, waits only scope-owned active handles, then shuts down a scope-private blocking executor when present.
 
-- [ ] **Step 4: Write failing callback ordering, fast-body, and settlement-isolation tests**
+- [x] **Step 4: Write failing callback ordering, fast-body, and settlement-isolation tests**
 
 ```python
 def test_immediate_body_accepts_chain_without_grace_period():
@@ -251,13 +251,13 @@ def test_callback_failure_does_not_rewrite_body_outcome():
     assert isinstance(exc_info.value.errors[0], ZeroDivisionError)
 ```
 
-- [ ] **Step 5: Run callback tests and verify RED**
+- [x] **Step 5: Run callback tests and verify RED**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime/test_callbacks.py -q`
 
 Expected: callback methods are absent or callbacks race with body completion.
 
-- [ ] **Step 6: Implement the ordered observer callback drain**
+- [x] **Step 6: Implement the ordered observer callback drain**
 
 ```python
 class StageHandle(Generic[T]):
@@ -268,7 +268,7 @@ class StageHandle(Generic[T]):
 
 Callback registration, Stage scope sealing, and settlement-barrier admission share the scope admission lock. A cached body outcome may schedule a callback drain in the next generation. The drain processes matching observers in registration order, records failures, continues to finalizers, and never changes the body future.
 
-- [ ] **Step 7: Verify Task 2 and commit**
+- [x] **Step 7: Verify Task 2 and commit**
 
 Run: `.venv/bin/python -m pytest tests/test_runtime -q`
 
