@@ -349,7 +349,7 @@ Commit: `git commit -m "refactor: delegate legacy Stage runtime facades"`
 - Produces: `Tunnel[T].put`, `async_put`, `close`, `async_close`, `fail`, `put_stop`, `get`, `__iter__`, and `__aiter__`.
 - Produces: `TunnelClosedError` and terminal source-error propagation.
 
-- [ ] **Step 1: Write failing replay, fan-out, failure, and concurrent publication tests**
+- [x] **Step 1: Write failing replay, fan-out, failure, and concurrent publication tests**
 
 ```python
 def test_each_subscriber_replays_the_full_sequence():
@@ -375,13 +375,13 @@ def test_async_subscribers_are_woken_without_polling():
     asyncio.run(scenario())
 ```
 
-- [ ] **Step 2: Run Tunnel tests and verify RED**
+- [x] **Step 2: Run Tunnel tests and verify RED**
 
 Run: `.venv/bin/python -m pytest tests/test_api/test_Tunnel.py tests/test_runtime/test_tunnel_races.py -q`
 
 Expected: current shared queue consumes each item once globally, so independent subscribers do not receive full replay.
 
-- [ ] **Step 3: Implement independent cursor iterators and waiter handoff**
+- [x] **Step 3: Implement independent cursor iterators and waiter handoff**
 
 ```python
 class Tunnel(Generic[T]):
@@ -397,7 +397,7 @@ class Tunnel(Generic[T]):
 
 Protect publication order, item history, terminal state, sync conditions, and async waiter registration with one lock. Wake async waiters using their owner loop's `call_soon_threadsafe`; remove cancelled or timed-out waiters deterministically.
 
-- [ ] **Step 4: Verify Tunnel and commit**
+- [x] **Step 4: Verify Tunnel and commit**
 
 Run: `.venv/bin/python -m pytest tests/test_api/test_Tunnel.py tests/test_runtime/test_tunnel_races.py -q`
 
