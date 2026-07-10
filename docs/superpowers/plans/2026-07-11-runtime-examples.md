@@ -262,7 +262,7 @@ git commit -m "docs: add Stage transport and event examples"
 - Consumes: finite Stage generation retention, all public example scripts and their expected-output blocks.
 - Produces: one no-close process-exit example, an examples index, a compact standalone quickstart, and a subprocess acceptance harness.
 
-- [ ] **Step 1: Write the no-close process-exit example**
+- [x] **Step 1: Write the no-close process-exit example**
 
 Use this exact output contract:
 
@@ -274,7 +274,7 @@ Use this exact output contract:
 
 The root coroutine creates a retained child, returns `"ready"`, and the script prints the body before the child prints `background_finished=True`. Do not call `Stage.close()`, register `atexit`, or create raw threads.
 
-- [ ] **Step 2: Add the subprocess harness**
+- [x] **Step 2: Add the subprocess harness**
 
 Create `tests/test_examples.py` with an explicit list of every `.py` example. Parse contiguous `# ` lines after `# Expected key output from a real local run:` and compare them to stdout:
 
@@ -297,15 +297,15 @@ def test_example_matches_recorded_key_output(example: Path) -> None:
 
 The explicit `EXAMPLES` list contains `runtime_foundation.py` plus all eight new scripts so an accidental utility file is not treated as public documentation.
 
-- [ ] **Step 3: Align the existing quickstart artifacts**
+- [x] **Step 3: Align the existing quickstart artifacts**
 
 Rename `transport_drain` to `background_cleanup` in `runtime_foundation.py` and the notebook. Remove ordinary `emitter.close()` calls from both. Keep their existing four-line expected output unchanged.
 
-- [ ] **Step 4: Add a README examples index and lifecycle wording**
+- [x] **Step 4: Add a README examples index and lifecycle wording**
 
 Link every script by scenario. State that ordinary Stage and EventEmitter usage does not need a shutdown call, EventEmitter close is an optional seal, Tunnel close is EOF, and StageStream terminates its internal channel automatically.
 
-- [ ] **Step 5: Run example acceptance and notebook execution**
+- [x] **Step 5: Run example acceptance and notebook execution**
 
 Run: `.venv/bin/python -m pytest tests/test_examples.py -q`
 
@@ -315,7 +315,7 @@ Run: `jupyter nbconvert --to notebook --execute examples/readme_examples.ipynb -
 
 Expected: execution succeeds without warnings.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add README.md examples tests/test_examples.py

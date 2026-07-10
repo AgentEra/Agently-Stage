@@ -16,11 +16,11 @@ def main() -> None:
     drained = threading.Event()
 
     async def request() -> str:
-        async def transport_drain() -> None:
+        async def background_cleanup() -> None:
             await asyncio.sleep(0.02)
             drained.set()
 
-        asyncio.create_task(transport_drain())
+        asyncio.create_task(background_cleanup())
         return "ready"
 
     request_stage = Stage()
@@ -47,7 +47,6 @@ def main() -> None:
 
     emitter.emit("ready", wait=True)
     emitter.emit("ready", wait=True)
-    emitter.close()
 
     print(f"body={body}")
     print(f"drained={drained.is_set()}")

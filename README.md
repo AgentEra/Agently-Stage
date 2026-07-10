@@ -177,7 +177,8 @@ stage.close()
 Source errors are delivered after values already published. Stream callbacks
 observe source completion once and receive the complete result list; they do
 not transform individual items. `lazy=True` delays source start until the first
-reader.
+reader. The source automatically publishes EOF or failure to StageStream's
+internal channel; callers do not close a StageStream.
 
 `StageHybridGenerator` remains an import-compatible StageStream subtype for the
 preview line. New code should use the `StageStream` name.
@@ -233,18 +234,34 @@ assert handles[0].get() == "OK"
 
 # The once listener was removed atomically before invocation.
 assert emitter.emit("ready", "again", wait=True) == []
-emitter.close()
 ```
 
 `emit(..., wait=False)` returns listener handles immediately while Stage retains
 the work. `wait=True` waits without merging listener failures; each failure
-remains observable from its own handle. `async_emit()` and `async_close()` are
-available for async applications. Closing an emitter prevents new emits and
-waits for pending listeners.
+remains observable from its own handle. Ordinary scripts do not need to close
+an emitter: listener work settles through the finite Stage runtime. `close()`
+and `async_close()` are optional component-lifecycle seals that prevent new
+registration or emits and wait for pending listener settlement during explicit
+service teardown.
 
-EventEmitter is generic local pub/sub. RuntimeEvent normalization, workflow
-signals, matching policy, buffering, and durable event storage remain outside
-its scope.
+EventEmitter owns generic process-local listener registration and invocation.
+Remote delivery, durable storage, message matching, and application event
+policy remain outside its scope.
+
+## Runnable examples
+
+Each example runs independently and records stable key output from a real local
+run:
+
+- [Runtime foundation overview](examples/runtime_foundation.py)
+- [Sync, async, and concurrent calls](examples/basic_sync_async.py)
+- [Body result and retained background settlement](examples/body_result_and_background_drain.py)
+- [Finite generations and pinned loop affinity](examples/generation_and_pinned_context.py)
+- [Callbacks, errors, and cancellation](examples/callbacks_errors_and_cancellation.py)
+- [Tunnel broadcast, timeout, and failure](examples/tunnel_broadcast.py)
+- [StageStream lazy execution, replay, and failure](examples/stage_stream.py)
+- [EventEmitter listeners without ordinary close](examples/event_emitter.py)
+- [Automatic process exit after retained work](examples/automatic_process_exit.py)
 
 ## Runtime constraints
 
