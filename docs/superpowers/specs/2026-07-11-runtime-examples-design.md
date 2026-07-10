@@ -1,6 +1,6 @@
 # Agently Stage Runtime Examples Coverage Design
 
-Status: approved direction, awaiting written-spec review
+Status: approved
 
 Date: 2026-07-11
 
@@ -58,8 +58,10 @@ Create or revise these examples:
    - callback errors become settlement errors;
    - cancellation has explicit, observable runtime semantics.
 5. `tunnel_broadcast.py`
-   - external writes and close;
+   - external writes and explicit EOF through `close()`;
    - independent sync and async replay readers;
+   - the default 10-second reader-local inactivity timeout provides a safety
+     exit if a producer forgets EOF, without closing or mutating the Tunnel;
    - terminal failure after accepted values;
    - one reader does not consume another reader's cursor.
 6. `stage_stream.py`
@@ -72,7 +74,9 @@ Create or revise these examples:
    - `once` atomic behavior;
    - `wait=False` returns handles;
    - listener failure isolation;
-   - emitter close drains pending work.
+   - ordinary scripts require no emitter close;
+   - optional emitter close seals the owner against new events and drains
+     pending work for explicit component teardown.
 8. `automatic_process_exit.py`
    - no explicit Stage close or application shutdown hook;
    - the body returns first;
@@ -95,11 +99,18 @@ Every script must:
 - use assertions for owned structural invariants;
 - catch only the expected typed error when the scenario intentionally fails;
 - close explicit application scopes except in the automatic-process-exit
-  example;
+  example; EventEmitter is not an explicit application scope and its ordinary
+  example remains open to preserve the original fire-and-forget API posture;
 - avoid sleeps as correctness grace periods; sleeps may only represent
   asynchronous work after synchronization has established ordering;
 - use no private runtime API; the generation example uses public
   `generation_id` and returned loop identity only.
+
+Tunnel `close()` is described as producer-owned EOF, not resource cleanup.
+EventEmitter `close()` is described as an optional lifecycle seal, not an
+ordinary-script shutdown requirement. The original public experience—calling
+`emit()` from synchronous code without `await`, loop selection, or manual
+emitter shutdown—remains the default teaching path.
 
 ## 5. Verification
 
@@ -121,13 +132,15 @@ Acceptance requires:
 ## 6. Scope Boundaries
 
 This work changes examples, example verification, README navigation, and the
-quickstart notebook only. It does not change Stage runtime behavior, add public
-APIs, alter compatibility policy, or integrate with any downstream application
-framework. Stage example requirements derive only from Stage's standalone
-public runtime contract. Downstream framework replacement plans are
-non-normative context and must not supply example terminology, acceptance
-criteria, or hidden behavior assumptions. Public README wording must likewise
-describe the standalone Stage runtime rather than advertise downstream
+quickstart notebook. It also restores Tunnel's documented default
+`timeout=10` posture using the already implemented reader-local timeout
+mechanism; this is a public default correction, not an auto-close mechanism.
+It does not add public APIs, alter compatibility policy, or integrate with any
+downstream application framework. Stage example requirements derive only from
+Stage's standalone public runtime contract. Downstream framework replacement
+plans are non-normative context and must not supply example terminology,
+acceptance criteria, or hidden behavior assumptions. Public README wording must
+likewise describe the standalone Stage runtime rather than advertise downstream
 integration plans. If an example cannot honestly demonstrate a claimed
 capability, implementation stops and the runtime gap is reported rather than
 hidden in example-specific logic.
