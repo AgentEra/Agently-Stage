@@ -124,7 +124,7 @@ settlement_error=RuntimeError
 cancelled=True
 ```
 
-- [ ] **Step 1: Write each script with its expected-output comment before executable code**
+- [x] **Step 1: Write each script with its expected-output comment before executable code**
 
 Use this exact comment format so the later subprocess harness can parse it:
 
@@ -135,15 +135,15 @@ Use this exact comment format so the later subprocess harness can parse it:
 # concurrent_results=['first', 'second']
 ```
 
-- [ ] **Step 2: Implement deterministic synchronization**
+- [x] **Step 2: Implement deterministic synchronization**
 
 For background settlement, have the retained child signal `child_started`, wait on an application-owned release event through `asyncio.to_thread`, return the body result, then release it only after recording `settled_before_wait=False`. For cancellation, wait for the coroutine's started event before calling `handle.cancel(timeout=1)`. Do not infer ordering from elapsed time.
 
-- [ ] **Step 3: Use public lifecycle evidence only**
+- [x] **Step 3: Use public lifecycle evidence only**
 
 For plain generations, call `first.wait_settled()` before the second submission and compare `first.generation_id != second.generation_id`. For pinned affinity, return `asyncio.get_running_loop()` from two calls inside one `with Stage()` block and compare object identity.
 
-- [ ] **Step 4: Run all four scripts and copy the observed output into their comments**
+- [x] **Step 4: Run all four scripts and copy the observed output into their comments**
 
 Run:
 
@@ -159,13 +159,13 @@ done
 
 Expected: each output exactly matches its declared block and exits normally.
 
-- [ ] **Step 5: Run Pyright on the new scripts**
+- [x] **Step 5: Run Pyright on the new scripts**
 
 Run: `.venv/bin/pyright examples/basic_sync_async.py examples/body_result_and_background_drain.py examples/generation_and_pinned_context.py examples/callbacks_errors_and_cancellation.py`
 
 Expected: zero errors and zero warnings.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add examples/basic_sync_async.py examples/body_result_and_background_drain.py examples/generation_and_pinned_context.py examples/callbacks_errors_and_cancellation.py
