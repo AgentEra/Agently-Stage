@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from typing import TYPE_CHECKING
 
 import pytest
 
 from agently_stage import Stage
 from agently_stage.StageException import StageClosedError, StageSettlementError
+
+if TYPE_CHECKING:
+    from agently_stage.StageHandle import StageHandle
 
 
 def test_immediate_body_accepts_chain_without_grace_period() -> None:
@@ -138,3 +142,37 @@ def test_legacy_callback_arguments_use_same_pipeline() -> None:
 
     assert handle.get() == "done"
     assert observed == ["done", "finally"]
+
+
+def test_settlement_barrier_cannot_pass_partially_admitted_callback() -> None:
+    admission_paused = threading.Event()
+    release_admission = threading.Event()
+
+    class PausingStage(Stage):
+        def _submit_callback_drain_locked(self, handle: StageHandle[object]) -> None:
+            admission_paused.set()
+            release_admission.wait(timeout=1)
+            super()._submit_callback_drain_locked(handle)
+
+    stage = PausingStage()
+    callback_finished = threading.Event()
+    settlement_returned = threading.Event()
+    handle = stage.go(lambda: "done")
+    assert handle.get() == "done"
+    handle.wait_settled()
+
+    registration = threading.Thread(target=handle.on_success, args=(lambda value: callback_finished.set(),))
+    registration.start()
+    assert admission_paused.wait(timeout=1)
+
+    waiter = threading.Thread(target=lambda: (handle.wait_settled(), settlement_returned.set()))
+    waiter.start()
+    returned_during_admission = settlement_returned.wait(timeout=0.02)
+    release_admission.set()
+    registration.join(timeout=1)
+    waiter.join(timeout=1)
+
+    assert not returned_during_admission
+    assert callback_finished.is_set()
+    assert settlement_returned.is_set()
+    stage.close()

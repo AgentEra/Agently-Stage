@@ -1,3 +1,4 @@
+# pyright: reportPrivateUsage=false
 from __future__ import annotations
 
 import inspect
@@ -9,6 +10,8 @@ from .Stage import Stage
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from concurrent.futures import Future, ThreadPoolExecutor
+
+    from .StageHandle import StageHandle
 
 T = TypeVar("T")
 
@@ -27,6 +30,6 @@ class TaskThreadPool:
         **kwargs: Any,
     ) -> Future[T]:
         if inspect.isawaitable(function) or inspect.iscoroutinefunction(function):
-            handle = Stage().go(cast(Any, function), *args, **kwargs)
+            handle = cast("StageHandle[T]", Stage().go(cast(Any, function), *args, **kwargs))
             return handle._body_future
         return _RUNTIME_CARRIER.blocking_executor.submit(cast(Any, function), *args, **kwargs)

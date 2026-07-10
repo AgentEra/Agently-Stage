@@ -1,20 +1,28 @@
+# pyright: reportPrivateUsage=false
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import functools
 import inspect
 import threading
 import types
 from collections.abc import Awaitable, Callable
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast, overload
 
 from ._runtime import _RUNTIME_CARRIER, _Generation
-from .StageException import StageClosedError, StageSettlementError
+from .StageException import StageClosedError, StageLifecycleError, StageSettlementError
 from .StageFunction import StageFunction
 from .StageHandle import StageHandle
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
+
+    from .StageStream import StageStream
+
 T = TypeVar("T")
+StreamT = TypeVar("StreamT")
 
 
 class Stage:
@@ -28,8 +36,11 @@ class Stage:
         auto_close: bool = False,
     ) -> None:
         self._scope_lock = threading.RLock()
+        self._close_operation_lock = threading.Lock()
         self._active_handles: set[StageHandle[Any]] = set()
+        self._scope_settlement_errors: list[BaseException] = []
         self._closed = False
+        self._close_completed = False
         self._pinned = False
         self._entered = False
         self._generation_lease: _Generation | None = None
@@ -48,8 +59,8 @@ class Stage:
             return "stage_func"
         if isinstance(task, functools.partial):
             return self._classify_task(task.func)
-        if isinstance(task, (classmethod, staticmethod, types.MethodType)):
-            return self._classify_task(task.__func__)
+        if isinstance(task, classmethod | staticmethod | types.MethodType):
+            return self._classify_task(cast(Any, task).__func__)
         if inspect.isasyncgenfunction(task):
             return "async_gen_func"
         if inspect.isasyncgen(task):
@@ -77,7 +88,7 @@ class Stage:
         kwargs: dict[str, Any],
     ) -> T:
         if isinstance(task, Future):
-            return await asyncio.wrap_future(task)
+            return await asyncio.wrap_future(cast(Future[T], task))
         if inspect.isawaitable(task):
             if args or kwargs:
                 raise TypeError("Arguments cannot be supplied with a coroutine object")
@@ -86,7 +97,9 @@ class Stage:
             return await task(*args, **kwargs)
 
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(self._blocking_executor, functools.partial(task, *args, **kwargs))
+        context = contextvars.copy_context()
+        call = functools.partial(task, *args, **kwargs)
+        result = await loop.run_in_executor(self._blocking_executor, context.run, call)
         if inspect.isawaitable(result):
             return await cast(Awaitable[T], result)
         return cast(T, result)
@@ -100,7 +113,9 @@ class Stage:
             await callback(*args)
             return
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(self._blocking_executor, functools.partial(callback, *args))
+        context = contextvars.copy_context()
+        call = functools.partial(callback, *args)
+        result = await loop.run_in_executor(self._blocking_executor, context.run, call)
         if inspect.isawaitable(result):
             await result
 
@@ -116,6 +131,49 @@ class Stage:
 
         _RUNTIME_CARRIER.submit(handle, runner, preferred=self._generation_lease, owner=False)
 
+    @overload
+    def go(  # pyright: ignore[reportOverlappingOverload]
+        self,
+        task: Callable[..., AsyncIterator[StreamT]] | AsyncIterator[StreamT],
+        *args: Any,
+        lazy: bool = False,
+        on_success: Callable[[list[StreamT]], object | Awaitable[object]] | None = None,
+        on_error: Callable[[BaseException], object | Awaitable[object]] | None = None,
+        on_finally: Callable[[], object | Awaitable[object]] | None = None,
+        ignore_exception: bool = False,
+        wait_interval: float = 0.1,
+        **kwargs: Any,
+    ) -> StageStream[StreamT]: ...
+
+    @overload
+    def go(
+        self,
+        task: Callable[..., Iterator[StreamT]] | Iterator[StreamT],
+        *args: Any,
+        lazy: bool = False,
+        on_success: Callable[[list[StreamT]], object | Awaitable[object]] | None = None,
+        on_error: Callable[[BaseException], object | Awaitable[object]] | None = None,
+        on_finally: Callable[[], object | Awaitable[object]] | None = None,
+        ignore_exception: bool = False,
+        wait_interval: float = 0.1,
+        **kwargs: Any,
+    ) -> StageStream[StreamT]: ...
+
+    @overload
+    def go(
+        self,
+        task: Callable[..., Awaitable[T]],
+        *args: Any,
+        lazy: bool = False,
+        on_success: Callable[[T], object | Awaitable[object]] | None = None,
+        on_error: Callable[[BaseException], object | Awaitable[object]] | None = None,
+        on_finally: Callable[[], object | Awaitable[object]] | None = None,
+        ignore_exception: bool = False,
+        wait_interval: float = 0.1,
+        **kwargs: Any,
+    ) -> StageHandle[T]: ...
+
+    @overload
     def go(
         self,
         task: Callable[..., T] | Awaitable[T] | Future[T],
@@ -127,11 +185,24 @@ class Stage:
         ignore_exception: bool = False,
         wait_interval: float = 0.1,
         **kwargs: Any,
-    ) -> StageHandle[T] | Any:
+    ) -> StageHandle[T]: ...
+
+    def go(
+        self,
+        task: Any,
+        *args: Any,
+        lazy: bool = False,
+        on_success: Callable[[Any], object | Awaitable[object]] | None = None,
+        on_error: Callable[[BaseException], object | Awaitable[object]] | None = None,
+        on_finally: Callable[[], object | Awaitable[object]] | None = None,
+        ignore_exception: bool = False,
+        wait_interval: float = 0.1,
+        **kwargs: Any,
+    ) -> StageHandle[Any] | StageStream[Any]:
         del wait_interval
         task_class = self._classify_task(task)
         if task_class == "stage_func":
-            return cast(StageHandle[T], task(*args, **kwargs))
+            return cast(StageFunction[Any], task)(*args, **kwargs)
         if task_class in {"async_gen_func", "async_gen", "gen_func", "gen"}:
             return self._go_stream(
                 task,
@@ -153,7 +224,7 @@ class Stage:
             if self._pinned and self._generation_lease is None:
                 self._generation_lease = _RUNTIME_CARRIER.acquire_lease()
             preferred = self._generation_lease
-            handle: StageHandle[T] = StageHandle(self)
+            handle: StageHandle[Any] = StageHandle(self)
             self._active_handles.add(handle)
             if on_success is not None:
                 handle._register_initial_callback("success", on_success)
@@ -195,7 +266,7 @@ class Stage:
         on_error: Callable[[BaseException], object | Awaitable[object]] | None,
         on_finally: Callable[[], object | Awaitable[object]] | None,
         ignore_exception: bool,
-    ) -> Any:
+    ) -> StageStream[Any]:
         from .StageStream import StageStream
         from .Tunnel import Tunnel
 
@@ -248,62 +319,100 @@ class Stage:
 
         return StageStream(start, tunnel, lazy=lazy)
 
+    @overload
+    def get(
+        self,
+        task: Callable[..., AsyncIterator[StreamT]] | AsyncIterator[StreamT],
+        *args: Any,
+        timeout: float | None = None,
+        **kwargs: Any,
+    ) -> list[StreamT]: ...
+
+    @overload
+    def get(
+        self,
+        task: Callable[..., Iterator[StreamT]] | Iterator[StreamT],
+        *args: Any,
+        timeout: float | None = None,
+        **kwargs: Any,
+    ) -> list[StreamT]: ...
+
+    @overload
+    def get(
+        self,
+        task: Callable[..., Awaitable[T]],
+        *args: Any,
+        timeout: float | None = None,
+        **kwargs: Any,
+    ) -> T: ...
+
+    @overload
     def get(
         self,
         task: Callable[..., T] | Awaitable[T] | Future[T],
         *args: Any,
         timeout: float | None = None,
         **kwargs: Any,
-    ) -> T:
-        return self.go(task, *args, **kwargs).get(timeout=timeout)
+    ) -> T: ...
+
+    def get(
+        self,
+        task: Any,
+        *args: Any,
+        timeout: float | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        response = cast("StageHandle[Any] | StageStream[Any]", self.go(task, *args, **kwargs))
+        return cast(Any, response.get(timeout=timeout))
 
     def _handle_quiescent(self, handle: StageHandle[Any]) -> None:
+        errors = handle._take_unreported_stage_errors()
         with self._scope_lock:
+            self._scope_settlement_errors.extend(errors)
             self._active_handles.discard(handle)
 
-    def close(self, timeout: float | None = None) -> None:
-        with self._scope_lock:
-            if self._closed:
-                return
-            self._closed = True
-            handles = tuple(self._active_handles)
-            lease = self._generation_lease
-            self._generation_lease = None
-        if lease is not None:
-            _RUNTIME_CARRIER.release_lease(lease)
-
-        errors: list[BaseException] = []
-        for handle in handles:
-            try:
-                handle.wait_settled(timeout=timeout)
-            except StageSettlementError as error:
-                errors.extend(error.errors)
-        if self._private_executor is not None:
-            self._private_executor.shutdown(wait=True)
+    def _collect_handle_errors(self, handle: StageHandle[Any]) -> None:
+        errors = handle._take_unreported_stage_errors()
         if errors:
-            raise StageSettlementError(errors)
+            with self._scope_lock:
+                self._scope_settlement_errors.extend(errors)
+
+    def close(self, timeout: float | None = None) -> None:
+        if _RUNTIME_CARRIER.owns_current_execution(self):
+            raise StageLifecycleError("Cannot close a Stage from work owned by the same scope")
+        with self._close_operation_lock:
+            with self._scope_lock:
+                if self._close_completed:
+                    errors = self._scope_settlement_errors.copy()
+                    if errors:
+                        raise StageSettlementError(errors)
+                    return
+                self._closed = True
+                handles = tuple(self._active_handles)
+                lease = self._generation_lease
+                self._generation_lease = None
+            if lease is not None:
+                _RUNTIME_CARRIER.release_lease(lease)
+
+            for handle in handles:
+                try:
+                    handle.wait_settled(timeout=timeout)
+                except StageSettlementError:
+                    pass
+                finally:
+                    self._collect_handle_errors(handle)
+            if self._private_executor is not None:
+                self._private_executor.shutdown(wait=True)
+            with self._scope_lock:
+                self._close_completed = True
+                errors = self._scope_settlement_errors.copy()
+            if errors:
+                raise StageSettlementError(errors)
 
     async def async_close(self, timeout: float | None = None) -> None:
-        with self._scope_lock:
-            if self._closed:
-                return
-            self._closed = True
-            handles = tuple(self._active_handles)
-            lease = self._generation_lease
-            self._generation_lease = None
-        if lease is not None:
-            _RUNTIME_CARRIER.release_lease(lease)
-
-        errors: list[BaseException] = []
-        for handle in handles:
-            try:
-                await handle.async_wait_settled(timeout=timeout)
-            except StageSettlementError as error:
-                errors.extend(error.errors)
-        if self._private_executor is not None:
-            self._private_executor.shutdown(wait=True)
-        if errors:
-            raise StageSettlementError(errors)
+        if _RUNTIME_CARRIER.owns_current_execution(self):
+            raise StageLifecycleError("Cannot close a Stage from work owned by the same scope")
+        await asyncio.to_thread(self.close, timeout)
 
     @property
     def is_closing(self) -> bool:
@@ -330,5 +439,5 @@ class Stage:
     async def __aexit__(self, exc_type: object, value: BaseException | None, traceback: object) -> None:
         await self.async_close()
 
-    def func(self, task: Callable[..., T]) -> StageFunction:
+    def func(self, task: Callable[..., T]) -> StageFunction[T]:
         return StageFunction(self, task)

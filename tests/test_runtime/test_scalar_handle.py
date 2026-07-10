@@ -54,6 +54,36 @@ def test_coroutines_remain_concurrent_on_single_control_worker() -> None:
     stage.close()
 
 
+def test_blocking_executor_does_not_block_stage_loop() -> None:
+    stage = Stage()
+    release_blocking = threading.Event()
+    blocking_started = threading.Event()
+    heartbeat_finished = threading.Event()
+    worker_names: list[str] = []
+
+    def blocking_body() -> None:
+        worker_names.append(threading.current_thread().name)
+        blocking_started.set()
+        release_blocking.wait(timeout=1)
+
+    async def heartbeat() -> None:
+        await asyncio.sleep(0.01)
+        worker_names.append(threading.current_thread().name)
+        heartbeat_finished.set()
+
+    blocking_handle = stage.go(blocking_body)
+    assert blocking_started.wait(timeout=1)
+    heartbeat_handle = stage.go(heartbeat)
+
+    assert heartbeat_finished.wait(timeout=0.2)
+    assert worker_names[0].startswith("AgentlyStageBlocking")
+    assert worker_names[1].startswith("AgentlyStageControl")
+    release_blocking.set()
+    blocking_handle.get(timeout=1)
+    heartbeat_handle.get(timeout=1)
+    stage.close()
+
+
 def test_body_exception_is_raised_without_becoming_settlement_failure() -> None:
     stage = Stage()
 

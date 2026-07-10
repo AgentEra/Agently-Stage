@@ -14,8 +14,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import threading
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from .Stage import Stage
 from .StageException import StageClosedError, StageSettlementError
@@ -107,7 +108,7 @@ class EventEmitter:
         for handle in handles:
             try:
                 handle.get()
-            except BaseException:
+            except (Exception, asyncio.CancelledError):
                 pass
             try:
                 handle.wait_settled()
@@ -119,7 +120,7 @@ class EventEmitter:
         for handle in handles:
             try:
                 await handle.async_get()
-            except BaseException:
+            except (Exception, asyncio.CancelledError):
                 pass
             try:
                 await handle.async_wait_settled()
@@ -130,7 +131,9 @@ class EventEmitter:
         with self._registry_lock:
             self._ensure_open_locked()
             listeners = [*self._listeners.get(event, ()), *self._once.pop(event, ())]
-            handles = [self._stage.go(listener, *args, **kwargs) for listener in listeners]
+            handles: list[ListenerHandle] = [
+                cast("ListenerHandle", self._stage.go(listener, *args, **kwargs)) for listener in listeners
+            ]
         if wait:
             self._wait_handles(handles)
         return handles

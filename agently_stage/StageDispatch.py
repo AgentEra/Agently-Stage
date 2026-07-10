@@ -1,14 +1,15 @@
+# pyright: reportPrivateUsage=false
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from ._runtime import _RUNTIME_CARRIER
 from .Stage import Stage
 from .StageException import StageException
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from concurrent.futures import Future, ThreadPoolExecutor
+
 
 T = TypeVar("T")
 
@@ -30,12 +31,12 @@ class StageDispatchEnvironment:
             max_workers=max_workers,
             auto_close=auto_close,
         )
-        self.loop = None
-        self.loop_thread = None
-        self.executor = self._stage._blocking_executor
-        self.exceptions = StageException()
+        self.loop: None = None
+        self.loop_thread: None = None
+        self.executor: ThreadPoolExecutor = self._stage._blocking_executor
+        self.exceptions: StageException = StageException()
         self.auto_close = auto_close
-        self.closing = False
+        self.closing: bool = False
 
     def raise_exception(self, error: BaseException) -> None:
         raise error
@@ -65,7 +66,7 @@ class StageDispatch:
             max_workers=max_workers,
             auto_close=auto_close,
         )
-        self.raise_exception = self._dispatch_env.raise_exception
+        self.raise_exception: Callable[[BaseException], None] = self._dispatch_env.raise_exception
 
     def run_sync_function(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         return self._dispatch_env._stage.go(func, *args, **kwargs)._body_future
@@ -76,11 +77,14 @@ class StageDispatch:
         *args: Any,
         **kwargs: Any,
     ) -> Future[T]:
-        return self._dispatch_env._stage.go(func, *args, **kwargs)._body_future
+        return cast(Any, self._dispatch_env._stage.go(func, *args, **kwargs)._body_future)
 
     def to_executor(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
-        executor: ThreadPoolExecutor = _RUNTIME_CARRIER.blocking_executor
-        return executor.submit(func, *args, **kwargs)
+        def invoke() -> T:
+            return func(*args, **kwargs)
+
+        handle = self._dispatch_env._stage.go(invoke)
+        return handle._body_future
 
     def close(self) -> None:
         self._dispatch_env.close()

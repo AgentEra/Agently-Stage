@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from .Stage import Stage
     from .StageHandle import StageHandle
 
 T = TypeVar("T")
@@ -14,24 +15,24 @@ T = TypeVar("T")
 class StageCallBackTask:
     """Compatibility callback adapter using Stage instead of raw threads."""
 
-    def __init__(self, func: Callable[..., Any], stage: Any | None = None) -> None:
+    def __init__(self, func: Callable[..., Any], stage: Stage | None = None) -> None:
         self._func = func
         self._stage = stage
 
     def __call__(self, *args: Any, **kwargs: Any) -> StageHandle[Any]:
         from .Stage import Stage
 
-        stage = self._stage if self._stage is not None and self._stage.is_available else Stage()
-        return stage.go(self._func, *args, **kwargs)
+        selected_stage = self._stage if self._stage is not None and self._stage.is_available else Stage()
+        return cast("StageHandle[Any]", selected_stage.go(self._func, *args, **kwargs))
 
 
-class StageTaskProxy:
+class StageTaskProxy(Generic[T]):
     """Compatibility callable retaining the legacy callback constructor shape."""
 
     def __init__(
         self,
         func: Callable[..., T] | Callable[..., Awaitable[T]],
-        stage: Any | None = None,
+        stage: Stage | None = None,
         on_success: Callable[[T], object] | None = None,
         on_error: Callable[[BaseException], object] | None = None,
         on_finally: Callable[[], object] | None = None,
@@ -45,15 +46,15 @@ class StageTaskProxy:
         self._ignore_exception = ignore_exception
         self._use_async = use_async
 
-    def add_on_success(self, on_success: StageCallBackTask) -> StageTaskProxy:
+    def add_on_success(self, on_success: StageCallBackTask) -> StageTaskProxy[T]:
         self._on_success = on_success
         return self
 
-    def add_on_error(self, on_error: StageCallBackTask) -> StageTaskProxy:
+    def add_on_error(self, on_error: StageCallBackTask) -> StageTaskProxy[T]:
         self._on_error = on_error
         return self
 
-    def add_on_finally(self, on_finally: StageCallBackTask) -> StageTaskProxy:
+    def add_on_finally(self, on_finally: StageCallBackTask) -> StageTaskProxy[T]:
         self._on_finally = on_finally
         return self
 
@@ -75,7 +76,9 @@ class StageTaskProxy:
         try:
             result = self._func(*args, **kwargs)
             if inspect.isawaitable(result):
-                result = await result
+                result = await cast(Any, result)
+            else:
+                result = cast(T, result)
             if self._on_success is not None:
                 await self._async_wait_callback(self._on_success(result))
             return result
@@ -94,6 +97,7 @@ class StageTaskProxy:
             result = self._func(*args, **kwargs)
             if inspect.isawaitable(result):
                 raise TypeError("Async StageTaskProxy call requires use_async=True")
+            result = cast(T, result)
             if self._on_success is not None:
                 self._wait_callback(self._on_success(result))
             return result

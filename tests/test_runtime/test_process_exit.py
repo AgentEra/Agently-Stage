@@ -59,3 +59,39 @@ def test_user_asyncio_run_works_before_and_after_stage() -> None:
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == ["1", "2", "3"]
     assert result.stderr == ""
+
+
+def test_empty_stage_script_exits_without_shutdown_hook() -> None:
+    result = _run_script(
+        """
+        from agently_stage import Stage
+
+        Stage()
+        print("exited")
+        """
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["exited"]
+    assert result.stderr == ""
+
+
+def test_multiple_generations_finish_before_process_exit() -> None:
+    result = _run_script(
+        """
+        import time
+        from agently_stage import Stage
+
+        stage = Stage()
+        first = stage.go(lambda: "first")
+        print(first.get())
+        first.wait_settled()
+        time.sleep(0.02)
+        second = stage.go(lambda: "second")
+        print(second.get())
+        """
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["first", "second"]
+    assert "RuntimeWarning" not in result.stderr

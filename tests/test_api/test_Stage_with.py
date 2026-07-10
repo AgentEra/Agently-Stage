@@ -112,7 +112,7 @@ def test_on_error():
 
     with Stage() as stage:
 
-        def sync_task():
+        def sync_task() -> Counter:
             counter.increment("sync_task start")
             raise Exception("sync_task error")
             counter.increment("sync_task end")

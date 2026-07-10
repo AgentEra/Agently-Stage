@@ -17,10 +17,18 @@ from __future__ import annotations
 
 import traceback
 import types
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict, cast
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+
+class StageExceptionRecord(TypedDict):
+    """Structured compatibility record returned by StageException."""
+
+    exception_message: str
+    exception: BaseException
+    context: object | None
 
 
 class StageError(Exception):
@@ -39,7 +47,7 @@ class StageSettlementError(StageError):
     """Raised after body completion when retained settlement work failed."""
 
     def __init__(self, errors: Iterable[BaseException]):
-        self.errors = tuple(errors)
+        self.errors: tuple[BaseException, ...] = tuple(errors)
         super().__init__(f"{len(self.errors)} Stage settlement task(s) failed")
 
 
@@ -48,55 +56,57 @@ class TunnelClosedError(StageError):
 
 
 class StageException(Exception):
-    def __init__(self):
+    """Compatibility collector for explicitly captured exception records."""
+
+    def __init__(self) -> None:
         super().__init__()
         self._raised = False
-        self._exceptions = []
+        self._exceptions: list[StageExceptionRecord] = []
 
-    def __str__(self):
-        if len(self._exceptions) == 0:
+    def __str__(self) -> str:
+        if not self._exceptions:
             return "[Agently Stage] No exception captured."
-        else:
-            message = (
-                "\n------------------\n[Agently Stage] Captured exceptions:\n\n"
-                + f"Exception Count: {len(self._exceptions)}\n\n"
-                + "Exception List:\n\n"
-            )
-            for index, exception in enumerate(self._exceptions):
-                message += f"❌ [Exception {index + 1}]\n\n"
-                if isinstance(exception["context"], dict):
-                    for key, content in exception["context"].items():
-                        message += f"   - {key}: {content}\n"
-                else:
-                    if isinstance(exception["context"], types.TracebackType):
-                        context_message = "\n   ".join(
-                            traceback.format_exception(
-                                type(exception["exception"]),
-                                exception["exception"],
-                                exception["context"],
-                            )
-                        )
-                        message += context_message
-                    else:
-                        message += f"   {exception['context']}\n"
-                message += "\n"
-            message += "------------------\nUse <StageException>.get_exceptions() to get exception list."
-            return message
+        message = (
+            "\n------------------\n[Agently Stage] Captured exceptions:\n\n"
+            + f"Exception Count: {len(self._exceptions)}\n\n"
+            + "Exception List:\n\n"
+        )
+        for index, exception_record in enumerate(self._exceptions):
+            message += f"❌ [Exception {index + 1}]\n\n"
+            context = exception_record["context"]
+            if isinstance(context, dict):
+                for key, content in cast(dict[object, object], context).items():
+                    message += f"   - {key}: {content}\n"
+            elif isinstance(context, types.TracebackType):
+                error = exception_record["exception"]
+                context_message = "\n   ".join(
+                    traceback.format_exception(
+                        type(error),
+                        error,
+                        context,
+                    )
+                )
+                message += context_message
+            else:
+                message += f"   {context}\n"
+            message += "\n"
+        message += "------------------\nUse <StageException>.get_exceptions() to get exception list."
+        return message
 
-    def add_exception(self, exception, context=None):
+    def add_exception(self, exception: BaseException, context: object | None = None) -> None:
         self._exceptions.append(
-            {
-                "exception_message": str(exception),
-                "exception": exception,
-                "context": context,
-            }
+            StageExceptionRecord(
+                exception_message=str(exception),
+                exception=exception,
+                context=context,
+            )
         )
 
-    def mark_raised(self):
+    def mark_raised(self) -> None:
         self._raised = True
 
-    def has_exceptions(self):
-        return True if len(self._exceptions) > 0 and not self._raised else False
+    def has_exceptions(self) -> bool:
+        return bool(self._exceptions) and not self._raised
 
-    def get_exceptions(self):
-        return self._exceptions
+    def get_exceptions(self) -> list[StageExceptionRecord]:
+        return self._exceptions.copy()

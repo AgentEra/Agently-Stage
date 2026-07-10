@@ -1,3 +1,4 @@
+# pyright: reportPrivateUsage=false
 from __future__ import annotations
 
 import asyncio
@@ -36,6 +37,7 @@ class StageHandle(Generic[T]):
         self._settlement_future: concurrent.futures.Future[None] = concurrent.futures.Future()
         self._settlement_future.set_result(None)
         self._settlement_errors: list[BaseException] = []
+        self._stage_error_cursor = 0
         self._generation_id: int | None = None
         self._owner_loop: AbstractEventLoop | None = None
         self._owner_task: Task[object] | None = None
@@ -80,6 +82,12 @@ class StageHandle(Generic[T]):
     def _record_settlement_error(self, error: BaseException) -> None:
         with self._state_lock:
             self._settlement_errors.append(error)
+
+    def _take_unreported_stage_errors(self) -> tuple[BaseException, ...]:
+        with self._state_lock:
+            errors = tuple(self._settlement_errors[self._stage_error_cursor :])
+            self._stage_error_cursor = len(self._settlement_errors)
+            return errors
 
     def _set_body_result(self, result: T) -> bool:
         with self._state_lock:
@@ -203,7 +211,7 @@ class StageHandle(Generic[T]):
         return await asyncio.wait_for(asyncio.shield(reader), timeout)
 
     def wait_settled(self, timeout: float | None = None) -> None:
-        with self._state_lock:
+        with self._stage._scope_lock, self._state_lock:
             barrier = self._settlement_future
         barrier.result(timeout=timeout)
         with self._state_lock:
@@ -212,7 +220,7 @@ class StageHandle(Generic[T]):
             raise StageSettlementError(errors)
 
     async def async_wait_settled(self, timeout: float | None = None) -> None:
-        with self._state_lock:
+        with self._stage._scope_lock, self._state_lock:
             barrier = self._settlement_future
         reader = asyncio.wrap_future(barrier)
         if timeout is None:

@@ -559,7 +559,7 @@ Commit: `git commit -m "refactor: rebuild EventEmitter on Stage settlement"`
 - Consumes: all completed runtime APIs.
 - Produces: current recommended usage, runnable key-output example, Python 3.10 metadata, complete public typing, and reconciled implemented-design evidence.
 
-- [ ] **Step 1: Update package compatibility and recommended examples**
+- [x] **Step 1: Update package compatibility and recommended examples**
 
 Set `requires-python = ">=3.10"` and Ruff `target-version = "py310"`. Add a runnable example containing this stable expected-output comment:
 
@@ -573,13 +573,13 @@ Set `requires-python = ">=3.10"` and Ruff `target-version = "py310"`. Add a runn
 
 README must explain plain versus context-managed Stage, body result versus settlement, Tunnel versus StageStream, callback observer semantics, EventEmitter close, and the absence of a required ordinary-script shutdown hook.
 
-- [ ] **Step 2: Run the documented example and record actual stable output**
+- [x] **Step 2: Run the documented example and record actual stable output**
 
 Run: `.venv/bin/python examples/runtime_foundation.py`
 
 Expected output contains exactly the four documented key-value lines. If observed values differ, fix implementation or update both example behavior and the recorded comment from the real run.
 
-- [ ] **Step 3: Run typing and lint, fixing public boundaries found by the tools**
+- [x] **Step 3: Run typing and lint, fixing public boundaries found by the tools**
 
 Run: `uvx pyright agently_stage tests examples/runtime_foundation.py`
 
@@ -589,13 +589,13 @@ Run: `.venv/bin/pre-commit run --all-files`
 
 Expected: all hooks pass.
 
-- [ ] **Step 4: Run the full test and subprocess acceptance suite**
+- [x] **Step 4: Run the full test and subprocess acceptance suite**
 
 Run: `.venv/bin/python -m pytest -q`
 
 Expected: every tracked legacy, lifecycle, race, settlement, stream, emitter, benchmark, and subprocess test passes without RuntimeWarning, unclosed-loop warnings, destroyed-task messages, or daemon Stage bridge threads.
 
-- [ ] **Step 5: Run a clean package installation smoke**
+- [x] **Step 5: Run a clean package installation smoke**
 
 Run: `uv venv --python 3.10 .smoke-venv`
 
@@ -605,11 +605,11 @@ Run: `.smoke-venv/bin/python -c 'from agently_stage import EventEmitter, Stage, 
 
 Expected: `ok`, followed by normal process exit. Remove only the task-created ignored `.smoke-venv` after recording the result.
 
-- [ ] **Step 6: Reconcile design and plan status**
+- [x] **Step 6: Reconcile design and plan status**
 
 Change the design status to implemented only after every acceptance criterion has direct test, typing, documentation, or smoke evidence. Check every completed plan box and record implementation commit anchors in the design document.
 
-- [ ] **Step 7: Commit final standalone acceptance**
+- [x] **Step 7: Commit final standalone acceptance**
 
 Run: `git diff --check`
 

@@ -1,3 +1,4 @@
+# pyright: reportPrivateUsage=false
 from __future__ import annotations
 
 import asyncio
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from asyncio import AbstractEventLoop, Task
     from collections.abc import Awaitable, Callable
 
+    from .Stage import Stage
     from .StageHandle import StageHandle
 
 
@@ -49,7 +51,7 @@ class _Generation:
     reservations: int = 0
     loop: AbstractEventLoop | None = None
     seal_event: asyncio.Event | None = None
-    pending_submissions: list[_Submission] = field(default_factory=list)
+    pending_submissions: list[_Submission] = field(default_factory=list[_Submission])
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,12 @@ class _RuntimeCarrier:
     @property
     def blocking_executor(self) -> ThreadPoolExecutor:
         return self._blocking_executor
+
+    def owns_current_execution(self, stage: Stage) -> bool:
+        """Return whether the caller is executing work retained by ``stage``."""
+
+        context = _active_execution.get()
+        return context is not None and context.handle._stage is stage
 
     def submit(
         self,
@@ -295,5 +303,5 @@ class _RuntimeCarrier:
 _RUNTIME_CARRIER = _RuntimeCarrier()
 
 
-def _runtime_snapshot() -> _RuntimeSnapshot:
+def _runtime_snapshot() -> _RuntimeSnapshot:  # pyright: ignore[reportUnusedFunction]
     return _RUNTIME_CARRIER.snapshot()

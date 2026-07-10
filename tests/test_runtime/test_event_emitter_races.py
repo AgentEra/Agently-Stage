@@ -106,3 +106,17 @@ def test_listener_registry_operations_are_idempotent() -> None:
     emitter.off("value", listener)
     assert emitter.listener_count("value") == 0
     emitter.close()
+
+
+def test_wait_does_not_swallow_process_control_exceptions() -> None:
+    emitter = EventEmitter()
+
+    @emitter.on("value")
+    def listener() -> None:
+        raise KeyboardInterrupt
+
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            emitter.emit("value", wait=True)
+    finally:
+        emitter.close()

@@ -1,6 +1,6 @@
 # Stage Runtime Foundation Refactor Design
 
-Status: discussion decisions confirmed; written-design review pending
+Status: implemented and verified
 
 Date: 2026-07-11
 
@@ -9,6 +9,16 @@ Repository: `Agently-Stage`
 Branch: `refactor/stage-runtime-foundation`
 
 Base: `origin/main` at `6959104`
+
+Implementation anchors:
+
+- `3054b19` — finite carrier generations, Stage scope, StageHandle, settlement;
+- `4630703` — lifecycle-neutral compatibility facades;
+- `83f1808` — replayable Tunnel;
+- `d7bf980` — StageStream and generator settlement;
+- `d55467b` — Stage-backed EventEmitter;
+- the final acceptance commit containing this status, typing, docs, examples,
+  package metadata, and completion evidence.
 
 ## 1. Executive Summary
 
@@ -866,3 +876,45 @@ The standalone refactor is accepted only when:
 14. README and runnable examples describe the new recommended contracts;
 15. the Agently replacement map remains accurate and no Agently semantic owner
     has leaked into Stage.
+
+## 22. Implementation Acceptance Evidence
+
+Evidence date: 2026-07-11
+
+Environment:
+
+- development tests: Python 3.10.13 in the isolated worktree `.venv`;
+- clean installed-package smoke: Python 3.10.16 in a new repository-external
+  virtual environment;
+- notebook execution: clean Jupyter kernel process on Python 3.13, which is
+  above the supported 3.10 floor;
+- branch: `refactor/stage-runtime-foundation`;
+- base: `origin/main` `6959104`.
+
+| Criterion | Direct evidence |
+|---|---|
+| 1. Existing tests | `.venv/bin/python -m pytest -q` completed with 91 passed, including the retained preview tests |
+| 2. New lifecycle/race/settlement/stream/emitter/subprocess coverage | `tests/test_runtime/` contains direct generation, scalar, scope, callback, compatibility, Tunnel, StageStream, EventEmitter, Events, and subprocess tests, including concurrent close barriers, self-close rejection, and atomic late-callback admission |
+| 3. No ordinary-script shutdown call | `test_empty_stage_script_exits_without_shutdown_hook` and the installed-package smoke exit normally |
+| 4. No daemon control or bridge threads | `test_stage_threads_are_shared_and_non_daemon`; production scan finds no raw `Thread`, daemon flag, `atexit`, `asyncio.run`, or `run_forever` |
+| 5. Retained work completes before process exit | `test_process_waits_for_retained_stage_work` observes `body-finished` followed by `child-finished` without destroyed-task warnings |
+| 6. Atomic idle seal without grace | `test_plain_stage_can_cross_finite_generations` and `test_next_generation_queues_while_previous_loop_drains` prove immediate seal/next admission without sleep policy |
+| 7. Repeated finite generations | `test_plain_stage_can_cross_finite_generations` and `test_multiple_generations_finish_before_process_exit` prove later batches receive newer generation ids and exit |
+| 8. Pinned loop affinity | `test_pinned_context_keeps_loop_affinity_across_idle_gap` proves two calls return the same loop object; `test_empty_context_creates_no_generation` proves lazy leasing |
+| 9. Async concurrency remains non-serial | `test_coroutines_remain_concurrent_on_single_control_worker` plus the retained benchmark suite |
+| 10. Control and blocking executors are separate | `test_blocking_executor_does_not_block_stage_loop` observes `AgentlyStageBlocking` and `AgentlyStageControl` threads while the heartbeat completes before blocking release |
+| 11. Tunnel writable; StageStream read-only | Tunnel replay/fan-out/race tests and `test_sync_generator_returns_read_only_replayable_stage_stream` |
+| 12. EventEmitter drains without per-emit Stage environments | EventEmitter race tests cover concurrent once, immediate return, close drain, async wait, error isolation, and closed admission |
+| 13. Public typing complete | `.venv/bin/pyright agently_stage tests examples` reports 0 errors/0 warnings; installed-package `--verifytypes agently_stage --ignoreexternal` reports 179/179 known symbols and 100% completeness; wheel contains `py.typed` |
+| 14. README and runnable examples | `examples/runtime_foundation.py` produces the four recorded key-output lines; `jupyter nbconvert --execute` executes `examples/readme_examples.ipynb` without warnings |
+| 15. Owner boundaries preserved | `pyproject.toml` has no runtime dependency on Agently; production code contains no EventCenter, RuntimeEvent, TriggerFlow, provider abort, or business-completion owner; Section 17 retains the owner-by-owner future integration map |
+
+Additional verification:
+
+```text
+.venv/bin/pre-commit run --all-files
+all hooks passed
+
+clean installed-package smoke
+installed-smoke=ok
+```

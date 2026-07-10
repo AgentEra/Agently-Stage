@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# pyright: reportPrivateUsage=false
 from __future__ import annotations
 
 import asyncio
@@ -113,8 +114,7 @@ class _TunnelAsyncIterator(Generic[T]):
                 raise StopAsyncIteration from None
             finally:
                 with self._tunnel._condition:
-                    if waiter is not None:
-                        self._tunnel._async_waiters.discard(waiter)
+                    self._tunnel._async_waiters.discard(waiter)
 
 
 class Tunnel(Generic[T]):
