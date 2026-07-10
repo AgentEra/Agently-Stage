@@ -47,8 +47,8 @@ Create or revise these examples:
 2. `body_result_and_background_drain.py`
    - body result becomes available before a retained descendant finishes;
    - `wait_settled()` waits for the descendant;
-   - the descendant represents provider transport/meta drain, not business
-     abort policy.
+   - the descendant represents generic background cleanup or bookkeeping owned
+     by the same runtime task.
 3. `generation_and_pinned_context.py`
    - a plain Stage crosses finite generations after becoming idle;
    - `with Stage()` preserves loop affinity while its lease is open.
@@ -56,7 +56,7 @@ Create or revise these examples:
    - ordered success/error/finally observers;
    - body errors remain body errors;
    - callback errors become settlement errors;
-   - cancellation remains a runtime cancellation, not a business abort.
+   - cancellation has explicit, observable runtime semantics.
 5. `tunnel_broadcast.py`
    - external writes and close;
    - independent sync and async replay readers;
@@ -79,7 +79,8 @@ Create or revise these examples:
    - retained background work finishes before interpreter exit;
    - the example must not use daemon threads or `atexit`.
 
-The existing `runtime_foundation.py` remains the short combined overview.
+The existing `runtime_foundation.py` remains the short combined overview, but
+its background-task names are revised to use standalone runtime terminology.
 Compatibility names such as `StageDispatch` are documented but do not receive
 recommended examples because new code should use the canonical APIs.
 
@@ -121,6 +122,12 @@ Acceptance requires:
 
 This work changes examples, example verification, README navigation, and the
 quickstart notebook only. It does not change Stage runtime behavior, add public
-APIs, alter compatibility policy, or begin Agently integration. If an example
-cannot honestly demonstrate a claimed capability, implementation stops and the
-runtime gap is reported rather than hidden in example-specific logic.
+APIs, alter compatibility policy, or integrate with any downstream application
+framework. Stage example requirements derive only from Stage's standalone
+public runtime contract. Downstream framework replacement plans are
+non-normative context and must not supply example terminology, acceptance
+criteria, or hidden behavior assumptions. Public README wording must likewise
+describe the standalone Stage runtime rather than advertise downstream
+integration plans. If an example cannot honestly demonstrate a claimed
+capability, implementation stops and the runtime gap is reported rather than
+hidden in example-specific logic.
