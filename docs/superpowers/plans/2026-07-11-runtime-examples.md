@@ -210,19 +210,19 @@ isolated_error=ValueError
 ordinary_close_required=False
 ```
 
-- [ ] **Step 1: Implement Tunnel as transport, not lifecycle owner**
+- [x] **Step 1: Implement Tunnel as transport, not lifecycle owner**
 
 Use explicit `close()` for the replay channel, a separate `Tunnel(timeout=0.01)` to prove one timed-out reader leaves later publication valid, and `fail(ValueError("source failed"))` after one accepted value to prove values precede the terminal error.
 
-- [ ] **Step 2: Implement StageStream with read-only replay**
+- [x] **Step 2: Implement StageStream with read-only replay**
 
 Create the stream with `lazy=True`, record the source-start flag before reading, call `get()`, then replay through both `list(stream)` and an `async for` collector. Use a separate failing generator to capture the accepted prefix and typed source error.
 
-- [ ] **Step 3: Implement EventEmitter without ordinary close**
+- [x] **Step 3: Implement EventEmitter without ordinary close**
 
 Register one sync and one async listener, verify one `once` listener fires once, use an application-owned release event to show a `wait=False` handle is initially not ready, and read a failing listener's `ValueError` from its own handle. Do not call `emitter.close()` in the ordinary path; print `ordinary_close_required=False` only after all returned handles have settled.
 
-- [ ] **Step 4: Run all three scripts and copy observed output into their comments**
+- [x] **Step 4: Run all three scripts and copy observed output into their comments**
 
 Run:
 
@@ -234,13 +234,13 @@ done
 
 Expected: each output exactly matches its declared block and exits normally.
 
-- [ ] **Step 5: Run Pyright on the scripts**
+- [x] **Step 5: Run Pyright on the scripts**
 
 Run: `.venv/bin/pyright examples/tunnel_broadcast.py examples/stage_stream.py examples/event_emitter.py`
 
 Expected: zero errors and zero warnings.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add examples/tunnel_broadcast.py examples/stage_stream.py examples/event_emitter.py
