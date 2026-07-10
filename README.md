@@ -76,11 +76,11 @@ drained = threading.Event()
 
 
 async def request() -> str:
-    async def transport_drain() -> None:
+    async def background_cleanup() -> None:
         await asyncio.sleep(0.05)
         drained.set()
 
-    asyncio.create_task(transport_drain())
+    asyncio.create_task(background_cleanup())
     return "business-result"
 
 
@@ -274,4 +274,4 @@ uv sync
 ```
 
 See [the runtime foundation design](docs/superpowers/specs/2026-07-11-stage-runtime-foundation-design.md)
-for lifecycle invariants and the future Agently integration map.
+for the standalone runtime architecture and lifecycle invariants.
