@@ -293,6 +293,3 @@ uv sync
 .venv/bin/python -m pytest -q
 .venv/bin/pre-commit run --all-files
 ```
-
-See [the runtime foundation design](docs/superpowers/specs/2026-07-11-stage-runtime-foundation-design.md)
-for the standalone runtime architecture and lifecycle invariants.

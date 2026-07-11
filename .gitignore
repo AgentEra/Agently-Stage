@@ -28,5 +28,9 @@ private_settings
 myenv
 *_old
 
+# Local agent design/planning records must never be published.
+.superpowers/
+docs/superpowers/
+
 .idea/
 dist
