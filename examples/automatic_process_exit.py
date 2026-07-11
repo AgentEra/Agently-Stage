@@ -11,14 +11,18 @@ from agently_stage import Stage
 
 
 def main() -> None:
+    child_started = threading.Event()
     body_printed = threading.Event()
 
     async def request() -> str:
         async def background_cleanup() -> None:
+            child_started.set()
             await asyncio.to_thread(body_printed.wait)
             print("background_finished=True")
 
         asyncio.create_task(background_cleanup())
+        while not child_started.is_set():
+            await asyncio.sleep(0)
         return "ready"
 
     handle = Stage().go(request)
