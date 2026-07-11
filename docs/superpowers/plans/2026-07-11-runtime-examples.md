@@ -334,7 +334,7 @@ git commit -m "docs: complete standalone runtime example suite"
 - Consumes: all implemented examples and verification output.
 - Produces: an implementation evidence section and a fully checked plan.
 
-- [ ] **Step 1: Run complete static and behavioral verification**
+- [x] **Step 1: Run complete static and behavioral verification**
 
 Run:
 
@@ -346,7 +346,7 @@ Run:
 
 Expected: all hooks pass, Pyright reports zero errors/warnings, and the full suite passes without lifecycle warnings.
 
-- [ ] **Step 2: Scan standalone ownership boundaries**
+- [x] **Step 2: Scan standalone ownership boundaries**
 
 Run:
 
@@ -356,11 +356,11 @@ rg -n -i "provider|ModelRequest|TriggerFlow|EventCenter|FunctionShifter|business
 
 Expected: no matches. Product/package name `Agently Stage` is allowed; downstream main-repository concepts are not.
 
-- [ ] **Step 3: Record real evidence and check completed boxes**
+- [x] **Step 3: Record real evidence and check completed boxes**
 
 Record the Python version, exact full-suite count, example subprocess count, notebook command, Pyright result, and pre-commit result in the design spec. Change its status to `implemented and verified` only after all evidence exists.
 
-- [ ] **Step 4: Commit final evidence**
+- [x] **Step 4: Commit final evidence**
 
 ```bash
 git add docs/superpowers/specs/2026-07-11-runtime-examples-design.md docs/superpowers/plans/2026-07-11-runtime-examples.md

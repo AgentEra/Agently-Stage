@@ -1,6 +1,6 @@
 # Agently Stage Runtime Examples Coverage Design
 
-Status: approved
+Status: implemented and verified
 
 Date: 2026-07-11
 
@@ -144,3 +144,30 @@ likewise describe the standalone Stage runtime rather than advertise downstream
 integration plans. If an example cannot honestly demonstrate a claimed
 capability, implementation stops and the runtime gap is reported rather than
 hidden in example-specific logic.
+
+## 7. Implementation Evidence
+
+Evidence date: 2026-07-11
+
+Environment: Python 3.10.13 on branch
+`refactor/stage-runtime-foundation`.
+
+- `Tunnel` once again defaults to a 10-second reader-local inactivity timeout;
+  `tests/test_runtime/test_tunnel_races.py` proves that timeout does not close
+  or mutate the channel.
+- Eight focused examples plus the combined runtime overview run independently.
+  `.venv/bin/python -m pytest tests/test_examples.py -q` reports `9 passed` and
+  compares every script with its recorded real key output.
+- The no-close process-exit example establishes its background wait before the
+  root returns. A 100-process stress run reports `failures=0/100`, and the
+  combined example/process-exit suite reports `13 passed`.
+- `jupyter nbconvert --execute examples/readme_examples.ipynb` completes
+  without warnings and writes the verified notebook under `/tmp`.
+- `.venv/bin/python -m pytest -q` reports `102 passed` without destroyed-task,
+  unclosed-loop, or runtime warnings.
+- `.venv/bin/pyright agently_stage tests examples` reports zero errors and zero
+  warnings.
+- `.venv/bin/pre-commit run --all-files` passes every hook.
+- A standalone-boundary scan across README, examples, example tests, and this
+  spec finds no downstream-framework-specific terminology or behavior
+  assumptions.
