@@ -1,4 +1,4 @@
-# Copyright 2024 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
+# Copyright 2024-2026 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,125 +12,186 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Contact us: Developer@Agently.tech
+# pyright: reportPrivateUsage=false
 from __future__ import annotations
 
 import asyncio
-import queue
 import threading
 import time
-import warnings
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
-from .Stage import Stage
+from .StageException import TunnelClosedError
+
+if TYPE_CHECKING:
+    from asyncio import AbstractEventLoop, Future
+    from collections.abc import AsyncIterator, Iterator
+
+T = TypeVar("T")
+_USE_DEFAULT_TIMEOUT = object()
 
 
-class Tunnel:
-    """
-    Agently Tunnel provide a convenient way to transport data cross threads and event loops and put them into a hybrid generator or a result list.
+@dataclass(frozen=True)
+class _AsyncWaiter:
+    loop: AbstractEventLoop
+    future: Future[None]
 
-    Args:
-    - `private_max_workers` (`int`): If you want to use a private thread pool executor, declare worker number here and the private thread pool executor will execute tasks instead of the global one in Agently Stage dispatch environment. Value `None` means use the global thread pool executor.Default value is `1`.
-    - `max_concurrent_tasks` (`int`): If you want to limit the max concurrent task number that running in async event loop, declare max task number here. Value `None` means no limitation.
-    - `on_error` (`function(Exception)->any`): Register a callback function to handle exceptions when running.
-    - `timeout` (`int`): Seconds to wait next item when start pull out item from generator. Default value is `10`. Value `None` means never timeout.
 
-    Example:
-    ```
-    from agently-stage import Stage, Tunnel
-    with Stage() as stage:
-        tunnel = Tunnel()
-        async def wait_to_print():
-            async for item in tunnel:
-                print(item)
-        stage.go(wait_to_print)
-        tunnel.put("Hello")
-        tunnel.put("Agently Tunnel")
-        tunnel.put_stop()
-    print(tunnel.get())
-    ```
-    """
+class _TunnelIterator(Generic[T]):
+    def __init__(self, tunnel: Tunnel[T], timeout: float | None) -> None:
+        self._tunnel = tunnel
+        self._timeout = timeout
+        self._cursor = 0
+        self._terminated = False
+
+    def __iter__(self) -> _TunnelIterator[T]:
+        return self
+
+    def __next__(self) -> T:
+        if self._terminated:
+            raise StopIteration
+        deadline = None if self._timeout is None else time.monotonic() + self._timeout
+        with self._tunnel._condition:
+            while True:
+                if self._cursor < len(self._tunnel._items):
+                    item = self._tunnel._items[self._cursor]
+                    self._cursor += 1
+                    return item
+                if self._tunnel._failure is not None:
+                    self._terminated = True
+                    raise self._tunnel._failure
+                if self._tunnel._closed:
+                    self._terminated = True
+                    raise StopIteration
+
+                remaining = None if deadline is None else deadline - time.monotonic()
+                if remaining is not None and remaining <= 0:
+                    self._terminated = True
+                    raise StopIteration
+                self._tunnel._condition.wait(timeout=remaining)
+
+
+class _TunnelAsyncIterator(Generic[T]):
+    def __init__(self, tunnel: Tunnel[T], timeout: float | None) -> None:
+        self._tunnel = tunnel
+        self._timeout = timeout
+        self._cursor = 0
+        self._terminated = False
+
+    def __aiter__(self) -> _TunnelAsyncIterator[T]:
+        return self
+
+    async def __anext__(self) -> T:
+        if self._terminated:
+            raise StopAsyncIteration
+        loop = asyncio.get_running_loop()
+        waiter: _AsyncWaiter | None = None
+
+        while True:
+            with self._tunnel._condition:
+                if self._cursor < len(self._tunnel._items):
+                    item = self._tunnel._items[self._cursor]
+                    self._cursor += 1
+                    return item
+                if self._tunnel._failure is not None:
+                    self._terminated = True
+                    raise self._tunnel._failure
+                if self._tunnel._closed:
+                    self._terminated = True
+                    raise StopAsyncIteration
+                future = loop.create_future()
+                waiter = _AsyncWaiter(loop, future)
+                self._tunnel._async_waiters.add(waiter)
+
+            try:
+                if self._timeout is None:
+                    await future
+                else:
+                    await asyncio.wait_for(asyncio.shield(future), self._timeout)
+            except TimeoutError:
+                self._terminated = True
+                future.cancel()
+                raise StopAsyncIteration from None
+            finally:
+                with self._tunnel._condition:
+                    self._tunnel._async_waiters.discard(waiter)
+
+
+class Tunnel(Generic[T]):
+    """A writable, replayable channel with independent subscriber cursors."""
 
     def __init__(
         self,
         wait_interval: float = 0.1,
-        timeout: int = 10,
+        timeout: float | None = 10,
         timeout_after_start: bool = True,
-    ):
-        self._wait_interval = wait_interval
+    ) -> None:
+        self._condition = threading.Condition(threading.RLock())
+        self._items: list[T] = []
+        self._closed = False
+        self._failure: BaseException | None = None
+        self._async_waiters: set[_AsyncWaiter] = set()
         self._timeout = timeout
-        self._timeout_after_start = timeout_after_start
-        self._started = False
-        self._data_queue = queue.Queue()
-        self._creage_generator_lock = threading.Lock()
-        self._NODATA = object()
-        self.generator = None
+        self._compatibility_wait_interval = wait_interval
+        self._compatibility_timeout_after_start = timeout_after_start
 
-    def _create_generator(self):
-        async def run_hybrid_generator():
-            start_time = time.time()
-            while True:
-                data = self._NODATA
-                if self._timeout_after_start and not self._started:
-                    try:
-                        data = self._data_queue.get_nowait()
-                        self._started = True
-                    except queue.Empty:
-                        await asyncio.sleep(self._wait_interval)
-                else:
-                    try:
-                        data = self._data_queue.get_nowait()
-                    except queue.Empty:
-                        if time.time() - start_time > self._timeout:
-                            break
-                        await asyncio.sleep(self._wait_interval)
-                    if data is StopIteration:
-                        break
-                if data is not self._NODATA:
-                    yield data
+    @staticmethod
+    def _resolve_waiter(future: Future[None]) -> None:
+        if not future.done():
+            future.set_result(None)
 
-        with Stage() as stage:
-            return stage.go(run_hybrid_generator())
+    def _wake_waiters_locked(self) -> None:
+        self._condition.notify_all()
+        waiters = tuple(self._async_waiters)
+        self._async_waiters.clear()
+        for waiter in waiters:
+            try:
+                waiter.loop.call_soon_threadsafe(self._resolve_waiter, waiter.future)
+            except RuntimeError:
+                waiter.future.cancel()
 
-    def _create_generator_stage(self):
-        with self._creage_generator_lock:
-            if self.generator is None:
-                self.generator = self._create_generator()
+    def put(self, data: T) -> None:
+        with self._condition:
+            if self._closed or self._failure is not None:
+                raise TunnelClosedError("Cannot put data after Tunnel terminal state")
+            self._items.append(data)
+            self._wake_waiters_locked()
 
-    def get_generator(self):
-        self._create_generator_stage()
-        return self.generator
+    async def async_put(self, data: T) -> None:
+        self.put(data)
 
-    def __iter__(self):
-        self._create_generator_stage()
-        yield from self.generator
+    def close(self) -> None:
+        with self._condition:
+            if self._closed or self._failure is not None:
+                return
+            self._closed = True
+            self._wake_waiters_locked()
 
-    async def __aiter__(self):
-        self._create_generator_stage()
-        async for item in self.generator:
-            yield item
+    async def async_close(self) -> None:
+        self.close()
 
-    def __call__(self):
-        self._create_generator_stage()
-        return self.generator()
+    def fail(self, error: BaseException) -> None:
+        with self._condition:
+            if self._closed or self._failure is not None:
+                return
+            self._failure = error
+            self._wake_waiters_locked()
 
-    def get(self):
-        self._create_generator_stage()
-        return self.generator.get()
+    def put_stop(self) -> None:
+        self.close()
 
-    def put(self, data: any):
-        """
-        Put data into tunnel.
+    def get_generator(self) -> Iterator[T]:
+        return iter(self)
 
-        Args:
-        - `data` (any)
-        """
-        if not self._data_queue.empty() and self._data_queue.queue[-1] is StopIteration:
-            warnings.warn("You can't put data into tunnel after put_stop()", RuntimeWarning, stacklevel=2)
-            return
-        self._data_queue.put(data)
+    def __iter__(self) -> Iterator[T]:
+        return _TunnelIterator(self, self._timeout)
 
-    def put_stop(self):
-        """
-        Put stop sign into tunnel to tell all consumers data transportation is done.
-        """
-        self._data_queue.put(StopIteration)
+    def __aiter__(self) -> AsyncIterator[T]:
+        return _TunnelAsyncIterator(self, self._timeout)
+
+    def __call__(self) -> Iterator[T]:
+        return iter(self)
+
+    def get(self, timeout: float | None | object = _USE_DEFAULT_TIMEOUT) -> list[T]:
+        effective_timeout = self._timeout if timeout is _USE_DEFAULT_TIMEOUT else cast(float | None, timeout)
+        return list(_TunnelIterator(self, effective_timeout))

@@ -1,13 +1,13 @@
-<p style = "text-align:center"><img style="width:80%" src=https://github.com/user-attachments/assets/c49ef73e-9ea6-42c8-88a4-ecd38e576b7a></img></p>
-
 # Agently Stage
 
-> *Efficient Convenient Asynchronous & Multithreaded Programming*
+Agently Stage is a Python 3.10+ runtime bridge for safely combining synchronous
+callers, asyncio work, blocking functions, generators, streaming channels, and
+local event listeners.
 
-[![license](https://img.shields.io/badge/license-Apache2.0-blue.svg?style=flat-square)](https://github.com/AgentEra/Agently-Stage/blob/main/LICENSE)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/agently-stage?style=flat-square)](https://pypistats.org/packages/agently-stage)
-[![GitHub star chart](https://img.shields.io/github/stars/agentera/agently-stage?style=flat-square)](https://star-history.com/#agentera/agently-stage)
-[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/AgentlyTech.svg?style=social&label=Follow%20%40AgentlyTech)](https://x.com/AgentlyTech)
+It uses one process-wide control worker with finite asyncio loop generations.
+Creating a `Stage` does not create a thread or loop. Work opens a generation
+lazily; retained work drains, the loop closes, and a later batch can open a new
+generation. Ordinary scripts do not need a process shutdown hook.
 
 ## Install
 
@@ -15,349 +15,284 @@
 pip install agently-stage
 ```
 
-## What is Agently Stage?
+## Stage and StageHandle
 
-Asynchronous and multithreaded programming in Python has always been complex and confusing, especially when building applications for GenAI. In <[Agently AI application development framework](https://github.com/AgentEra/Agently), we’ve introduced numerous solutions to enhance control over GenAI outputs. For example, with Agently Instant Mode, you can perform streaming parsing of formatted data like JSON while generating structured results. Additionally, Agently Workflow allows you to orchestrate scheduling relationships between multiple GenAI request results.
-
-As we delved deeper into controlling GenAI outputs, we recognized that the inherent complexity of combining asynchronous and multithreaded programming in Python poses a significant challenge. This complexity often hinders developers from leveraging GenAI capabilities efficiently and creatively.
-
-To solve this problem, we’ve spun off Agently Stage, a dedicated management solution specifically designed for mixed asynchronous and multithreaded programming, from the core Agently AI application development framework. With Agently Stage, we aim to help Python developers to do mixed asynchronous and multithreaded programming in Python much easier.
-
-Read on to discover what revolutionary change Agently Stage can bring to asynchronous and multithreaded programming to make it efficiency and simplicity!
-
-## Quick Overview of Core Features
-
-### Use `Stage` to Manage Asynchronous and Multithreaded Programming
-
-With Agently Stage, you can just use `stage.go()` to start asynchronous function or normal function in main thread or any other thread. `stage.go()` will return a `StageResponse`/`StageHybridGenerator` instance for you. You can use `response.get()` to wait for the result some time after, or not if you don't care.
+`Stage.go()` starts a synchronous or asynchronous callable and returns a
+loop-neutral `StageHandle`.
 
 ```python
-import time
 import asyncio
+import time
+
 from agently_stage import Stage
 
-async def async_task(input_sentence:str):
-    print("Start Simulate Async Network Request...")
-    await asyncio.sleep(1)
-    print("Response Return...")
-    return f"Network Request Data: Your input is { input_sentence }"
 
-def sync_task(a:int, b:int):
-    print("Start Simulate Sync Long Time Task...")
-    time.sleep(2)
-    print("Task Done...")
-    return f"Task Result: { a + b }"
+async def fetch() -> str:
+    await asyncio.sleep(0.05)
+    return "network-result"
+
+
+def calculate() -> int:
+    time.sleep(0.05)
+    return 6 * 7
+
 
 stage = Stage()
-async_response = stage.go(async_task, "Agently Stage is awesome!")
-sync_response = stage.go(sync_task, 1, 2)
+fetch_handle = stage.go(fetch)
+calculate_handle = stage.go(calculate)
+
+print(fetch_handle.get())       # network-result
+print(calculate_handle.get())   # 42
+```
+
+Async services can read the same handles without blocking their own event loop:
+
+```python
+async def main() -> None:
+    stage = Stage()
+    handle = stage.go(fetch)
+    print(await handle.async_get())
+    await stage.async_close()
+
+
+asyncio.run(main())
+```
+
+The user's event loop is never reused or replaced. Calling `asyncio.run()`
+before or after Stage remains valid.
+
+### Body result and settlement are different
+
+`get()` returns the root/body outcome. `wait_settled()` additionally waits for
+Stage-retained descendants, callbacks, and finalizers.
+
+```python
+import asyncio
+import threading
+
+from agently_stage import Stage
+
+drained = threading.Event()
+
+
+async def request() -> str:
+    async def background_cleanup() -> None:
+        await asyncio.sleep(0.05)
+        drained.set()
+
+    asyncio.create_task(background_cleanup())
+    return "business-result"
+
+
+handle = Stage().go(request)
+print(handle.get())              # business-result
+print(drained.is_set())          # False
+handle.wait_settled()
+print(drained.is_set())          # True
+```
+
+Body errors are raised by `get()` and do not become settlement errors.
+Callback, finalizer, or retained-descendant failures are reported by
+`wait_settled()` as `StageSettlementError` without replacing the body result.
+
+### Callback observers
+
+Callbacks are ordered observers, not Promise-style result transformations.
+
+```python
+handle = (
+    Stage()
+    .go(lambda: 42)
+    .on_success(lambda value: print("success", value))
+    .on_error(lambda error: print("error", error))
+    .on_finally(lambda: print("finished"))
+)
+
+assert handle.get() == 42
+handle.wait_settled()
+```
+
+Callbacks can be sync or async. A callback registered after the body finishes
+still observes the cached outcome while the Stage scope remains open. Registering
+after scope close raises `StageClosedError`.
+
+## Plain Stage or context-managed Stage?
+
+A plain Stage is unpinned. It remains reusable after an idle loop generation
+closes, so later `go()` calls may run in a new generation.
+
+Use `with Stage()` or `async with Stage()` when several calls need the same
+loop-affine resource:
+
+```python
+import asyncio
+
+from agently_stage import Stage
+
+
+async def current_loop() -> asyncio.AbstractEventLoop:
+    return asyncio.get_running_loop()
+
+
+with Stage() as stage:
+    first_loop = stage.get(current_loop)
+    second_loop = stage.get(current_loop)
+    assert first_loop is second_loop
+```
+
+The first submission lazily acquires a generation lease. Context exit seals
+that Stage scope and waits for its work, without waiting for unrelated Stage
+scopes. An empty context creates no loop.
+
+`Stage.close()` and `Stage.async_close()` are scope barriers for explicit
+application lifecycles. They are not required to make an ordinary script exit:
+an active non-daemon control job keeps retained work alive, then the finite loop
+closes by itself.
+
+## StageStream
+
+Running a sync or async generator returns a read-only `StageStream`.
+
+```python
+import asyncio
+
+from agently_stage import Stage
+
+
+async def source():
+    for item in range(3):
+        await asyncio.sleep(0)
+        yield item
+
+
+stage = Stage()
+stream = stage.go(source)
+
+print(stream.get())   # [0, 1, 2]
+print(list(stream))   # [0, 1, 2] (replay)
 stage.close()
-#Try remove this line below, it'll work perfectly too.
-print(async_response.get(), "|", sync_response.get())
 ```
 
-```text
-Start Simulate Sync Long Time Task...
-Start Simulate Async Network Request...
-Response Return...
-Task Done...
-Network Request Data: Your input is Agently Stage is awesome! | Task Result: 3
-```
+`for` and `async for` both work. Every reader has an independent replay cursor.
+Source errors are delivered after values already published. Stream callbacks
+observe source completion once and receive the complete result list; they do
+not transform individual items. `lazy=True` delays source start until the first
+reader. The source automatically publishes EOF or failure to StageStream's
+internal channel; callers do not close a StageStream.
 
-You can use `with` to make code expression and context management easier:
+`StageHybridGenerator` remains an import-compatible StageStream subtype for the
+preview line. New code should use the `StageStream` name.
 
-```python
-with Stage() as stage:
-    async_response = stage.go(async_task, "Agently Stage is awesome!")
-    sync_response = stage.go(sync_task, 1, 2)
+## Tunnel
 
-print(async_response.get(), "|", sync_response.get())
-```
-
-By default, each Stage dispatch environment has 1 independent daemon thread for its coroutine tasks. You can customize it as below if you want:
-
-- `exception_handler` (`function(Exception)->any`): Customize exception handler to handle exceptions those raised from tasks running in Agently Stage instance's dispatch environment. By default, we provide a handler that will raise exceptions in runtime and collect all exceptions and print all details in a list to the console after main thread exit.
-- `is_daemon` (`bool`): When Agently Stage instance is daemon, the thread of it will automatically close when main thread is closing, if you want to close it manually using `with` or `.close()` otherwise keep the thread alive.
-
-### `StageFunction`: Transform a Normal Function into a Non-Blocking Function with Status
-
-Decorator `@<stage_instance>.func` can transform a normal function into `StageFunction` instance with status management which can be started without blocking current thread in one place and wait for result in other places. `StageFunction` will be run in the dispatch environment provided by `Stage` instance.
-
-```python
-import time
-from agently_stage import Stage
-stage = Stage()
-
-@stage.func
-def task(sentence:str):
-    time.sleep(1)
-    return f"Done: { sentence }"
-
-# Defined but hasn't run
-task
-
-# Start running
-task.go("First")
-# or just `task()` like call a function normally
-
-# Block current thread and wait until done to get result
-result = task.wait()
-print(result)
-
-# Wait again won't restart it
-result_2 = task.wait()
-print(result_2)
-
-# Reset make the function can be started again
-task.reset()
-task("Second")
-result_3 = task.wait()
-print(result_3)
-```
-
-```text
-Done: First
-Done: First
-Done: Second
-```
-
-How can this be useful? Think about a scenario like this:
-
-```python
-import time
-import asyncio
-from agently_stage import Stage
-
-# We create a handler in one dispatch
-with Stage() as stage_1:
-    @stage_1.func
-    async def handler(sentence):
-        return f"Someone said: { sentence }"
-
-# We wait this handler in another dispatch
-with Stage() as stage_2:
-    def waiting():
-        result = handler.wait()
-        print(result)
-    stage_2.go(waiting)
-    # Some uncertain time later, the handler is called
-    time.sleep(1)
-    async def executor():
-        await asyncio.sleep(1)
-        handler("StageFunction is useful!")
-    stage_2.go(executor)
-```
-
-```text
-Someone said: StageFunction is useful!
-```
-
-### `StageHybridGenerator`: Iter Generator and Async Iter Generator Can Work in `Stage` too!
-
-If you try to run a generator function with Agently Stage, you will get a `StageHybridGenerator` instance as response. You can iterate over `StageHybridGenerator` using `for`/`async for` or call `next()`/`anext()` explicitly. You can also use this feature to transform an iter generator into an async iter generator or otherwise. In fact, using `StageHybridGenerator` you don't event need to care about if this generator is an iter generator or an async iter generator anymore!
-
-```python
-import asyncio
-from agently_stage import Stage
-with Stage() as stage:
-    async def start_gen(n:int):
-        for i in range(n):
-            await asyncio.sleep(1)
-            yield i+1
-    gen = stage.go(start_gen, 5)
-    for item in gen:
-        print(item)
-```
-
-```text
-1
-2
-3
-4
-5
-```
-
-You can also use `<StageHybridGenerator instance>.get()` to get all results yielded from the generator function processing as items in a result list.
-
-```python
-import asyncio
-from agently_stage import Stage
-with Stage() as stage:
-    async def start_gen(n:int):
-        for i in range(n):
-            await asyncio.sleep(1)
-            yield i+1
-    gen = stage.go(start_gen, 5)
-    result_list = gen.get()
-    print(result_list)
-```
-
-```text
-[1, 2, 3, 4, 5]
-```
-
-By default, generator function will be processed immediately when `stage.go(<generator>)` no matter how later `StageHybridGenerator` be used. But if you want to preserve the characteristic of an iter generator that starts execution only when called, you can use parameter `lazy=True` in `stage.go()` to do so.
-
-Also, if you want to consume the original yielded value or exception and re-yield a new result as the final yielded value, you can use parameter `on_success` and `on_error` to append handlers to `StageHybridGenerator`. Those handlers will executed in Agently Stage so both sync function and async function are available.
-
-```python
-import time
-import asyncio
-from agently_stage import Stage
-with Stage() as stage:
-    async def start_gen(n:int):
-        for i in range(n):
-            await asyncio.sleep(1)
-            yield i+1
-        raise Exception("Some Error")
-    gen = stage.go(
-        start_gen, 5,
-        lazy=True, #<- Set generator as lazy mode
-        # Define runtime handler to consume original yielded value and re-yield the final value
-        on_success=lambda item: item * 2,
-        # Define runtime handler to consume raised exception and re-yield the final value or exception
-        on_error=lambda e: str(e)
-    )
-    time.sleep(5)
-    # Generator function `start_gen` start here only when gen is iterated over by `for`
-    for item in gen:
-        print(item)
-    print(gen.get())
-```
-
-```text
-2
-4
-6
-8
-10
-Some Error
-[2, 4, 6, 8, 10, 'Some Error']
-```
-
-And when iterating over an async iter generator, we need to use await in the consumer to hand over coroutine control. If the interval between await calls is too short, it can increase CPU load, while a longer interval might affect execution efficiency. We have set this interval to `0.1 seconds` by default, but you can adjust it using parameter `wait_interval` in `stage.go()`.
-
-```python
-gen = stage.go(start_gen, 5, wait_interval=0.5)
-```
-
-### `Tunnel`: Streaming Data Transportation Between Threads and Coroutines is SO EASY!
-
-Transporting data between threads and coroutines in a streaming manner is so usual in GenAI developments because that's exactly how gen models work - predicting token by token. The work pattern from the source will directly influence the execution style of all subsequent downstream tasks. So we created `Tunnel` to make tasks like this easier.
-
-```python
-import time
-import asyncio
-from agently_stage import Stage, Tunnel
-
-tunnel = Tunnel()
-
-with Stage() as stage:
-    def consumer():
-        print("GO CONSUMER")
-        time.sleep(1)
-        # You can use `tunnel.get_gen()` to get a `StageHybridGenerator` from tunnel instance
-        gen = tunnel.get_generator()
-        for data in gen:
-            print("streaming:", data)
-
-    async def async_consumer():
-        print("GO A CONSUMER")
-        # Or you can just iterate over tunnel data by `for`/`async for`
-        async for data in tunnel:
-            print("async streaming:", data)
-
-    async def provider(n:int):
-        print("GO PROVIDER")
-        for i in range(n):
-            tunnel.put(i + 1)
-            await asyncio.sleep(0.1)
-        # If you forget to .put_stop(), tunnel will close after 10s by default
-        tunnel.put_stop()
-
-    # State consumer first
-    stage.go(consumer)
-    stage.go(async_consumer)
-    # Provider start providing data sometime later
-    time.sleep(1)
-    stage.get(provider, 5)
-
-# You can also use `tunnel.get()` to get a final yielded item list
-print(tunnel.get()[0])
-```
-
-```text
-GO CONSUMER
-GO A CONSUMER
-GO PROVIDER
-async streaming: 1
-async streaming: 2
-async streaming: 3
-async streaming: 4
-async streaming: 5
-streaming: 1
-streaming: 2
-streaming: 3
-streaming: 4
-streaming: 5
-1
-```
-
-Sometimes, we won't know if the data transportation from upstream is done or not and want to set a timeout to stop waiting, parameter `timeout` when creating Tunnel instance or in `.get_gen()`, `.get()` will help us to do so. By default, we set this timeout to `10 seconds`. You can set timeout value as `None` manually if you want to keep waiting no matter what.
+`Tunnel` is an independently writable replay channel. It is not a Stage task
+and is not renamed to StageStream.
 
 ```python
 from agently_stage import Tunnel
-tunnel = Tunnel(timeout=None)
-# Timeout setting in .get_gen() or .get() will have higher priority
-gen = tunnel.get_gen(timeout=1)
-# But timeout setting only works at the first time that start the generator consumer
-# In this case, that's `tunnel.get_gen()`, not `tunnel.get()`
-result_list = tunnel.get(timeout=5)
+
+tunnel: Tunnel[int] = Tunnel()
+tunnel.put(1)
+tunnel.put(2)
+tunnel.close()
+
+assert list(tunnel) == [1, 2]
+assert list(tunnel) == [1, 2]
+assert tunnel.get() == [1, 2]
 ```
 
-### `EventEmitter`: Use It EXACTLY THE SAME AS IT SHOULD BE USED IN NODEJS
+Multiple threads or coroutines may publish. Accepted values have one total
+order, and every sync/async subscriber receives that same sequence from its own
+cursor. `close()` is idempotent; `put_stop()` is its compatibility alias.
+`fail(error)` publishes a terminal error after accepted values. Writes after a
+terminal state raise `TunnelClosedError`. Here `close()` means that the
+producer publishes EOF; it is not a runtime-resource cleanup operation.
 
-In Python, especially when you're a senior node.js coder, if you want to build a copy module of EventEmitter from node.js, you will feel something is not right. How so? It's because if you want to allow event listener to be an async function, you have to make the event executor function that will call event listener also an async function. In simple way to build a copy module of EventEmitter, that means `.emit()` must be an async function. And here's the funny part: we have to put an `await` before we call `emitter.emit()`. That's ridiculous because we can not ensure that we emit event in an async environment!
+The default `Tunnel(timeout=10)` applies a reader-local inactivity timeout while
+waiting for the next value, providing a safety exit if a producer forgets EOF.
+Timing out one reader does not close or mutate the channel, and later readers
+can still receive subsequent values. Use `timeout=None` when a reader should
+wait indefinitely for explicit `close()` or `fail()`.
 
-But event-driven development is so important to asynchronous and multithreaded programming, a REAL EventEmitter that WORKS EXACTLY THE SAME AS IT SHOULD BE USED IN NODEJS is required with no doubts.
+## EventEmitter
 
-So Agently Stage provide you an `EventEmitter` can be used like this:
+EventEmitter owns one reusable Stage scope for all listener work.
 
 ```python
-from agently_stage import Stage, EventEmitter
+from agently_stage import EventEmitter
 
 emitter = EventEmitter()
 
-async def listener(data):
-    print(f"I got: { data }")
-    # You can return value to emitter
-    return True
 
-emitter.on("data", listener)
+@emitter.once("ready")
+async def ready_listener(value: str) -> str:
+    return value.upper()
 
-with Stage() as stage:
-    # Submit task that wait to run later
-    stage.go(lambda: emitter.emit("data", "EventEmitter is Cool!"))
 
-responses = emitter.emit("data", "I'll say it again, EventEmitter is Cool!")
+handles = emitter.emit("ready", "ok", wait=False)
+assert handles[0].get() == "OK"
 
-# Get responses from all event listeners
-for response in responses:
-    print(response.get())
+# The once listener was removed atomically before invocation.
+assert emitter.emit("ready", "again", wait=True) == []
 ```
 
-```text
-I got: I'll say it again, EventEmitter is Cool!
-True
-I got: EventEmitter is Cool!
+`emit(..., wait=False)` returns listener handles immediately while Stage retains
+the work. `wait=True` waits without merging listener failures; each failure
+remains observable from its own handle. Ordinary scripts do not need to close
+an emitter: listener work settles through the finite Stage runtime. `close()`
+and `async_close()` are optional component-lifecycle seals that prevent new
+registration or emits and wait for pending listener settlement during explicit
+service teardown.
+
+EventEmitter owns generic process-local listener registration and invocation.
+Remote delivery, durable storage, message matching, and application event
+policy remain outside its scope.
+
+## Runnable examples
+
+Each example runs independently and records stable key output from a real local
+run:
+
+- [Runtime foundation overview](examples/runtime_foundation.py)
+- [Sync, async, and concurrent calls](examples/basic_sync_async.py)
+- [Body result and retained background settlement](examples/body_result_and_background_drain.py)
+- [Finite generations and pinned loop affinity](examples/generation_and_pinned_context.py)
+- [Callbacks, errors, and cancellation](examples/callbacks_errors_and_cancellation.py)
+- [Tunnel broadcast, timeout, and failure](examples/tunnel_broadcast.py)
+- [StageStream lazy execution, replay, and failure](examples/stage_stream.py)
+- [EventEmitter listeners without ordinary close](examples/event_emitter.py)
+- [Automatic process exit after retained work](examples/automatic_process_exit.py)
+
+## Runtime constraints
+
+- Async callables remain concurrent on one Stage loop; the single control
+  worker is not a serial task executor.
+- Blocking functions and synchronous generator stepping use a separate blocking
+  executor and do not block the Stage loop.
+- No daemon Stage control thread, generator bridge thread, polling thread, or
+  user `atexit` scheduling is used.
+- Cross-thread submission has fixed overhead. For very fine-grained work,
+  submit one async root that creates many asyncio tasks, or use a pinned context.
+- CPU-bound parallelism still belongs in a process executor or another
+  application-owned execution boundary.
+
+## Compatibility names
+
+The preview imports `StageResponse`, `StageHybridGenerator`, `StageDispatch`,
+`StageDispatchEnvironment`, `StageCallBackTask`, `StageTaskProxy`,
+`TaskThreadPool`, and `StageFunction` remain available. They delegate to the
+canonical Stage runtime and do not own additional event loops or bridge threads.
+New code should prefer `Stage`, `StageHandle`, `StageStream`, `Tunnel`, and
+`EventEmitter`.
+
+## Development
+
+```shell
+uv sync
+.venv/bin/pyright agently_stage tests examples
+.venv/bin/python -m pytest -q
+.venv/bin/pre-commit run --all-files
 ```
 
-No `asyncio.run()`! No `await emitter.emit()`! No worries about choosing event loops! JUST `.emit()` WHEREVER YOU WANT!💪💪💪
-
----
-
-## Something More
-
-`Agently Stage` is part of our main work [Agently AI application development framework](https://github.com/AgentEra/Agently) which aim to make GenAI application development faster, easier and smarter. Please ⭐️ this project and maybe try Agently framework by `pip install Agently` later, thank you!
-
-If you want to contact us, email to [developer@agently.tech](mailto:developer@agently.tech), leave comments in [Issues](https://github.com/AgentEra/Agently-Stage/issues) or [Discussions](https://github.com/AgentEra/Agently-Stage/discussions) or leave messages to our X:[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/AgentlyTech.svg?style=social&label=Follow%20%40AgentlyTech)](https://x.com/AgentlyTech)
+See [the runtime foundation design](docs/superpowers/specs/2026-07-11-stage-runtime-foundation-design.md)
+for the standalone runtime architecture and lifecycle invariants.

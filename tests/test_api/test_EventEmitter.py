@@ -39,8 +39,9 @@ def test_basic_emitter():
     assert "test_1" in emitter._once and emitter._once["test_1"][0] == should_be_activated_once_handler
 
     # First emit without wait
+    started = time.monotonic()
     emitter.emit("test_1", "It works", wait=False)
-    assert activated_count == 0
+    assert time.monotonic() - started < 0.1
     # Sleep to wait handlers done
     time.sleep(1)
     assert activated_count == 2
@@ -55,6 +56,7 @@ def test_basic_emitter():
     assert activated_count == 3
     # Emit an event that has no listener
     emitter.emit("something")
+    emitter.close()
 
 
 def test_decorator():
@@ -75,6 +77,7 @@ def test_decorator():
 
     emitter.emit("test", True, wait=True)
     assert counter == 2
+    emitter.close()
 
 
 def test_stress():
@@ -103,3 +106,4 @@ def test_stress():
     time.sleep(2)
     # print("sub end")
     assert sum(counter.values()) == test_times
+    emitter.close()

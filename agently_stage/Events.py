@@ -1,82 +1,92 @@
-# Copyright 2024 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Contact us: Developer@Agently.tech
 from __future__ import annotations
 
 import threading
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
-class Event(threading.Event):
-    def __init__(self, events_data, name):
-        super().__init__()
+class Event:
+    """Compatibility payload event using composition over threading.Event."""
+
+    def __init__(
+        self,
+        events_data: dict[str, Any],
+        name: str,
+        data_lock: threading.RLock,
+    ) -> None:
+        self._event = threading.Event()
         self._events_data = events_data
         self._name = name
+        self._data_lock = data_lock
 
-    def get_data(self):
-        return self._events_data[self._name]
+    def get_data(self) -> Any | None:
+        with self._data_lock:
+            return self._events_data.get(self._name)
 
-    def set_data(self, data):
-        self._events_data.update({self._name: data})
+    def set_data(self, data: Any) -> None:
+        with self._data_lock:
+            self._events_data[self._name] = data
 
-    def update_data(self, key, value):
-        data = self.get_data()
-        if data is None:
-            data = {}
-        if isinstance(data, dict):
-            data.update({key: value})
-            self.set_data(data)
-        else:
-            raise TypeError(
-                f"[Agently Stage] Event '{self._name}' can not update data because current data is not a dictionary."
-            )
+    def update_data(self, key: str, value: Any) -> None:
+        with self._data_lock:
+            data = self._events_data.get(self._name)
+            if data is None:
+                data = {}
+                self._events_data[self._name] = data
+            if not isinstance(data, dict):
+                raise TypeError(
+                    f"[Agently Stage] Event '{self._name}' can not update data because current data is not a dictionary."
+                )
+            data[key] = value
 
-    def handle_data(self, handler):
-        data = self.get_data()
-        result = handler(data)
-        if result:
+    def handle_data(self, handler: Callable[[Any | None], Any]) -> None:
+        result = handler(self.get_data())
+        if result is not None:
             self.set_data(result)
 
-    def set(self, data=None):
+    def set(self, data: Any | None = None) -> None:
         if data is not None:
-            self._events_data.update({self._name: data})
-        super().set()
+            self.set_data(data)
+        self._event.set()
 
-    def clear(self):
-        if self._name in self._events_data:
-            del self._events_data[self._name]
-        super().clear()
+    def clear(self) -> None:
+        with self._data_lock:
+            self._events_data.pop(self._name, None)
+        self._event.clear()
 
-    def wait(self):
-        super().wait()
-        return self._events_data[self._name] if self._name in self._events_data else None
+    def is_set(self) -> bool:
+        return self._event.is_set()
+
+    def wait(self, timeout: float | None = None) -> Any | None:
+        if not self._event.wait(timeout=timeout):
+            return None
+        return self.get_data()
 
 
 class Events:
-    def __init__(self):
-        self._events = {}
-        self._events_data = {}
+    """Compatibility registry for named payload Event instances."""
 
-    def create(self, name):
-        if name not in self._events:
-            event = Event(self._events_data, name)
-            self._events.update({name: event})
-        return self._events[name]
+    def __init__(self) -> None:
+        self._events: dict[str, Event] = {}
+        self._events_data: dict[str, Any] = {}
+        self._data_lock = threading.RLock()
 
-    def wait_all(self):
-        for event in self._events:
+    def create(self, name: str) -> Event:
+        with self._data_lock:
+            event = self._events.get(name)
+            if event is None:
+                event = Event(self._events_data, name, self._data_lock)
+                self._events[name] = event
+            return event
+
+    def wait_all(self) -> None:
+        with self._data_lock:
+            events = tuple(self._events.values())
+        for event in events:
             event.wait()
 
-    def get_events(self):
-        return self._events
+    def get_events(self) -> dict[str, Event]:
+        with self._data_lock:
+            return self._events.copy()

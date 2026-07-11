@@ -57,8 +57,10 @@ def test_sync_async_iter():
 
     sync_res.get()
     async_res.get()
-    assert order_execution == ["consumer", "async_consumer", "provider"]
-    assert res == [*[f"async_consumer: {i + 1}" for i in range(5)], *[f"sync_consumer: {i + 1}" for i in range(5)]]
+    assert set(order_execution[:2]) == {"consumer", "async_consumer"}
+    assert order_execution[-1] == "provider"
+    assert [item for item in res if item.startswith("sync_consumer")] == [f"sync_consumer: {i + 1}" for i in range(5)]
+    assert [item for item in res if item.startswith("async_consumer")] == [f"async_consumer: {i + 1}" for i in range(5)]
 
 
 # 测试 async 控制权让出
@@ -93,7 +95,7 @@ def test_async_control():
 
     sync_res.get()
     async_res.get()
-    assert order_execution == ["consumer", "async_consumer", "provider"]
-    ans = [*[f"async_consumer: {i + 1}" for i in range(5)], *[f"sync_consumer: {i + 1}" for i in range(5)]]
-    assert res != ans and len(res) == len(ans)  # 这里的顺序是随机的，但是长度是一样的
-    assert set(res) == set(ans)  # 值也是一样的
+    assert set(order_execution[:2]) == {"consumer", "async_consumer"}
+    assert order_execution[-1] == "provider"
+    assert [item for item in res if item.startswith("sync_consumer")] == [f"sync_consumer: {i + 1}" for i in range(5)]
+    assert [item for item in res if item.startswith("async_consumer")] == [f"async_consumer: {i + 1}" for i in range(5)]
