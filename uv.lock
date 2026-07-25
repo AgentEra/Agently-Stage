@@ -4,7 +4,7 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "agently-stage"
-version = "0.2.0rc20250206"
+version = "0.3.1"
 source = { editable = "." }
 
 [package.dev-dependencies]
