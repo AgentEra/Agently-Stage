@@ -6,12 +6,13 @@ import contextvars
 import functools
 import inspect
 import threading
+import time
 import types
 from collections.abc import Awaitable, Callable
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from typing import TYPE_CHECKING, Any, TypeVar, cast, overload
 
-from ._runtime import _RUNTIME_CARRIER, _Generation
+from ._runtime import _RUNTIME_CARRIER, _Generation, _WorkPhase
 from .StageException import StageClosedError, StageLifecycleError, StageSettlementError
 from .StageFunction import StageFunction
 from .StageHandle import StageHandle
@@ -108,19 +109,22 @@ class Stage:
         self,
         callback: Callable[..., object | Awaitable[object]],
         args: tuple[object, ...],
+        context: contextvars.Context,
     ) -> None:
+        callback_context = _RUNTIME_CARRIER.bind_current_execution(context)
         if inspect.iscoroutinefunction(callback):
-            await callback(*args)
+            callback_task = callback_context.run(asyncio.create_task, callback(*args))
+            await callback_task
             return
         loop = asyncio.get_running_loop()
-        context = contextvars.copy_context()
         call = functools.partial(callback, *args)
-        result = await loop.run_in_executor(self._blocking_executor, context.run, call)
+        result = await loop.run_in_executor(self._blocking_executor, callback_context.run, call)
         if inspect.isawaitable(result):
-            await result
+            callback_task = callback_context.run(asyncio.ensure_future, result)
+            await callback_task
 
     def _start_callback_drain_from_owner(self, handle: StageHandle[Any]) -> None:
-        asyncio.create_task(handle._drain_callbacks())
+        _RUNTIME_CARRIER.create_settlement_task(handle._drain_callbacks())
 
     def _submit_callback_drain_locked(self, handle: StageHandle[Any]) -> None:
         self._active_handles.add(handle)
@@ -129,7 +133,13 @@ class Stage:
             del generation
             await handle._drain_callbacks()
 
-        _RUNTIME_CARRIER.submit(handle, runner, preferred=self._generation_lease, owner=False)
+        _RUNTIME_CARRIER.submit(
+            handle,
+            runner,
+            preferred=self._generation_lease,
+            owner=False,
+            phase=_WorkPhase.SETTLEMENT,
+        )
 
     @overload
     def go(  # pyright: ignore[reportOverlappingOverload]
@@ -394,9 +404,15 @@ class Stage:
             if lease is not None:
                 _RUNTIME_CARRIER.release_lease(lease)
 
+            deadline = None if timeout is None else time.monotonic() + timeout
             for handle in handles:
+                remaining = None if deadline is None else max(0.0, deadline - time.monotonic())
                 try:
-                    handle.wait_settled(timeout=timeout)
+                    handle.wait_settled(timeout=remaining)
+                except (TimeoutError, FutureTimeoutError):
+                    with self._scope_lock:
+                        unsettled_count = len(self._active_handles)
+                    raise TimeoutError(f"Stage close timed out with {unsettled_count} unsettled handle(s)") from None
                 except StageSettlementError:
                     pass
                 finally:

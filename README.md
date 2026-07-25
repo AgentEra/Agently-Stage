@@ -61,6 +61,11 @@ asyncio.run(main())
 The user's event loop is never reused or replaced. Calling `asyncio.run()`
 before or after Stage remains valid.
 
+Each `Stage.go()` admission captures the caller's `contextvars` context. The
+root task, its retained descendants, and initial callbacks inherit that
+snapshot. A callback registered later captures its own registration-time
+context. Context changes made inside Stage do not mutate the caller's context.
+
 ### Body result and settlement are different
 
 `get()` returns the root/body outcome. `wait_settled()` additionally waits for
@@ -94,6 +99,14 @@ print(drained.is_set())          # True
 Body errors are raised by `get()` and do not become settlement errors.
 Callback, finalizer, or retained-descendant failures are reported by
 `wait_settled()` as `StageSettlementError` without replacing the body result.
+
+`StageHandle.cancel()` fences the handle's Stage-owned body task tree, including
+retained descendants and descendants created while cancellation is being
+delivered. Call `wait_settled()` after `cancel()` when later Stage-owned work
+must be ruled out. Cleanup callbacks and finalizers still settle. Cancellation
+cannot preempt a non-cooperative blocking function or undo an external side
+effect that has already committed; applications must use their own idempotency,
+authorization, or compensation policy for those effects.
 
 ### Callback observers
 
@@ -148,6 +161,10 @@ scopes. An empty context creates no loop.
 application lifecycles. They are not required to make an ordinary script exit:
 an active non-daemon control job keeps retained work alive, then the finite loop
 closes by itself.
+
+When a close timeout expires, Stage raises `TimeoutError` with the number of
+unsettled handles. The scope remains closed to new submissions, and `close()`
+may be called again after the outstanding work settles.
 
 ## StageStream
 
@@ -267,12 +284,17 @@ run:
 
 - Async callables remain concurrent on one Stage loop; the single control
   worker is not a serial task executor.
+- Stage scopes share the process-wide carrier. A scope is a lifetime and
+  settlement boundary, not a tenant, fault, process, or resource-isolation
+  boundary.
 - Blocking functions and synchronous generator stepping use a separate blocking
   executor and do not block the Stage loop.
 - No daemon Stage control thread, generator bridge thread, polling thread, or
   user `atexit` scheduling is used.
 - Cross-thread submission has fixed overhead. For very fine-grained work,
   submit one async root that creates many asyncio tasks, or use a pinned context.
+- Native async callers should directly await native async work when no
+  sync/thread/loop-neutral bridge is needed.
 - CPU-bound parallelism still belongs in a process executor or another
   application-owned execution boundary.
 

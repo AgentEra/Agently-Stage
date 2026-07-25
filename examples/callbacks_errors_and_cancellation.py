@@ -10,6 +10,7 @@ from agently_stage import Stage, StageSettlementError
 # body_error=ValueError
 # settlement_error=RuntimeError
 # cancelled=True
+# descendant_cancelled=True
 
 
 def main() -> None:
@@ -52,8 +53,17 @@ def main() -> None:
         pass
 
     cancellation_started = threading.Event()
+    descendant_cancelled_event = threading.Event()
 
     async def wait_forever() -> None:
+        async def descendant() -> None:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                descendant_cancelled_event.set()
+                raise
+
+        asyncio.create_task(descendant())
         cancellation_started.set()
         await asyncio.Event().wait()
 
@@ -61,12 +71,15 @@ def main() -> None:
     cancellation_handle = cancellation_stage.go(wait_forever)
     assert cancellation_started.wait(timeout=1)
     cancelled = cancellation_handle.cancel(timeout=1)
+    cancellation_handle.wait_settled(timeout=1)
+    descendant_cancelled = descendant_cancelled_event.is_set()
     cancellation_stage.close()
 
     print(f"callbacks={callbacks}")
     print(f"body_error={body_error}")
     print(f"settlement_error={settlement_error}")
     print(f"cancelled={cancelled}")
+    print(f"descendant_cancelled={descendant_cancelled}")
 
 
 if __name__ == "__main__":

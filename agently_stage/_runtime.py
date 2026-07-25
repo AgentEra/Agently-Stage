@@ -29,6 +29,11 @@ class _GenerationState(Enum):
     CLOSED = "closed"
 
 
+class _WorkPhase(Enum):
+    BODY = "body"
+    SETTLEMENT = "settlement"
+
+
 @dataclass(frozen=True)
 class _RuntimeSnapshot:
     active_generation_id: int | None
@@ -42,6 +47,8 @@ class _Submission:
     handle: StageHandle[Any]
     runner: Callable[[_Generation], Awaitable[None]]
     owner: bool
+    context: contextvars.Context
+    phase: _WorkPhase
 
 
 @dataclass
@@ -58,6 +65,7 @@ class _Generation:
 class _ExecutionContext:
     generation: _Generation
     handle: StageHandle[Any]
+    phase: _WorkPhase
 
 
 _active_execution: contextvars.ContextVar[_ExecutionContext | None] = contextvars.ContextVar(
@@ -94,13 +102,21 @@ class _RuntimeCarrier:
         *,
         preferred: _Generation | None = None,
         owner: bool = True,
+        phase: _WorkPhase = _WorkPhase.BODY,
     ) -> int:
+        submission_context = contextvars.copy_context()
         handle._retain_work()
         try:
             with self._admission_lock:
                 generation = self._reserve_locked(preferred)
                 handle._set_generation_id(generation.generation_id)
-                submission = _Submission(handle=handle, runner=runner, owner=owner)
+                submission = _Submission(
+                    handle=handle,
+                    runner=runner,
+                    owner=owner,
+                    context=submission_context,
+                    phase=phase,
+                )
                 loop = generation.loop
                 if loop is None:
                     generation.pending_submissions.append(submission)
@@ -134,6 +150,33 @@ class _RuntimeCarrier:
             active_loop_count=active_loop_count,
             control_thread_count=control_thread_count,
         )
+
+    def create_settlement_task(self, coroutine: Any) -> Task[Any]:
+        """Create one retained task in the active handle's settlement phase."""
+
+        context = _active_execution.get()
+        if context is None:
+            raise StageLifecycleError("Settlement task requires active Stage execution")
+        token = _active_execution.set(
+            _ExecutionContext(
+                generation=context.generation,
+                handle=context.handle,
+                phase=_WorkPhase.SETTLEMENT,
+            )
+        )
+        try:
+            return asyncio.create_task(coroutine)
+        finally:
+            _active_execution.reset(token)
+
+    def bind_current_execution(self, context: contextvars.Context) -> contextvars.Context:
+        """Overlay the active private Stage lineage on a user context snapshot."""
+
+        bound_context = context.copy()
+        execution = _active_execution.get()
+        if execution is not None:
+            bound_context.run(_active_execution.set, execution)
+        return bound_context
 
     def _reserve_locked(self, preferred: _Generation | None) -> _Generation:
         if preferred is not None:
@@ -252,7 +295,10 @@ class _RuntimeCarrier:
             self._release_reservation(generation)
             submission.handle._release_work()
             return
-        loop.create_task(self._run_submission(generation, submission))
+        submission.context.run(
+            loop.create_task,
+            self._run_submission(generation, submission),
+        )
 
     async def _run_submission(self, generation: _Generation, submission: _Submission) -> None:
         loop = asyncio.get_running_loop()
@@ -261,7 +307,13 @@ class _RuntimeCarrier:
             raise StageLifecycleError("Stage submission has no owner task")
         if submission.owner:
             submission.handle._set_owner_task(loop, task)
-        token = _active_execution.set(_ExecutionContext(generation, submission.handle))
+        token = _active_execution.set(
+            _ExecutionContext(
+                generation=generation,
+                handle=submission.handle,
+                phase=submission.phase,
+            )
+        )
         try:
             await submission.runner(generation)
         finally:
@@ -282,8 +334,16 @@ class _RuntimeCarrier:
         handle = context.handle
         self._retain_reservation(generation)
         handle._retain_work()
-        task = asyncio.tasks.Task(coroutine, loop=loop)
+        try:
+            task = asyncio.tasks.Task(coroutine, loop=loop)
+            should_cancel = handle._register_owned_task(task, phase=context.phase.value)
+        except BaseException:
+            self._release_reservation(generation)
+            handle._release_work()
+            raise
         task.add_done_callback(partial(self._descendant_done, generation, handle))
+        if should_cancel:
+            task.cancel()
         return task
 
     def _descendant_done(
@@ -292,6 +352,7 @@ class _RuntimeCarrier:
         handle: StageHandle[Any],
         task: Task[Any],
     ) -> None:
+        handle._unregister_owned_task(task)
         if not task.cancelled():
             error = task.exception()
             if error is not None:

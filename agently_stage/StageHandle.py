@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import contextvars
 import threading
 from collections import deque
 from dataclasses import dataclass
@@ -18,12 +19,14 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 _CallbackKind = Literal["success", "error", "finally"]
+_OwnedTaskPhase = Literal["body", "settlement"]
 
 
 @dataclass(frozen=True)
 class _Callback:
     kind: _CallbackKind
     function: Callable[..., object | Awaitable[object]]
+    context: contextvars.Context
 
 
 class StageHandle(Generic[T]):
@@ -41,6 +44,8 @@ class StageHandle(Generic[T]):
         self._generation_id: int | None = None
         self._owner_loop: AbstractEventLoop | None = None
         self._owner_task: Task[object] | None = None
+        self._owned_body_tasks: set[Task[object]] = set()
+        self._owned_settlement_tasks: set[Task[object]] = set()
         self._cancel_requested = False
         self._body_completed = False
         self._body_result: T | None = None
@@ -82,6 +87,19 @@ class StageHandle(Generic[T]):
     def _record_settlement_error(self, error: BaseException) -> None:
         with self._state_lock:
             self._settlement_errors.append(error)
+
+    def _register_owned_task(self, task: Task[object], *, phase: _OwnedTaskPhase) -> bool:
+        with self._state_lock:
+            if phase == "body":
+                self._owned_body_tasks.add(task)
+                return self._cancel_requested
+            self._owned_settlement_tasks.add(task)
+            return False
+
+    def _unregister_owned_task(self, task: Task[object]) -> None:
+        with self._state_lock:
+            self._owned_body_tasks.discard(task)
+            self._owned_settlement_tasks.discard(task)
 
     def _take_unreported_stage_errors(self) -> tuple[BaseException, ...]:
         with self._state_lock:
@@ -125,7 +143,7 @@ class StageHandle(Generic[T]):
         callback: Callable[..., object | Awaitable[object]],
     ) -> None:
         with self._state_lock:
-            self._callbacks.append(_Callback(kind, callback))
+            self._callbacks.append(_Callback(kind, callback, contextvars.copy_context()))
 
     def _activate_callback_drain_locked(self) -> bool:
         if self._callbacks and not self._callback_drain_active:
@@ -138,11 +156,12 @@ class StageHandle(Generic[T]):
         kind: _CallbackKind,
         callback: Callable[..., object | Awaitable[object]],
     ) -> StageHandle[T]:
+        callback_context = contextvars.copy_context()
         with self._stage._scope_lock:
             if self._stage._closed:
                 raise StageClosedError("Cannot register a callback after Stage scope close")
             with self._state_lock:
-                self._callbacks.append(_Callback(kind, callback))
+                self._callbacks.append(_Callback(kind, callback, callback_context))
                 should_start = self._body_completed and self._activate_callback_drain_locked()
             if should_start:
                 self._stage._submit_callback_drain_locked(self)
@@ -186,7 +205,11 @@ class StageHandle(Generic[T]):
                 continue
 
             try:
-                await self._stage._execute_callback(callback.function, callback_args)
+                await self._stage._execute_callback(
+                    callback.function,
+                    callback_args,
+                    callback.context,
+                )
             except BaseException as error:
                 self._record_settlement_error(error)
 
@@ -197,6 +220,14 @@ class StageHandle(Generic[T]):
             should_cancel = self._cancel_requested
         if should_cancel:
             task.cancel()
+
+    @staticmethod
+    def _cancel_tasks(owner_task: Task[object] | None, body_tasks: tuple[Task[object], ...]) -> None:
+        if owner_task is not None and not owner_task.done():
+            owner_task.cancel()
+        for task in body_tasks:
+            if not task.done():
+                task.cancel()
 
     def is_ready(self) -> bool:
         return self._body_future.done()
@@ -234,13 +265,14 @@ class StageHandle(Generic[T]):
 
     def cancel(self, timeout: float | None = None) -> bool:
         with self._state_lock:
-            if self._body_future.done():
+            if self._body_future.done() and not self._owned_body_tasks:
                 return False
             self._cancel_requested = True
             loop = self._owner_loop
-            task = self._owner_task
-        if loop is not None and task is not None:
-            loop.call_soon_threadsafe(task.cancel)
+            owner_task = self._owner_task
+            body_tasks = tuple(self._owned_body_tasks)
+        if loop is not None:
+            loop.call_soon_threadsafe(self._cancel_tasks, owner_task, body_tasks)
         try:
             self._body_future.result(timeout=timeout)
         except (asyncio.CancelledError, concurrent.futures.CancelledError):
