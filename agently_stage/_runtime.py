@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from .StageException import StageLifecycleError
 
@@ -326,17 +326,29 @@ class _RuntimeCarrier:
         generation: _Generation,
         loop: AbstractEventLoop,
         coroutine: Any,
+        context: contextvars.Context | None = None,
     ) -> Task[Any]:
-        context = _active_execution.get()
-        if context is None or context.generation is not generation:
-            return asyncio.tasks.Task(coroutine, loop=loop)
+        active_execution = _active_execution.get()
 
-        handle = context.handle
+        def create_task() -> Task[Any]:
+            if context is None:
+                return asyncio.tasks.Task(coroutine, loop=loop)
+            task_constructor = cast(Any, asyncio.tasks.Task)
+            return task_constructor(
+                coroutine,
+                loop=loop,
+                context=context,
+            )
+
+        if active_execution is None or active_execution.generation is not generation:
+            return create_task()
+
+        handle = active_execution.handle
         self._retain_reservation(generation)
         handle._retain_work()
         try:
-            task = asyncio.tasks.Task(coroutine, loop=loop)
-            should_cancel = handle._register_owned_task(task, phase=context.phase.value)
+            task = create_task()
+            should_cancel = handle._register_owned_task(task, phase=active_execution.phase.value)
         except BaseException:
             self._release_reservation(generation)
             handle._release_work()

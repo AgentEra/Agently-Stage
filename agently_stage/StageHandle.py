@@ -277,6 +277,8 @@ class StageHandle(Generic[T]):
             loop.call_soon_threadsafe(self._cancel_tasks, owner_task, body_tasks)
         try:
             self._body_future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            return False
         except (asyncio.CancelledError, concurrent.futures.CancelledError):
             return True
         except BaseException:

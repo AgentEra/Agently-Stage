@@ -100,7 +100,12 @@ class Stage:
         loop = asyncio.get_running_loop()
         context = contextvars.copy_context()
         call = functools.partial(task, *args, **kwargs)
-        result = await loop.run_in_executor(self._blocking_executor, context.run, call)
+        blocking_future = loop.run_in_executor(self._blocking_executor, context.run, call)
+        try:
+            result = await asyncio.shield(blocking_future)
+        except asyncio.CancelledError:
+            await asyncio.shield(blocking_future)
+            raise
         if inspect.isawaitable(result):
             return await cast(Awaitable[T], result)
         return cast(T, result)

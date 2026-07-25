@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import contextvars
+import sys
 import threading
 import time
+from typing import Any, cast
 
 import pytest
 
@@ -206,3 +209,84 @@ def test_close_timeout_reports_unsettled_work_and_allows_retry() -> None:
     finally:
         release_body.set()
         stage.close(timeout=1)
+
+
+def test_cancel_timeout_is_not_reported_as_acknowledged() -> None:
+    stage = Stage()
+    body_started = threading.Event()
+    release_body = threading.Event()
+
+    async def suppress_cancel_until_released() -> str:
+        body_started.set()
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            while not release_body.is_set():
+                await asyncio.sleep(0.01)
+        return "released"
+
+    handle = stage.go(suppress_cancel_until_released)
+    assert body_started.wait(timeout=1)
+
+    try:
+        assert handle.cancel(timeout=0.01) is False
+    finally:
+        release_body.set()
+
+    assert handle.get(timeout=1) == "released"
+    handle.wait_settled(timeout=1)
+    stage.close(timeout=1)
+
+
+def test_blocking_callable_does_not_settle_before_late_effect_finishes() -> None:
+    stage = Stage(max_workers=1)
+    body_started = threading.Event()
+    release_body = threading.Event()
+    late_effect = threading.Event()
+
+    def blocking_body() -> str:
+        body_started.set()
+        release_body.wait()
+        late_effect.set()
+        return "released"
+
+    handle = stage.go(blocking_body)
+    assert body_started.wait(timeout=1)
+
+    try:
+        assert handle.cancel(timeout=0.01) is False
+        with pytest.raises(concurrent.futures.TimeoutError):
+            handle.wait_settled(timeout=0.01)
+        assert not late_effect.is_set()
+    finally:
+        release_body.set()
+
+    handle.wait_settled(timeout=1)
+    assert late_effect.wait(timeout=1)
+    stage.close(timeout=1)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 11), reason="asyncio context= was added in Python 3.11")
+def test_task_factory_accepts_explicit_context() -> None:
+    marker = contextvars.ContextVar("explicit_task_context", default="missing")
+    stage = Stage()
+
+    async def root() -> str:
+        context = contextvars.copy_context()
+        context.run(marker.set, "explicit")
+
+        async def child() -> str:
+            await asyncio.sleep(0)
+            return marker.get()
+
+        create_task = cast(Any, asyncio.get_running_loop().create_task)
+        task = create_task(
+            child(),
+            context=context,
+        )
+        return await task
+
+    handle = stage.go(root)
+    assert handle.get(timeout=1) == "explicit"
+    handle.wait_settled(timeout=1)
+    stage.close(timeout=1)
