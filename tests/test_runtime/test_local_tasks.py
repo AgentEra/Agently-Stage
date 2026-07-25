@@ -143,3 +143,14 @@ def test_scope_rejects_a_second_running_loop() -> None:
 
     with pytest.raises(StageLifecycleError, match="cannot cross event loops"):
         asyncio.run(scope.wait_settled(timeout=1))
+
+
+def test_idle_scope_close_accepts_zero_timeout() -> None:
+    async def run() -> None:
+        scope = _LocalTaskScope()
+
+        await scope.close(timeout=0)
+
+        assert scope.pending_count == 0
+
+    asyncio.run(run())

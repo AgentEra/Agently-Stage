@@ -134,6 +134,8 @@ class _LocalTaskScope(Generic[T]):
 
     async def wait_settled(self, timeout: float | None = None) -> None:
         idle = self._idle_event()
+        if idle.is_set():
+            return
         try:
             if timeout is None:
                 await idle.wait()
