@@ -6,7 +6,7 @@ import threading
 
 import pytest
 
-from agently_stage import Tunnel
+from agently_stage import Tunnel, TunnelSubscription
 from agently_stage.StageException import TunnelClosedError, TunnelLagError
 
 
@@ -192,3 +192,114 @@ def test_cancelled_async_reader_does_not_break_later_readers() -> None:
         assert await later_reader == [1]
 
     asyncio.run(scenario())
+
+
+def test_supported_subscriptions_choose_earliest_latest_or_checkpoint_start() -> None:
+    tunnel: Tunnel[int] = Tunnel()
+    tunnel.put(0)
+    tunnel.put(1)
+
+    earliest = tunnel.subscribe(start="earliest", timeout=0.01)
+    latest = tunnel.subscribe(start="latest", timeout=0.01)
+    checkpoint = tunnel.subscribe(start=1, timeout=0.01)
+
+    assert isinstance(earliest, TunnelSubscription)
+    assert tunnel.retained_range == (0, 2)
+
+    tunnel.put(2)
+    tunnel.close()
+
+    assert list(earliest) == [0, 1, 2]
+    assert list(latest) == [2]
+    assert list(checkpoint) == [1, 2]
+    assert tunnel.retained_range == (0, 3)
+
+
+def test_subscription_exposes_next_sequence_and_explicit_stale_checkpoint_gap() -> None:
+    tunnel: Tunnel[int] = Tunnel(max_history=2)
+    for item in range(5):
+        tunnel.put(item)
+
+    subscription = tunnel.subscribe(start=1, timeout=0.01)
+    assert subscription.next_sequence == 1
+
+    with pytest.raises(TunnelLagError) as exc_info:
+        next(subscription)
+
+    assert exc_info.value.expected_sequence == 1
+    assert exc_info.value.available_from == 3
+    assert subscription.next_sequence == 1
+
+
+def test_subscription_rejects_future_or_invalid_start_sequence() -> None:
+    tunnel: Tunnel[int] = Tunnel()
+    tunnel.put(0)
+
+    with pytest.raises(ValueError, match="after the next Tunnel sequence"):
+        tunnel.subscribe(start=2)
+    with pytest.raises(ValueError, match="non-negative"):
+        tunnel.subscribe(start=-1)
+    with pytest.raises(ValueError, match="start"):
+        tunnel.subscribe(start="middle")  # type: ignore[arg-type]
+
+
+def test_subscription_timeout_and_close_affect_only_that_reader() -> None:
+    async def scenario() -> None:
+        tunnel: Tunnel[int] = Tunnel(timeout=None)
+        timed_out = tunnel.subscribe(start="latest", timeout=0.01)
+
+        with pytest.raises(StopAsyncIteration):
+            await anext(timed_out)
+
+        closed = tunnel.subscribe(start="latest", timeout=None)
+        waiting = asyncio.create_task(anext(closed))
+        await asyncio.sleep(0)
+        await closed.async_close()
+        with pytest.raises(StopAsyncIteration):
+            await waiting
+
+        later = tunnel.subscribe(start="latest", timeout=None)
+        tunnel.put(1)
+        tunnel.close()
+        assert [item async for item in later] == [1]
+
+    asyncio.run(scenario())
+
+
+def test_subscription_delivers_accepted_values_before_terminal_failure() -> None:
+    tunnel: Tunnel[int] = Tunnel()
+    subscription = tunnel.subscribe(start="earliest", timeout=0.01)
+    tunnel.put(1)
+    tunnel.fail(ValueError("subscription source failed"))
+
+    assert next(subscription) == 1
+    with pytest.raises(ValueError, match="subscription source failed"):
+        next(subscription)
+
+
+def test_subscription_close_racing_producer_close_preserves_channel_history() -> None:
+    tunnel: Tunnel[int] = Tunnel(timeout=None)
+    tunnel.put(1)
+    subscription = tunnel.subscribe(start="earliest", timeout=None)
+    barrier = threading.Barrier(3)
+
+    def close_subscription() -> None:
+        barrier.wait()
+        subscription.close()
+
+    def close_producer() -> None:
+        barrier.wait()
+        tunnel.close()
+
+    subscription_thread = threading.Thread(target=close_subscription)
+    producer_thread = threading.Thread(target=close_producer)
+    subscription_thread.start()
+    producer_thread.start()
+    barrier.wait()
+    subscription_thread.join(timeout=1)
+    producer_thread.join(timeout=1)
+
+    assert not subscription_thread.is_alive()
+    assert not producer_thread.is_alive()
+    assert list(subscription) == []
+    assert list(tunnel) == [1]

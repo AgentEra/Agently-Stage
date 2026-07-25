@@ -32,4 +32,32 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run unit tests
-        run: uv run pytest --reruns 3 --reruns-delay 1
+        run: >-
+          uv run pytest
+          --ignore=tests/test_api/test_Stage_benchmark.py
+          --reruns 3
+          --reruns-delay 1
+
+  benchmark-smoke:
+    runs-on: ubuntu-latest
+    name: Benchmark smoke (not a correctness gate)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run benchmark evidence
+        run: >-
+          uv run pytest
+          tests/test_api/test_Stage_benchmark.py
+          --benchmark-only

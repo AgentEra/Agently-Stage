@@ -5,15 +5,14 @@ import contextvars
 
 import pytest
 
-from agently_stage._local_tasks import _LocalTaskOutcome, _LocalTaskScope
-from agently_stage.StageException import StageClosedError, StageLifecycleError
+from agently_stage import LocalTaskOutcome, LocalTaskScope, StageClosedError, StageLifecycleError
 
 
 def test_spawn_runs_on_caller_loop_with_captured_context() -> None:
     async def run() -> None:
         marker = contextvars.ContextVar("local_scope_marker", default="missing")
         caller_loop = asyncio.get_running_loop()
-        scope = _LocalTaskScope()
+        scope = LocalTaskScope()
 
         async def read_context() -> tuple[int, str]:
             await asyncio.sleep(0)
@@ -33,7 +32,7 @@ def test_spawn_runs_on_caller_loop_with_captured_context() -> None:
 
 def test_nested_spawn_is_included_in_scope_settlement() -> None:
     async def run() -> None:
-        scope = _LocalTaskScope()
+        scope = LocalTaskScope()
         child_finished = asyncio.Event()
 
         async def child() -> None:
@@ -54,8 +53,8 @@ def test_nested_spawn_is_included_in_scope_settlement() -> None:
 
 def test_adopt_observes_failure_once() -> None:
     async def run() -> None:
-        outcomes: list[_LocalTaskOutcome] = []
-        scope = _LocalTaskScope(on_done=outcomes.append)
+        outcomes: list[LocalTaskOutcome] = []
+        scope = LocalTaskScope(on_done=outcomes.append)
 
         async def fail() -> None:
             raise RuntimeError("expected-local-failure")
@@ -75,7 +74,7 @@ def test_adopt_observes_failure_once() -> None:
 
 def test_cancel_and_wait_fences_managed_late_effect() -> None:
     async def run() -> None:
-        scope = _LocalTaskScope()
+        scope = LocalTaskScope()
         body_started = asyncio.Event()
         late_effect = asyncio.Event()
 
@@ -97,7 +96,7 @@ def test_cancel_and_wait_fences_managed_late_effect() -> None:
 
 def test_cancel_timeout_reports_unresolved_origin_and_can_retry() -> None:
     async def run() -> None:
-        scope = _LocalTaskScope()
+        scope = LocalTaskScope()
         body_started = asyncio.Event()
         release = asyncio.Event()
 
@@ -123,7 +122,7 @@ def test_cancel_timeout_reports_unresolved_origin_and_can_retry() -> None:
 
 def test_close_seals_scope_against_new_work() -> None:
     async def run() -> None:
-        scope = _LocalTaskScope()
+        scope = LocalTaskScope()
         await scope.close(timeout=1)
 
         coroutine = asyncio.sleep(0)
@@ -137,7 +136,7 @@ def test_close_seals_scope_against_new_work() -> None:
 
 
 def test_scope_rejects_a_second_running_loop() -> None:
-    scope = _LocalTaskScope()
+    scope = LocalTaskScope()
 
     asyncio.run(scope.wait_settled(timeout=1))
 
@@ -147,10 +146,65 @@ def test_scope_rejects_a_second_running_loop() -> None:
 
 def test_idle_scope_close_accepts_zero_timeout() -> None:
     async def run() -> None:
-        scope = _LocalTaskScope()
+        scope = LocalTaskScope()
 
         await scope.close(timeout=0)
 
         assert scope.pending_count == 0
+
+    asyncio.run(run())
+
+
+def test_pending_snapshots_are_public_read_only_values() -> None:
+    async def run() -> None:
+        scope = LocalTaskScope()
+        release = asyncio.Event()
+
+        async def wait() -> None:
+            await release.wait()
+
+        first = scope.spawn(wait(), origin="event:first")
+        second = scope.spawn(wait(), origin="flow:second")
+
+        assert set(scope.pending_tasks) == {first, second}
+        assert scope.pending_origins == ("event:first", "flow:second")
+        assert scope.origin_for(first) == "event:first"
+
+        release.set()
+        await scope.wait_settled(timeout=1)
+        assert scope.pending_tasks == ()
+        assert scope.pending_origins == ()
+
+    asyncio.run(run())
+
+
+def test_adopt_rejects_conflicting_origin() -> None:
+    async def run() -> None:
+        scope = LocalTaskScope()
+        release = asyncio.Event()
+        task = asyncio.create_task(release.wait())
+        scope.adopt(task, origin="event:first")
+
+        with pytest.raises(StageLifecycleError, match="two origins"):
+            scope.adopt(task, origin="flow:second")
+
+        release.set()
+        await scope.wait_settled(timeout=1)
+
+    asyncio.run(run())
+
+
+def test_active_scope_close_with_zero_timeout_reports_origin_and_can_retry() -> None:
+    async def run() -> None:
+        scope = LocalTaskScope()
+        release = asyncio.Event()
+        scope.spawn(release.wait(), origin="event:active")
+
+        with pytest.raises(TimeoutError, match="event:active"):
+            await scope.close(timeout=0)
+
+        release.set()
+        await scope.close(timeout=1)
+        await scope.close(timeout=0)
 
     asyncio.run(run())

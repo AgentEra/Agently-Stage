@@ -18,13 +18,16 @@ git clone https://github.com/AgentEra/Agently-Stage.git
 cd Agently-Stage
 
 # 创建虚拟环境
-uv venv --python=python3.9
+uv venv --python=python3.10
 
 # 安装开发环境依赖
 uv sync --all-extras --dev
 
-# 启动测试
-uv run pytest
+# 运行正确性测试（不混入性能基准）
+uv run pytest --ignore=tests/test_api/test_Stage_benchmark.py
+
+# 单独运行性能基准
+uv run pytest tests/test_api/test_Stage_benchmark.py --benchmark-only
 ```
 
 ## 代码格式化

@@ -166,6 +166,56 @@ When a close timeout expires, Stage raises `TimeoutError` with the number of
 unsettled handles. The scope remains closed to new submissions, and `close()`
 may be called again after the outstanding work settles.
 
+## LocalTaskScope
+
+`LocalTaskScope` is the same-loop counterpart to `Stage.go()`. Use it only when
+an async component already owns its event loop and needs explicit long-lived
+task membership, origin diagnostics, cancellation, and settlement without
+crossing into Stage's loop-neutral carrier.
+
+```python
+import asyncio
+
+from agently_stage import LocalTaskOutcome, LocalTaskScope
+
+
+async def main() -> None:
+    outcomes: list[LocalTaskOutcome] = []
+    scope = LocalTaskScope(on_done=outcomes.append)
+
+    async def hook() -> str:
+        await asyncio.sleep(0)
+        return "ready"
+
+    task = scope.spawn(hook(), origin="event:ready-hook")
+    assert await task == "ready"
+    await scope.close(timeout=1)
+
+    assert scope.pending_count == 0
+    assert outcomes[0].origin == "event:ready-hook"
+
+
+asyncio.run(main())
+```
+
+The first operation binds the scope to the current running loop. `spawn()`
+creates a new task from a coroutine and captures the caller's current
+`contextvars`; `adopt()` accepts an existing task only from the same loop.
+Admission is explicit: the scope does not install a task factory or discover
+unrelated tasks.
+
+`pending_tasks` and sorted `pending_origins` are immutable snapshots.
+`wait_settled()` waits for all currently and transitively admitted work.
+`cancel_and_wait()` cancels owned work and does not acknowledge success before
+that work settles. `close()` seals admission and may either wait naturally or
+cancel first. A timeout raises `TimeoutError` and leaves the scope sealed but
+retryable; `pending_origins` identifies the unresolved owners.
+
+This is a task-lifetime mechanism, not an event bus, workflow runtime, tenant
+boundary, provider cancellation acknowledgement, or business retry policy.
+Use direct `await` or `asyncio.TaskGroup` for ordinary lexical async work that
+does not need this longer-lived membership contract.
+
 ## StageStream
 
 Running a sync or async generator returns a read-only `StageStream`.
@@ -268,6 +318,36 @@ New readers replay the retained suffix. `max_history` bounds replay retention;
 it does not provide producer backpressure, durable acknowledgement, retry, or
 exactly-once delivery.
 
+For an explicit reader lifecycle, use `subscribe()`:
+
+```python
+channel: Tunnel[int] = Tunnel(max_history=128)
+channel.put(10)
+
+replay = channel.subscribe(start="earliest", timeout=None)
+live = channel.subscribe(start="latest", timeout=None)
+checkpoint = channel.subscribe(start=0, timeout=None)
+
+channel.put(11)
+channel.close()
+
+assert list(replay) == [10, 11]
+assert list(live) == [11]
+assert list(checkpoint) == [10, 11]
+assert channel.retained_range == (0, 2)
+```
+
+`retained_range` is the half-open absolute sequence range
+`(earliest_retained, next_sequence)`. An absolute subscription start may be
+inside that range or equal to `next_sequence`. A stale checkpoint raises
+`TunnelLagError` on read; a future checkpoint is rejected. Each
+`TunnelSubscription` has its own inactivity timeout, `next_sequence`, and
+idempotent `close()` / `async_close()`. Reader close, timeout, or cancellation
+does not close the producer or another reader.
+
+Legacy `iter(tunnel)`, `aiter(tunnel)`, and `get()` remain earliest-retained
+readers using the Tunnel's configured default timeout.
+
 ## EventEmitter
 
 EventEmitter owns one reusable Stage scope for all listener work.
@@ -312,6 +392,7 @@ run:
 - [Body result and retained background settlement](examples/body_result_and_background_drain.py)
 - [Finite generations and pinned loop affinity](examples/generation_and_pinned_context.py)
 - [Callbacks, errors, and cancellation](examples/callbacks_errors_and_cancellation.py)
+- [Same-loop task ownership and settlement](examples/local_task_scope.py)
 - [Tunnel broadcast, timeout, and failure](examples/tunnel_broadcast.py)
 - [StageStream lazy execution, replay, and failure](examples/stage_stream.py)
 - [EventEmitter listeners without ordinary close](examples/event_emitter.py)
@@ -342,13 +423,15 @@ The preview imports `StageResponse`, `StageHybridGenerator`, `StageDispatch`,
 `TaskThreadPool`, and `StageFunction` remain available. They delegate to the
 canonical Stage runtime and do not own additional event loops or bridge threads.
 New code should prefer `Stage`, `StageHandle`, `StageStream`, `Tunnel`, and
-`EventEmitter`.
+`EventEmitter`, plus `LocalTaskScope` and `TunnelSubscription` when their
+explicit same-loop or reader-lifecycle contracts are required.
 
 ## Development
 
 ```shell
 uv sync
 .venv/bin/pyright agently_stage tests examples
-.venv/bin/python -m pytest -q
+.venv/bin/python -m pytest -q --ignore=tests/test_api/test_Stage_benchmark.py
+.venv/bin/python -m pytest -q tests/test_api/test_Stage_benchmark.py --benchmark-only
 .venv/bin/pre-commit run --all-files
 ```

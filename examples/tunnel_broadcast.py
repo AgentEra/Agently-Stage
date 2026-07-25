@@ -13,6 +13,9 @@ from agently_stage import Tunnel, TunnelLagError
 # failure_type=ValueError
 # bounded_replay=[3, 4]
 # lag_missed=2
+# latest_subscription=[11]
+# checkpoint_subscription=[10, 11]
+# retained_range=(0, 2)
 
 
 async def collect_async(tunnel: Tunnel[int]) -> list[int]:
@@ -55,6 +58,13 @@ def main() -> None:
     bounded.close()
     bounded_replay = list(bounded)
 
+    positioned: Tunnel[int] = Tunnel()
+    positioned.put(10)
+    latest_subscription = positioned.subscribe(start="latest", timeout=None)
+    checkpoint_subscription = positioned.subscribe(start=0, timeout=None)
+    positioned.put(11)
+    positioned.close()
+
     print(f"sync_replay={sync_replay}")
     print(f"async_replay={async_replay}")
     print(f"timeout_reader={timeout_reader}")
@@ -63,6 +73,9 @@ def main() -> None:
     print(f"failure_type={failure_type}")
     print(f"bounded_replay={bounded_replay}")
     print(f"lag_missed={lag_missed}")
+    print(f"latest_subscription={list(latest_subscription)}")
+    print(f"checkpoint_subscription={list(checkpoint_subscription)}")
+    print(f"retained_range={positioned.retained_range}")
 
 
 if __name__ == "__main__":

@@ -1,34 +1,49 @@
-# pyright: reportUnusedClass=false
+# Copyright 2024-2026 Maplemx(Mo Xin), AgentEra Ltd. Agently Team(https://Agently.tech)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from __future__ import annotations
 
 import asyncio
 import contextvars
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from .StageException import StageClosedError, StageLifecycleError
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Callable, Coroutine
 
 T = TypeVar("T")
 
 
 @dataclass(frozen=True)
-class _LocalTaskOutcome:
+class LocalTaskOutcome:
+    """One completion observation from a task explicitly owned by a local scope."""
+
     task: asyncio.Task[Any]
     origin: str
     cancelled: bool
     error: BaseException | None
 
 
-class _LocalTaskScope(Generic[T]):
+class LocalTaskScope:
     """Own explicitly admitted tasks on one caller-managed event loop."""
 
     def __init__(
         self,
         *,
-        on_done: Callable[[_LocalTaskOutcome], object] | None = None,
+        on_done: Callable[[LocalTaskOutcome], object] | None = None,
     ) -> None:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._idle: asyncio.Event | None = None
@@ -57,7 +72,7 @@ class _LocalTaskScope(Generic[T]):
 
     def spawn(
         self,
-        awaitable: Awaitable[T],
+        coroutine: Coroutine[Any, Any, T],
         *,
         origin: str,
     ) -> asyncio.Task[T]:
@@ -65,9 +80,7 @@ class _LocalTaskScope(Generic[T]):
             raise StageClosedError("Cannot submit work to a closed local Stage task scope")
         loop = self._bind_running_loop()
         context = contextvars.copy_context()
-        task = context.run(asyncio.ensure_future, awaitable)
-        if task.get_loop() is not loop:
-            raise StageLifecycleError("Local Stage task admission produced a task on another event loop")
+        task = context.run(loop.create_task, coroutine)
         return self.adopt(task, origin=origin)
 
     def adopt(
@@ -103,7 +116,7 @@ class _LocalTaskScope(Generic[T]):
         self._tasks.discard(task)
         cancelled = task.cancelled()
         error = None if cancelled else task.exception()
-        outcome = _LocalTaskOutcome(
+        outcome = LocalTaskOutcome(
             task=task,
             origin=origin,
             cancelled=cancelled,
@@ -182,6 +195,10 @@ class _LocalTaskScope(Generic[T]):
     @property
     def pending_tasks(self) -> tuple[asyncio.Task[Any], ...]:
         return tuple(self._tasks)
+
+    @property
+    def pending_origins(self) -> tuple[str, ...]:
+        return tuple(sorted(self._origins.values()))
 
     def origin_for(self, task: asyncio.Task[Any]) -> str | None:
         return self._origins.get(task)

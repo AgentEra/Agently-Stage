@@ -20,7 +20,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, Literal, TypeAlias, TypeVar, cast
 
 from .StageException import TunnelClosedError, TunnelLagError
 
@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 _USE_DEFAULT_TIMEOUT = object()
+TunnelStart: TypeAlias = Literal["earliest", "latest"] | int
 
 
 @dataclass(frozen=True)
@@ -38,23 +39,24 @@ class _AsyncWaiter:
     future: Future[None]
 
 
-class _TunnelIterator(Generic[T]):
-    def __init__(self, tunnel: Tunnel[T], timeout: float | None) -> None:
+class TunnelSubscription(Generic[T]):
+    """One independent sync/async cursor over a process-local Tunnel."""
+
+    def __init__(self, tunnel: Tunnel[T], *, cursor: int, timeout: float | None) -> None:
         self._tunnel = tunnel
         self._timeout = timeout
-        with tunnel._condition:
-            self._cursor = tunnel._base_sequence
+        self._cursor = cursor
         self._terminated = False
 
-    def __iter__(self) -> _TunnelIterator[T]:
+    def __iter__(self) -> TunnelSubscription[T]:
         return self
 
     def __next__(self) -> T:
-        if self._terminated:
-            raise StopIteration
         deadline = None if self._timeout is None else time.monotonic() + self._timeout
         with self._tunnel._condition:
             while True:
+                if self._terminated:
+                    raise StopIteration
                 if self._cursor < self._tunnel._base_sequence:
                     self._terminated = True
                     raise TunnelLagError(
@@ -79,26 +81,17 @@ class _TunnelIterator(Generic[T]):
                     raise StopIteration
                 self._tunnel._condition.wait(timeout=remaining)
 
-
-class _TunnelAsyncIterator(Generic[T]):
-    def __init__(self, tunnel: Tunnel[T], timeout: float | None) -> None:
-        self._tunnel = tunnel
-        self._timeout = timeout
-        with tunnel._condition:
-            self._cursor = tunnel._base_sequence
-        self._terminated = False
-
-    def __aiter__(self) -> _TunnelAsyncIterator[T]:
+    def __aiter__(self) -> TunnelSubscription[T]:
         return self
 
     async def __anext__(self) -> T:
-        if self._terminated:
-            raise StopAsyncIteration
         loop = asyncio.get_running_loop()
         waiter: _AsyncWaiter | None = None
 
         while True:
             with self._tunnel._condition:
+                if self._terminated:
+                    raise StopAsyncIteration
                 if self._cursor < self._tunnel._base_sequence:
                     self._terminated = True
                     raise TunnelLagError(
@@ -125,13 +118,28 @@ class _TunnelAsyncIterator(Generic[T]):
                     await future
                 else:
                     await asyncio.wait_for(asyncio.shield(future), self._timeout)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 self._terminated = True
                 future.cancel()
                 raise StopAsyncIteration from None
             finally:
                 with self._tunnel._condition:
                     self._tunnel._async_waiters.discard(waiter)
+
+    @property
+    def next_sequence(self) -> int:
+        with self._tunnel._condition:
+            return self._cursor
+
+    def close(self) -> None:
+        with self._tunnel._condition:
+            if self._terminated:
+                return
+            self._terminated = True
+            self._tunnel._wake_waiters_locked()
+
+    async def async_close(self) -> None:
+        self.close()
 
 
 class Tunnel(Generic[T]):
@@ -207,6 +215,40 @@ class Tunnel(Generic[T]):
     def put_stop(self) -> None:
         self.close()
 
+    @property
+    def retained_range(self) -> tuple[int, int]:
+        """Return the half-open absolute sequence range currently retained."""
+
+        with self._condition:
+            return self._base_sequence, self._next_sequence
+
+    def subscribe(
+        self,
+        *,
+        start: TunnelStart = "earliest",
+        timeout: float | None | object = _USE_DEFAULT_TIMEOUT,
+    ) -> TunnelSubscription[T]:
+        """Create one independent reader at retained history, live edge, or checkpoint."""
+
+        effective_timeout = self._timeout if timeout is _USE_DEFAULT_TIMEOUT else cast(float | None, timeout)
+        with self._condition:
+            if start == "earliest":
+                cursor = self._base_sequence
+            elif start == "latest":
+                cursor = self._next_sequence
+            elif type(start) is int:
+                if start < 0:
+                    raise ValueError("Tunnel subscription start sequence must be non-negative")
+                if start > self._next_sequence:
+                    raise ValueError(
+                        f"Tunnel subscription start sequence {start} is after the next Tunnel sequence "
+                        f"{self._next_sequence}"
+                    )
+                cursor = start
+            else:
+                raise ValueError("Tunnel subscription start must be 'earliest', 'latest', or an absolute sequence")
+        return TunnelSubscription(self, cursor=cursor, timeout=effective_timeout)
+
     def _retained_items_reference(self) -> deque[T]:
         """Return the terminal retained buffer to the owning StageStream."""
 
@@ -219,14 +261,14 @@ class Tunnel(Generic[T]):
         return iter(self)
 
     def __iter__(self) -> Iterator[T]:
-        return _TunnelIterator(self, self._timeout)
+        return self.subscribe(start="earliest", timeout=self._timeout)
 
     def __aiter__(self) -> AsyncIterator[T]:
-        return _TunnelAsyncIterator(self, self._timeout)
+        return self.subscribe(start="earliest", timeout=self._timeout)
 
     def __call__(self) -> Iterator[T]:
         return iter(self)
 
     def get(self, timeout: float | None | object = _USE_DEFAULT_TIMEOUT) -> list[T]:
         effective_timeout = self._timeout if timeout is _USE_DEFAULT_TIMEOUT else cast(float | None, timeout)
-        return list(_TunnelIterator(self, effective_timeout))
+        return list(self.subscribe(start="earliest", timeout=effective_timeout))
