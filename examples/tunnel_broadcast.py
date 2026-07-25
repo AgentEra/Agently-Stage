@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from agently_stage import Tunnel
+from agently_stage import Tunnel, TunnelLagError
 
 # Expected key output from a real local run:
 # sync_replay=[1, 2]
@@ -11,6 +11,8 @@ from agently_stage import Tunnel
 # later_reader=[3]
 # failure_values=[4]
 # failure_type=ValueError
+# bounded_replay=[3, 4]
+# lag_missed=2
 
 
 async def collect_async(tunnel: Tunnel[int]) -> list[int]:
@@ -40,12 +42,27 @@ def main() -> None:
     except ValueError as error:
         failure_type = type(error).__name__
 
+    bounded: Tunnel[int] = Tunnel(max_history=2)
+    slow_reader = iter(bounded)
+    bounded.put(0)
+    assert next(slow_reader) == 0
+    for item in range(1, 5):
+        bounded.put(item)
+    try:
+        next(slow_reader)
+    except TunnelLagError as error:
+        lag_missed = error.missed_count
+    bounded.close()
+    bounded_replay = list(bounded)
+
     print(f"sync_replay={sync_replay}")
     print(f"async_replay={async_replay}")
     print(f"timeout_reader={timeout_reader}")
     print(f"later_reader={later_reader}")
     print(f"failure_values={failure_values}")
     print(f"failure_type={failure_type}")
+    print(f"bounded_replay={bounded_replay}")
+    print(f"lag_missed={lag_missed}")
 
 
 if __name__ == "__main__":

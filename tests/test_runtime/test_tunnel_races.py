@@ -7,7 +7,7 @@ import threading
 import pytest
 
 from agently_stage import Tunnel
-from agently_stage.StageException import TunnelClosedError
+from agently_stage.StageException import TunnelClosedError, TunnelLagError
 
 
 async def _collect_async(tunnel: Tunnel[int]) -> list[int]:
@@ -29,6 +29,69 @@ def test_each_subscriber_replays_the_full_sequence() -> None:
     assert list(first) == [1, 2]
     assert list(tunnel) == [1, 2]
     assert tunnel.get() == [1, 2]
+
+
+def test_bounded_history_replays_only_the_retained_suffix_to_late_readers() -> None:
+    tunnel: Tunnel[int] = Tunnel(max_history=3)
+    for item in range(5):
+        tunnel.put(item)
+    tunnel.close()
+
+    assert list(tunnel) == [2, 3, 4]
+    assert tunnel.get() == [2, 3, 4]
+
+
+def test_bounded_history_reports_an_explicit_gap_to_a_slow_reader() -> None:
+    tunnel: Tunnel[int] = Tunnel(max_history=2)
+    reader = iter(tunnel)
+
+    tunnel.put(0)
+    assert next(reader) == 0
+    for item in range(1, 5):
+        tunnel.put(item)
+
+    with pytest.raises(TunnelLagError) as exc_info:
+        next(reader)
+
+    assert exc_info.value.missed_count == 2
+    assert exc_info.value.expected_sequence == 1
+    assert exc_info.value.available_from == 3
+
+
+def test_bounded_history_reports_the_same_gap_to_an_async_reader() -> None:
+    async def scenario() -> None:
+        tunnel: Tunnel[int] = Tunnel(max_history=2)
+        reader = tunnel.__aiter__()
+
+        tunnel.put(0)
+        assert await anext(reader) == 0
+        for item in range(1, 5):
+            tunnel.put(item)
+
+        with pytest.raises(TunnelLagError) as exc_info:
+            await anext(reader)
+
+        assert exc_info.value.missed_count == 2
+        assert exc_info.value.expected_sequence == 1
+        assert exc_info.value.available_from == 3
+
+    asyncio.run(scenario())
+
+
+def test_bounded_history_storage_tracks_capacity_not_total_writes() -> None:
+    tunnel: Tunnel[int] = Tunnel(max_history=128)
+
+    for item in range(50_000):
+        tunnel.put(item)
+
+    assert len(tunnel._items) == 128
+    assert tunnel._base_sequence == 50_000 - 128
+    assert tunnel._next_sequence == 50_000
+
+
+def test_bounded_history_requires_a_positive_limit() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        Tunnel(max_history=0)
 
 
 def test_async_subscribers_are_woken_without_polling() -> None:

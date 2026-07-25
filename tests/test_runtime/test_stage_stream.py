@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import contextvars
 import threading
 
 import pytest
@@ -20,6 +21,19 @@ def test_sync_generator_returns_read_only_replayable_stage_stream() -> None:
     assert list(stream) == [0, 1, 2]
     assert not hasattr(stream, "put")
     stream.wait_settled()
+
+
+def test_stream_uses_one_canonical_growing_buffer_and_returns_a_safe_list() -> None:
+    def source():
+        yield from range(5)
+
+    stream = Stage().go(source)
+    result = stream.get()
+    internal_result = stream._ensure_started().get()
+
+    assert internal_result is stream._tunnel._items
+    result.append(99)
+    assert list(stream) == [0, 1, 2, 3, 4]
 
 
 def test_async_generator_can_be_consumed_from_user_loop() -> None:
@@ -100,6 +114,29 @@ def test_lazy_stream_starts_on_first_reader() -> None:
 
     assert stream.get() == [1]
     assert started.is_set()
+
+
+def test_lazy_stream_callback_preserves_registration_context() -> None:
+    request_id = contextvars.ContextVar[str | None]("request_id", default=None)
+    observed: list[str | None] = []
+
+    def source():
+        yield 1
+
+    registration_token = request_id.set("registration")
+    try:
+        stream = Stage().go(source, lazy=True).on_success(lambda _: observed.append(request_id.get()))
+    finally:
+        request_id.reset(registration_token)
+
+    start_token = request_id.set("start")
+    try:
+        assert stream.get() == [1]
+        stream.wait_settled()
+    finally:
+        request_id.reset(start_token)
+
+    assert observed == ["registration"]
 
 
 def test_stream_cancellation_reaches_source_finalizer() -> None:

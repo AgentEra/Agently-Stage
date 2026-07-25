@@ -55,6 +55,20 @@ class TunnelClosedError(StageError):
     """Raised when a value is written after a Tunnel reaches terminal state."""
 
 
+class TunnelLagError(StageError):
+    """Raised when a bounded Tunnel reader falls behind retained history."""
+
+    def __init__(self, *, expected_sequence: int, available_from: int):
+        self.expected_sequence = expected_sequence
+        self.available_from = available_from
+        self.missed_count = available_from - expected_sequence
+        super().__init__(
+            "Tunnel reader fell behind retained history: "
+            f"missed {self.missed_count} item(s), expected sequence "
+            f"{expected_sequence}, earliest available sequence is {available_from}"
+        )
+
+
 class StageException(Exception):
     """Compatibility collector for explicitly captured exception records."""
 

@@ -155,8 +155,10 @@ class StageHandle(Generic[T]):
         self,
         kind: _CallbackKind,
         callback: Callable[..., object | Awaitable[object]],
+        *,
+        context: contextvars.Context | None = None,
     ) -> StageHandle[T]:
-        callback_context = contextvars.copy_context()
+        callback_context = contextvars.copy_context() if context is None else context
         with self._stage._scope_lock:
             if self._stage._closed:
                 raise StageClosedError("Cannot register a callback after Stage scope close")

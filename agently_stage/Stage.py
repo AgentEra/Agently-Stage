@@ -284,43 +284,48 @@ class Stage:
 
         if task_class in {"async_gen_func", "async_gen"}:
 
-            async def consume_async_source() -> list[Any]:
+            async def consume_async_source() -> object:
                 source = task(*args, **kwargs) if task_class == "async_gen_func" else task
-                values: list[Any] = []
                 try:
                     async for item in source:
-                        values.append(item)
                         tunnel.put(item)
                 except BaseException as error:
                     tunnel.fail(error)
                     raise
                 tunnel.close()
-                return values
+                return tunnel._retained_items_reference()
 
             consume_source: Callable[..., Any] = consume_async_source
         else:
 
-            def consume_sync_source() -> list[Any]:
+            def consume_sync_source() -> object:
                 source = task(*args, **kwargs) if task_class == "gen_func" else task
-                values: list[Any] = []
                 try:
                     for item in source:
-                        values.append(item)
                         tunnel.put(item)
                 except BaseException as error:
                     tunnel.fail(error)
                     raise
                 tunnel.close()
-                return values
+                return tunnel._retained_items_reference()
 
             consume_source = consume_sync_source
 
-        def start() -> StageHandle[list[Any]]:
+        stream_success_callback = on_success
+        wrapped_on_success_callback: Callable[[object], object | Awaitable[object]] | None = None
+        if stream_success_callback is not None:
+
+            def adapt_success_result(values: object) -> object | Awaitable[object]:
+                return stream_success_callback(list(cast(Any, values)))
+
+            wrapped_on_success_callback = adapt_success_result
+
+        def start() -> StageHandle[object]:
             return cast(
-                StageHandle[list[Any]],
+                "StageHandle[object]",
                 self.go(
                     consume_source,
-                    on_success=on_success,
+                    on_success=wrapped_on_success_callback,
                     on_error=on_error,
                     on_finally=on_finally,
                     ignore_exception=ignore_exception,

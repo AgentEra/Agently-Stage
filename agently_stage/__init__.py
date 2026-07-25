@@ -11,6 +11,7 @@ from .StageException import (
     StageLifecycleError,
     StageSettlementError,
     TunnelClosedError,
+    TunnelLagError,
 )
 from .StageFunction import StageFunction
 from .StageHandle import StageHandle
@@ -40,4 +41,5 @@ __all__ = [
     "StageTaskProxy",
     "Tunnel",
     "TunnelClosedError",
+    "TunnelLagError",
 ]

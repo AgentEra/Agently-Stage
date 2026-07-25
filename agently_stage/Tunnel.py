@@ -18,10 +18,11 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
-from .StageException import TunnelClosedError
+from .StageException import TunnelClosedError, TunnelLagError
 
 if TYPE_CHECKING:
     from asyncio import AbstractEventLoop, Future
@@ -41,7 +42,8 @@ class _TunnelIterator(Generic[T]):
     def __init__(self, tunnel: Tunnel[T], timeout: float | None) -> None:
         self._tunnel = tunnel
         self._timeout = timeout
-        self._cursor = 0
+        with tunnel._condition:
+            self._cursor = tunnel._base_sequence
         self._terminated = False
 
     def __iter__(self) -> _TunnelIterator[T]:
@@ -53,8 +55,15 @@ class _TunnelIterator(Generic[T]):
         deadline = None if self._timeout is None else time.monotonic() + self._timeout
         with self._tunnel._condition:
             while True:
-                if self._cursor < len(self._tunnel._items):
-                    item = self._tunnel._items[self._cursor]
+                if self._cursor < self._tunnel._base_sequence:
+                    self._terminated = True
+                    raise TunnelLagError(
+                        expected_sequence=self._cursor,
+                        available_from=self._tunnel._base_sequence,
+                    )
+                item_offset = self._cursor - self._tunnel._base_sequence
+                if item_offset < len(self._tunnel._items):
+                    item = self._tunnel._items[item_offset]
                     self._cursor += 1
                     return item
                 if self._tunnel._failure is not None:
@@ -75,7 +84,8 @@ class _TunnelAsyncIterator(Generic[T]):
     def __init__(self, tunnel: Tunnel[T], timeout: float | None) -> None:
         self._tunnel = tunnel
         self._timeout = timeout
-        self._cursor = 0
+        with tunnel._condition:
+            self._cursor = tunnel._base_sequence
         self._terminated = False
 
     def __aiter__(self) -> _TunnelAsyncIterator[T]:
@@ -89,8 +99,15 @@ class _TunnelAsyncIterator(Generic[T]):
 
         while True:
             with self._tunnel._condition:
-                if self._cursor < len(self._tunnel._items):
-                    item = self._tunnel._items[self._cursor]
+                if self._cursor < self._tunnel._base_sequence:
+                    self._terminated = True
+                    raise TunnelLagError(
+                        expected_sequence=self._cursor,
+                        available_from=self._tunnel._base_sequence,
+                    )
+                item_offset = self._cursor - self._tunnel._base_sequence
+                if item_offset < len(self._tunnel._items):
+                    item = self._tunnel._items[item_offset]
                     self._cursor += 1
                     return item
                 if self._tunnel._failure is not None:
@@ -125,13 +142,19 @@ class Tunnel(Generic[T]):
         wait_interval: float = 0.1,
         timeout: float | None = 10,
         timeout_after_start: bool = True,
+        max_history: int | None = None,
     ) -> None:
+        if max_history is not None and max_history <= 0:
+            raise ValueError("Tunnel max_history must be positive")
         self._condition = threading.Condition(threading.RLock())
-        self._items: list[T] = []
+        self._items: deque[T] = deque()
+        self._base_sequence = 0
+        self._next_sequence = 0
         self._closed = False
         self._failure: BaseException | None = None
         self._async_waiters: set[_AsyncWaiter] = set()
         self._timeout = timeout
+        self._max_history = max_history
         self._compatibility_wait_interval = wait_interval
         self._compatibility_timeout_after_start = timeout_after_start
 
@@ -155,6 +178,10 @@ class Tunnel(Generic[T]):
             if self._closed or self._failure is not None:
                 raise TunnelClosedError("Cannot put data after Tunnel terminal state")
             self._items.append(data)
+            self._next_sequence += 1
+            if self._max_history is not None and len(self._items) > self._max_history:
+                self._items.popleft()
+                self._base_sequence += 1
             self._wake_waiters_locked()
 
     async def async_put(self, data: T) -> None:
@@ -179,6 +206,14 @@ class Tunnel(Generic[T]):
 
     def put_stop(self) -> None:
         self.close()
+
+    def _retained_items_reference(self) -> deque[T]:
+        """Return the terminal retained buffer to the owning StageStream."""
+
+        with self._condition:
+            if not self._closed:
+                raise RuntimeError("Tunnel retained buffer is unavailable before close")
+            return self._items
 
     def get_generator(self) -> Iterator[T]:
         return iter(self)

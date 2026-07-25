@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+# pyright: reportPrivateUsage=false
+import contextvars
 import threading
-from typing import TYPE_CHECKING, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Generic, Literal, TypeVar, cast
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+    from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator
 
     from .StageHandle import StageHandle
     from .Tunnel import Tunnel
@@ -18,7 +20,7 @@ class StageStream(Generic[T]):
 
     def __init__(
         self,
-        start: Callable[[], StageHandle[list[T]]],
+        start: Callable[[], StageHandle[object]],
         tunnel: Tunnel[T],
         *,
         lazy: bool = False,
@@ -26,22 +28,19 @@ class StageStream(Generic[T]):
         self._start = start
         self._tunnel = tunnel
         self._start_lock = threading.RLock()
-        self._handle: StageHandle[list[T]] | None = None
-        self._pending_callbacks: list[tuple[_CallbackKind, Callable[..., object | Awaitable[object]]]] = []
+        self._handle: StageHandle[object] | None = None
+        self._pending_callbacks: list[
+            tuple[_CallbackKind, Callable[..., object | Awaitable[object]], contextvars.Context]
+        ] = []
         if not lazy:
             self._ensure_started()
 
-    def _ensure_started(self) -> StageHandle[list[T]]:
+    def _ensure_started(self) -> StageHandle[object]:
         with self._start_lock:
             if self._handle is None:
                 handle = self._start()
-                for kind, callback in self._pending_callbacks:
-                    if kind == "success":
-                        handle.on_success(callback)
-                    elif kind == "error":
-                        handle.on_error(callback)
-                    else:
-                        handle.on_finally(callback)
+                for kind, callback, context in self._pending_callbacks:
+                    self._register_on_handle(handle, kind, callback, context)
                 self._pending_callbacks.clear()
                 self._handle = handle
             return self._handle
@@ -55,10 +54,12 @@ class StageStream(Generic[T]):
             return self._handle is not None and self._handle.is_ready()
 
     def get(self, timeout: float | None = None) -> list[T]:
-        return self._ensure_started().get(timeout=timeout)
+        values = self._ensure_started().get(timeout=timeout)
+        return list(cast("Iterable[T]", values))
 
     async def async_get(self, timeout: float | None = None) -> list[T]:
-        return await self._ensure_started().async_get(timeout=timeout)
+        values = await self._ensure_started().async_get(timeout=timeout)
+        return list(cast("Iterable[T]", values))
 
     def wait_settled(self, timeout: float | None = None) -> None:
         self._ensure_started().wait_settled(timeout=timeout)
@@ -82,18 +83,31 @@ class StageStream(Generic[T]):
         kind: _CallbackKind,
         callback: Callable[..., object | Awaitable[object]],
     ) -> StageStream[T]:
+        callback_context = contextvars.copy_context()
         with self._start_lock:
             if self._handle is None:
-                self._pending_callbacks.append((kind, callback))
+                self._pending_callbacks.append((kind, callback, callback_context))
                 return self
             handle = self._handle
-        if kind == "success":
-            handle.on_success(callback)
-        elif kind == "error":
-            handle.on_error(callback)
-        else:
-            handle.on_finally(callback)
+        self._register_on_handle(handle, kind, callback, callback_context)
         return self
+
+    @staticmethod
+    def _register_on_handle(
+        handle: StageHandle[object],
+        kind: _CallbackKind,
+        callback: Callable[..., object | Awaitable[object]],
+        context: contextvars.Context,
+    ) -> None:
+        if kind == "success":
+
+            def success_callback(values: object) -> object | Awaitable[object]:
+                return callback(list(cast("Iterable[T]", values)))
+
+            registered_callback = success_callback
+        else:
+            registered_callback = callback
+        handle._register_callback(kind, registered_callback, context=context)
 
     def on_success(
         self,

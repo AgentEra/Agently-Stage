@@ -197,6 +197,12 @@ not transform individual items. `lazy=True` delays source start until the first
 reader. The source automatically publishes EOF or failure to StageStream's
 internal channel; callers do not close a StageStream.
 
+StageStream's complete-result and complete-replay contract is intentionally
+unbounded. The source writes into one canonical growing replay buffer;
+`get()`/`async_get()` and success callbacks receive safe list copies so caller
+mutation cannot corrupt replay. For a bounded local channel without a complete
+result-list promise, use `Tunnel(max_history=...)` directly.
+
 `StageHybridGenerator` remains an import-compatible StageStream subtype for the
 preview line. New code should use the `StageStream` name.
 
@@ -230,6 +236,37 @@ waiting for the next value, providing a safety exit if a producer forgets EOF.
 Timing out one reader does not close or mutate the channel, and later readers
 can still receive subsequent values. Use `timeout=None` when a reader should
 wait indefinitely for explicit `close()` or `fail()`.
+
+Complete replay is unbounded by default. Set `max_history` to retain only a
+fixed suffix:
+
+```python
+from agently_stage import Tunnel, TunnelLagError
+
+bounded: Tunnel[int] = Tunnel(max_history=2)
+slow_reader = iter(bounded)
+
+bounded.put(0)
+assert next(slow_reader) == 0
+for item in range(1, 5):
+    bounded.put(item)
+
+try:
+    next(slow_reader)
+except TunnelLagError as error:
+    assert error.missed_count == 2
+    assert error.expected_sequence == 1
+    assert error.available_from == 3
+
+bounded.close()
+assert list(bounded) == [3, 4]  # a late reader starts at retained history
+```
+
+Bounded history never hides loss: a reader that falls behind receives
+`TunnelLagError` with its expected and earliest available absolute sequences.
+New readers replay the retained suffix. `max_history` bounds replay retention;
+it does not provide producer backpressure, durable acknowledgement, retry, or
+exactly-once delivery.
 
 ## EventEmitter
 
