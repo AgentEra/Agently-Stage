@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 
 from agently_stage import StageCallBridge
 
@@ -9,6 +10,8 @@ from agently_stage import StageCallBridge
 # 0
 # source settled
 
+source_settled = threading.Event()
+
 
 async def async_source():
     try:
@@ -16,7 +19,7 @@ async def async_source():
             await asyncio.sleep(0)
             yield item
     finally:
-        print("source settled")
+        source_settled.set()
 
 
 def main() -> None:
@@ -31,6 +34,8 @@ def main() -> None:
     stream = bridge.iter_sync(async_source())
     print(next(stream))
     stream.close()
+    assert source_settled.is_set()
+    print("source settled")
 
     # Scheduling owners can opt into settlement-aware cancellation explicitly.
     managed_fetch = bridge.as_sync(fetch, managed=True)
