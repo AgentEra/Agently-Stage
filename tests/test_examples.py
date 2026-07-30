@@ -18,6 +18,7 @@ EXAMPLES = [
     REPOSITORY_ROOT / "examples" / "call_bridge.py",
     REPOSITORY_ROOT / "examples" / "event_emitter.py",
     REPOSITORY_ROOT / "examples" / "automatic_process_exit.py",
+    REPOSITORY_ROOT / "examples" / "caller_loop_task_ownership.py",
 ]
 EXPECTED_OUTPUT_MARKER = "# Expected key output from a real local run:"
 

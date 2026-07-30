@@ -261,6 +261,67 @@ def test_adopt_owns_task_outcome_origin_and_settlement() -> None:
     asyncio.run(run())
 
 
+def test_create_task_enters_stage_inventory_with_native_task_identity_and_context() -> None:
+    async def run() -> None:
+        marker = contextvars.ContextVar("stage_task_marker", default="missing")
+        observed: list[tuple[asyncio.Task[tuple[str, int]], str]] = []
+
+        def observe(task: asyncio.Task[tuple[str, int]], origin: str) -> None:
+            observed.append((task, origin))
+
+        stage = Stage(on_adopted_done=observe)
+        caller_loop = asyncio.get_running_loop()
+
+        async def read_context() -> tuple[str, int]:
+            await asyncio.sleep(0)
+            return marker.get(), id(asyncio.get_running_loop())
+
+        token = marker.set("caller")
+        try:
+            task = stage.create_task(read_context(), origin="flow:handler:read-context")
+        finally:
+            marker.reset(token)
+
+        assert isinstance(task, asyncio.Task)
+        assert stage.adopted_tasks == (task,)
+        assert stage.origin_for_adopted(task) == "flow:handler:read-context"
+        assert await task == ("caller", id(caller_loop))
+        await stage.async_wait_settled(timeout=1)
+        assert observed == [(task, "flow:handler:read-context")]
+        await stage.async_close()
+
+    asyncio.run(run())
+
+
+def test_create_task_rejects_non_caller_backend_and_closes_coroutine() -> None:
+    async def run() -> None:
+        stage = Stage(loop="stage")
+        coroutine = asyncio.sleep(0)
+
+        with pytest.raises(StageLifecycleError, match="caller"):
+            stage.create_task(coroutine, origin="flow:wrong-backend")
+
+        assert coroutine.cr_frame is None
+        await stage.async_close()
+
+    asyncio.run(run())
+
+
+def test_create_task_rejects_sealed_scope_without_leaking_coroutine() -> None:
+    async def run() -> None:
+        stage = Stage()
+        stage.seal()
+        coroutine = asyncio.sleep(0)
+
+        with pytest.raises(StageClosedError):
+            stage.create_task(coroutine, origin="flow:late")
+
+        assert coroutine.cr_frame is None
+        await stage.async_close()
+
+    asyncio.run(run())
+
+
 def test_adopted_inventory_and_observer_settle_as_one_stage_operation() -> None:
     async def run() -> None:
         observed: list[tuple[asyncio.Task[bool], str, int]] = []
