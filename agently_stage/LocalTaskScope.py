@@ -64,7 +64,7 @@ class LocalTaskScope:
         loop = asyncio.get_running_loop()
         if self._loop is None:
             self._loop = loop
-            self._stage = Stage(loop=loop)
+            self._stage = Stage(loop=loop, on_adopted_done=self._task_done)
         elif self._loop is not loop:
             raise StageLifecycleError("A local Stage task scope cannot cross event loops")
         return loop
@@ -110,11 +110,10 @@ class LocalTaskScope:
         stage.adopt(task, origin=origin)
         self._adopted.add(task)
         self._origins[task] = origin
-        task.add_done_callback(self._task_done)
         return task
 
-    def _task_done(self, task: asyncio.Task[Any]) -> None:
-        origin = self._origins.pop(task, "<unknown>")
+    def _task_done(self, task: asyncio.Task[Any], origin: str) -> None:
+        self._origins.pop(task, None)
         self._adopted.discard(task)
         cancelled = task.cancelled()
         error = None if cancelled else task.exception()

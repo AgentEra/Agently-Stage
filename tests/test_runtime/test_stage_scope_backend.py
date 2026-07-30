@@ -261,6 +261,62 @@ def test_adopt_owns_task_outcome_origin_and_settlement() -> None:
     asyncio.run(run())
 
 
+def test_adopted_inventory_and_observer_settle_as_one_stage_operation() -> None:
+    async def run() -> None:
+        observed: list[tuple[asyncio.Task[bool], str, int]] = []
+        stage: Stage
+
+        def observe(task: asyncio.Task[bool], origin: str) -> None:
+            observed.append((task, origin, stage.adopted_count))
+
+        stage = Stage(on_adopted_done=observe)
+        release = asyncio.Event()
+        task = asyncio.create_task(release.wait())
+        stage.adopt(task, origin="flow:observed")
+
+        assert stage.adopted_count == 1
+        assert stage.adopted_tasks == (task,)
+        assert stage.origin_for_adopted(task) == "flow:observed"
+
+        release.set()
+        await stage.async_wait_settled(timeout=1)
+
+        assert observed == [(task, "flow:observed", 0)]
+        assert stage.adopted_count == 0
+        assert stage.adopted_tasks == ()
+        assert stage.origin_for_adopted(task) is None
+        await stage.async_close()
+
+    asyncio.run(run())
+
+
+def test_adopted_observer_failure_is_reported_without_breaking_settlement() -> None:
+    async def run() -> None:
+        loop = asyncio.get_running_loop()
+        observed_contexts: list[dict[str, object]] = []
+        previous_handler = loop.get_exception_handler()
+        loop.set_exception_handler(lambda _loop, context: observed_contexts.append(context))
+
+        def fail_observer(_task: asyncio.Task[object], _origin: str) -> None:
+            raise RuntimeError("observer failed")
+
+        try:
+            stage = Stage(on_adopted_done=fail_observer)
+            task = asyncio.create_task(asyncio.sleep(0))
+            stage.adopt(task, origin="flow:observer-failure")
+            await stage.async_close(timeout=1)
+        finally:
+            loop.set_exception_handler(previous_handler)
+
+        assert len(observed_contexts) == 1
+        assert observed_contexts[0]["message"] == "Stage adopted-task completion observer failed"
+        assert isinstance(observed_contexts[0]["exception"], RuntimeError)
+        assert observed_contexts[0]["task"] is task
+        assert observed_contexts[0]["origin"] == "flow:observer-failure"
+
+    asyncio.run(run())
+
+
 def test_adopted_task_is_not_falsely_claimed_by_go_admission_limits() -> None:
     async def run() -> None:
         stage = Stage(max_concurrency=1, max_pending=0)

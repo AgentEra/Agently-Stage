@@ -87,6 +87,7 @@ class Stage:
         idle_timeout: float | None = None,
         max_workers: int | None = None,
         exception_handler: Callable[[BaseException], object] | None = None,
+        on_adopted_done: Callable[[Task[Any], str], None] | None = None,
     ) -> None: ...
 
     @overload
@@ -99,6 +100,7 @@ class Stage:
         idle_timeout: float | None = None,
         max_workers: int | None = None,
         exception_handler: Callable[[BaseException], object] | None = None,
+        on_adopted_done: Callable[[Task[Any], str], None] | None = None,
     ) -> None: ...
 
     def __init__(
@@ -110,6 +112,7 @@ class Stage:
         idle_timeout: float | None = None,
         max_workers: int | None = None,
         exception_handler: Callable[[BaseException], object] | None = None,
+        on_adopted_done: Callable[[Task[Any], str], None] | None = None,
     ) -> None:
         if loop is None:
             raise TypeError("Stage loop must be omitted, 'stage', or an event loop; None is ambiguous")
@@ -132,6 +135,7 @@ class Stage:
         self._close_completed = False
         self._cancelling = False
         self._exception_handler = exception_handler
+        self._on_adopted_done = on_adopted_done
         self._max_concurrency = max_concurrency
         self._max_pending = max_pending
         self._active_root_count = 0
@@ -623,8 +627,23 @@ class Stage:
         if not task.cancelled():
             task.exception()
         with self._scope_lock:
-            self._adopted_tasks.pop(task, None)
+            origin = self._adopted_tasks.pop(task, None)
+            if origin is None:
+                return
             self._touch_locked()
+            observer = self._on_adopted_done
+            if observer is not None:
+                try:
+                    observer(task, origin)
+                except BaseException as error:
+                    task.get_loop().call_exception_handler(
+                        {
+                            "message": "Stage adopted-task completion observer failed",
+                            "exception": error,
+                            "task": task,
+                            "origin": origin,
+                        }
+                    )
             if self._has_active_work_locked():
                 lease = None
             else:
@@ -632,6 +651,20 @@ class Stage:
                 self._scope_condition.notify_all()
         if lease is not None:
             _RUNTIME_CARRIER.release_lease(lease)
+
+    @property
+    def adopted_count(self) -> int:
+        with self._scope_lock:
+            return len(self._adopted_tasks)
+
+    @property
+    def adopted_tasks(self) -> tuple[Task[Any], ...]:
+        with self._scope_lock:
+            return tuple(self._adopted_tasks)
+
+    def origin_for_adopted(self, task: Task[Any]) -> str | None:
+        with self._scope_lock:
+            return self._adopted_tasks.get(task)
 
     def _go_stream(
         self,

@@ -259,6 +259,26 @@ the task remains the body-outcome handle, while Stage adds scope ownership,
 origin diagnostics, cancellation, idle tracking, and settlement without
 wrapping it in a second `StageHandle`.
 
+Adapters that need live adopted-task inventory can read `adopted_count`,
+`adopted_tasks`, and `origin_for_adopted(task)`. A Stage can also receive one
+synchronous completion observer:
+
+```python
+def observe(task: asyncio.Task[object], origin: str) -> None:
+    error = None if task.cancelled() else task.exception()
+    print(origin, task.cancelled(), error)
+
+
+stage = Stage(on_adopted_done=observe)
+```
+
+The observer runs after the task leaves the live inventory and before Stage
+settlement completes. It is a lightweight notification seam, not a business
+outcome policy: callbacks must not block, and applications still own error
+classification, retry, persistence, and side effects. Observer failures are
+reported to the task loop's exception handler and do not reinterpret the task
+outcome or Stage settlement.
+
 `LocalTaskScope` remains importable in 0.3.3 only as a deprecated compatibility
 facade over `Stage`. It emits `DeprecationWarning` and is scheduled for removal
 in 0.4.0. New code should use `Stage.go()` or `Stage.adopt()`.
