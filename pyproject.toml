@@ -1,6 +1,6 @@
 [project]
 name = "agently-stage"
-version = "0.3.4"
+version = "0.3.5"
 description = "Agently Stage - Efficient Convenient Asynchronous and Multithreaded Programming"
 authors = [
     { name = "Agently Team", email = "developer@agently.tech" },

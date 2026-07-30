@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextvars
 import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -53,9 +52,7 @@ class LocalTaskScope:
             stacklevel=2,
         )
         self._loop: asyncio.AbstractEventLoop | None = None
-        self._stage: Stage | None = None
-        self._adopted: set[asyncio.Task[Any]] = set()
-        self._origins: dict[asyncio.Task[Any], str] = {}
+        self._stage = Stage(on_adopted_done=self._task_done)
         self._on_done = on_done
         self._closed = False
         self._close_completed = False
@@ -64,15 +61,12 @@ class LocalTaskScope:
         loop = asyncio.get_running_loop()
         if self._loop is None:
             self._loop = loop
-            self._stage = Stage(loop=loop, on_adopted_done=self._task_done)
         elif self._loop is not loop:
             raise StageLifecycleError("A local Stage task scope cannot cross event loops")
         return loop
 
     def _bound_stage(self) -> Stage:
         self._bind_running_loop()
-        if self._stage is None:
-            raise StageLifecycleError("Local Stage task scope did not bind its Stage")
         return self._stage
 
     def spawn(
@@ -83,10 +77,8 @@ class LocalTaskScope:
     ) -> asyncio.Task[T]:
         if self._closed:
             raise StageClosedError("Cannot submit work to a closed local Stage task scope")
-        loop = self._bind_running_loop()
-        context = contextvars.copy_context()
-        task = context.run(loop.create_task, coroutine)
-        return self.adopt(task, origin=origin)
+        self._bind_running_loop()
+        return self._stage.create_task(coroutine, origin=origin)
 
     def adopt(
         self,
@@ -99,22 +91,9 @@ class LocalTaskScope:
         stage = self._bound_stage()
         if task.get_loop() is not self._loop:
             raise StageLifecycleError("A local Stage task scope cannot adopt a task from another event loop")
-        if task in self._adopted:
-            registered_origin = self._origins[task]
-            if registered_origin != origin:
-                raise StageLifecycleError(
-                    f"A local Stage task cannot be adopted with two origins: {registered_origin!r} and {origin!r}"
-                )
-            return task
-
-        stage.adopt(task, origin=origin)
-        self._adopted.add(task)
-        self._origins[task] = origin
-        return task
+        return stage.adopt(task, origin=origin)
 
     def _task_done(self, task: asyncio.Task[Any], origin: str) -> None:
-        self._origins.pop(task, None)
-        self._adopted.discard(task)
         cancelled = task.cancelled()
         error = None if cancelled else task.exception()
         if self._on_done is None:
@@ -164,15 +143,21 @@ class LocalTaskScope:
 
     @property
     def pending_count(self) -> int:
-        return len(self._adopted)
+        return self._stage.adopted_count
 
     @property
     def pending_tasks(self) -> tuple[asyncio.Task[Any], ...]:
-        return tuple(self._adopted)
+        return self._stage.adopted_tasks
 
     @property
     def pending_origins(self) -> tuple[str, ...]:
-        return tuple(sorted(self._origins.values()))
+        return tuple(
+            sorted(
+                origin
+                for task in self._stage.adopted_tasks
+                if (origin := self._stage.origin_for_adopted(task)) is not None
+            )
+        )
 
     def origin_for(self, task: asyncio.Task[Any]) -> str | None:
-        return self._origins.get(task)
+        return self._stage.origin_for_adopted(task)

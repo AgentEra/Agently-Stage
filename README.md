@@ -148,8 +148,9 @@ authorization, or compensation policy for those effects.
 On the Stage-owned carrier, tasks created inside Stage work are retained by the
 carrier task factory. On a caller-owned loop, Stage deliberately does not
 replace the loop's task factory: settlement covers work created through
-`Stage.go()` and tasks explicitly attached with `Stage.adopt()`. An unrelated
-raw `asyncio.create_task()` remains owned by the caller.
+`Stage.go()`, native tasks created through `Stage.create_task()`, and existing
+tasks explicitly attached with `Stage.adopt()`. An unrelated raw
+`asyncio.create_task()` remains owned by the caller.
 
 ### Callback observers
 
@@ -228,7 +229,37 @@ When a settlement timeout expires, Stage raises `TimeoutError` with unresolved
 origins. The scope remains sealed, and `close()` may be called again after the
 outstanding work settles.
 
-### Adopt caller-loop tasks
+### Create or adopt caller-loop tasks
+
+`create_task()` creates a native `asyncio.Task` on the current running caller
+loop and makes Stage its lifecycle owner in one operation:
+
+```python
+import asyncio
+
+from agently_stage import Stage
+
+
+async def main() -> None:
+    async def hook() -> str:
+        await asyncio.sleep(0)
+        return "ready"
+
+    stage = Stage()
+    task = stage.create_task(hook(), origin="event:ready-hook")
+
+    assert isinstance(task, asyncio.Task)
+    assert await task == "ready"
+    await stage.async_close(timeout=1)
+
+
+asyncio.run(main())
+```
+
+This surface is for frameworks that already run on an asyncio loop and require
+native task identity for `gather`, cancellation, and current-task checks. It
+uses the same Stage inventory, origin diagnostics, cancellation, and settlement
+barrier as `adopt()`. It does not return a copied task facade.
 
 `adopt()` attaches an already scheduled task from the selected caller loop to
 Stage cancellation, origin diagnostics, and settlement:
@@ -256,12 +287,14 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+Use `create_task()` when Stage is responsible for creating the work. Reserve
+`adopt()` for a task that genuinely existed before the ownership handoff.
 An adopted task has already been scheduled by its loop, so
 `max_concurrency`/`max_pending` cannot honestly delay it. Those admission limits
-apply to roots created by `Stage.go()`. `adopt()` returns the original task:
-the task remains the body-outcome handle, while Stage adds scope ownership,
-origin diagnostics, cancellation, idle tracking, and settlement without
-wrapping it in a second `StageHandle`.
+apply to roots created by `Stage.go()`. `create_task()` and `adopt()` both
+return the original native task: the task remains the body-outcome handle,
+while Stage adds scope ownership, origin diagnostics, cancellation, idle
+tracking, and settlement without wrapping it in a second `StageHandle`.
 
 Adapters that need live adopted-task inventory can read `adopted_count`,
 `adopted_tasks`, and `origin_for_adopted(task)`. A Stage can also receive one
@@ -283,9 +316,11 @@ classification, retry, persistence, and side effects. Observer failures are
 reported to the task loop's exception handler and do not reinterpret the task
 outcome or Stage settlement.
 
-`LocalTaskScope` remains importable in the 0.3 line only as a deprecated compatibility
-facade over `Stage`. It emits `DeprecationWarning` and is scheduled for removal
-in 0.4.0. New code should use `Stage.go()` or `Stage.adopt()`.
+`LocalTaskScope` remains importable in the 0.3 line only as a deprecated
+compatibility facade over `Stage`. It emits `DeprecationWarning`, delegates
+task creation and inventory directly to Stage, and is scheduled for removal in
+0.4.0. New code should use `Stage.go()`, `Stage.create_task()`, or
+`Stage.adopt()`.
 
 ### Pressure and idle budgets
 

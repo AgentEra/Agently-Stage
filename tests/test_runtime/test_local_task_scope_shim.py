@@ -18,5 +18,7 @@ def test_local_task_scope_is_a_deprecated_stage_compatibility_shim() -> None:
 
         assert scope.pending_count == 0
         assert not hasattr(scope, "_tasks")
+        assert not hasattr(scope, "_adopted")
+        assert not hasattr(scope, "_origins")
 
     asyncio.run(run())

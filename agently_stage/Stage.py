@@ -28,7 +28,7 @@ from .StageHandle import StageHandle
 
 if TYPE_CHECKING:
     from asyncio import AbstractEventLoop, Task
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable, Callable, Coroutine
 
     from .StageStream import StageStream
 
@@ -604,6 +604,52 @@ class Stage:
         function = task.func if isinstance(task, functools.partial) else task
         name = getattr(function, "__qualname__", None) or getattr(function, "__name__", None)
         return sys.intern(f"go:{name or type(function).__name__}")
+
+    def create_task(
+        self,
+        coroutine: Coroutine[Any, Any, T],
+        *,
+        origin: str,
+        name: str | None = None,
+    ) -> Task[T]:
+        """Create and own one native task on the active caller event loop."""
+
+        if not inspect.iscoroutine(coroutine):
+            raise TypeError("Stage.create_task requires a coroutine object")
+
+        try:
+            loop = asyncio.get_running_loop()
+            with self._scope_lock:
+                owned_nested = _active_stage.get() is self
+                if self._sealed and not owned_nested:
+                    raise StageClosedError("Cannot create a task in a sealed Stage scope")
+                backend, selected_loop = self._resolve_backend_locked()
+                if backend != "caller" or selected_loop is not loop:
+                    lease = self._release_backend_if_quiescent_locked()
+                    if lease is not None:
+                        _RUNTIME_CARRIER.release_lease(lease)
+                    raise StageLifecycleError(
+                        "Stage.create_task requires the current running caller event loop backend"
+                    )
+        except BaseException:
+            coroutine.close()
+            raise
+
+        context = contextvars.copy_context()
+        try:
+            if name is None:
+                task = context.run(loop.create_task, coroutine)
+            else:
+                task = context.run(loop.create_task, coroutine, name=name)
+        except BaseException:
+            coroutine.close()
+            raise
+
+        try:
+            return self.adopt(task, origin=origin)
+        except BaseException:
+            task.cancel()
+            raise
 
     def adopt(self, task: Task[T], *, origin: str) -> Task[T]:
         if not isinstance(cast("Any", task), asyncio.Task):
