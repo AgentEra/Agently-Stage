@@ -5,6 +5,7 @@ import asyncio
 import contextvars
 import functools
 import inspect
+import sys
 import threading
 import time
 import types
@@ -337,11 +338,16 @@ class Stage:
         handle._retain_work()
 
         async def retained_runner() -> None:
-            token = _active_stage.set(self)
             try:
-                await runner()
+                if owner:
+                    await runner()
+                else:
+                    token = _active_stage.set(self)
+                    try:
+                        await runner()
+                    finally:
+                        _active_stage.reset(token)
             finally:
-                _active_stage.reset(token)
                 handle._release_work()
 
         def start() -> None:
@@ -526,40 +532,35 @@ class Stage:
                 handle._register_initial_callback("finally", on_finally)
             should_cancel = self._cancelling
 
-        async def body() -> None:
+        async def body(generation: _Generation | None = None) -> None:
+            del generation
+            token = _active_stage.set(self)
             try:
-                await self._wait_for_admission(admission)
-                result = await self._execute_scalar(task, args, kwargs)
-            except asyncio.CancelledError as error:
-                should_start_callbacks = handle._set_body_cancelled(error)
-                if should_start_callbacks:
-                    self._start_callback_drain_from_owner(handle)
-                raise
-            except BaseException as error:
-                should_start_callbacks = handle._set_body_exception(error, ignored=ignore_exception)
-                if should_start_callbacks:
-                    self._start_callback_drain_from_owner(handle)
-            else:
-                should_start_callbacks = handle._set_body_result(result)
-                if should_start_callbacks:
-                    self._start_callback_drain_from_owner(handle)
+                try:
+                    await self._wait_for_admission(admission)
+                    result = await self._execute_scalar(task, args, kwargs)
+                except asyncio.CancelledError as error:
+                    should_start_callbacks = handle._set_body_cancelled(error)
+                    if should_start_callbacks:
+                        self._start_callback_drain_from_owner(handle)
+                    raise
+                except BaseException as error:
+                    should_start_callbacks = handle._set_body_exception(error, ignored=ignore_exception)
+                    if should_start_callbacks:
+                        self._start_callback_drain_from_owner(handle)
+                else:
+                    should_start_callbacks = handle._set_body_result(result)
+                    if should_start_callbacks:
+                        self._start_callback_drain_from_owner(handle)
             finally:
+                _active_stage.reset(token)
                 self._finish_admission(admission)
 
         if backend == "stage":
-
-            async def carrier_runner(generation: _Generation) -> None:
-                del generation
-                token = _active_stage.set(self)
-                try:
-                    await body()
-                finally:
-                    _active_stage.reset(token)
-
             try:
                 _RUNTIME_CARRIER.submit(
                     handle,
-                    carrier_runner,
+                    body,
                     preferred=self._generation_lease,
                 )
             except BaseException:
@@ -586,7 +587,7 @@ class Stage:
     def _task_origin(self, task: object) -> str:
         function = task.func if isinstance(task, functools.partial) else task
         name = getattr(function, "__qualname__", None) or getattr(function, "__name__", None)
-        return f"go:{name or type(function).__name__}"
+        return sys.intern(f"go:{name or type(function).__name__}")
 
     def adopt(self, task: Task[T], *, origin: str) -> Task[T]:
         if not isinstance(cast("Any", task), asyncio.Task):
@@ -613,24 +614,24 @@ class Stage:
             self._touch_locked()
             should_cancel = self._cancelling
 
-        def adopted_task_done(done_task: Task[T]) -> None:
-            if not done_task.cancelled():
-                done_task.exception()
-            with self._scope_lock:
-                self._adopted_tasks.pop(done_task, None)
-                self._touch_locked()
-                if self._has_active_work_locked():
-                    lease = None
-                else:
-                    lease = self._release_backend_if_quiescent_locked()
-                    self._scope_condition.notify_all()
-            if lease is not None:
-                _RUNTIME_CARRIER.release_lease(lease)
-
-        task.add_done_callback(adopted_task_done)
+        task.add_done_callback(self._adopted_task_done)
         if should_cancel:
             task.cancel()
         return task
+
+    def _adopted_task_done(self, task: Task[Any]) -> None:
+        if not task.cancelled():
+            task.exception()
+        with self._scope_lock:
+            self._adopted_tasks.pop(task, None)
+            self._touch_locked()
+            if self._has_active_work_locked():
+                lease = None
+            else:
+                lease = self._release_backend_if_quiescent_locked()
+                self._scope_condition.notify_all()
+        if lease is not None:
+            _RUNTIME_CARRIER.release_lease(lease)
 
     def _go_stream(
         self,
