@@ -24,11 +24,14 @@ class StageStream(Generic[T]):
         tunnel: Tunnel[T],
         *,
         lazy: bool = False,
+        source_stop: Callable[[], object] | None = None,
     ) -> None:
         self._start = start
         self._tunnel = tunnel
         self._start_lock = threading.RLock()
         self._handle: StageHandle[object] | None = None
+        self._source_stop = source_stop
+        self._closed = False
         self._pending_callbacks: list[
             tuple[_CallbackKind, Callable[..., object | Awaitable[object]], contextvars.Context]
         ] = []
@@ -69,6 +72,41 @@ class StageStream(Generic[T]):
 
     def cancel(self, timeout: float | None = None) -> bool:
         return self._ensure_started().cancel(timeout=timeout)
+
+    @property
+    def closed(self) -> bool:
+        with self._start_lock:
+            return self._closed
+
+    def close(self, timeout: float | None = None) -> None:
+        with self._start_lock:
+            first_request = not self._closed
+            if first_request:
+                self._closed = True
+                source_stop = self._source_stop
+                if source_stop is not None:
+                    source_stop()
+            else:
+                source_stop = None
+        handle = self._ensure_started()
+        if first_request:
+            handle.cancel(timeout=0)
+        handle.wait_settled(timeout=timeout)
+
+    async def async_close(self, timeout: float | None = None) -> None:
+        with self._start_lock:
+            first_request = not self._closed
+            if first_request:
+                self._closed = True
+                source_stop = self._source_stop
+                if source_stop is not None:
+                    source_stop()
+            else:
+                source_stop = None
+        handle = self._ensure_started()
+        if first_request:
+            handle.cancel(timeout=0)
+        await handle.async_wait_settled(timeout=timeout)
 
     def __iter__(self) -> Iterator[T]:
         handle = self._ensure_started()

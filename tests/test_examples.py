@@ -15,6 +15,7 @@ EXAMPLES = [
     REPOSITORY_ROOT / "examples" / "callbacks_errors_and_cancellation.py",
     REPOSITORY_ROOT / "examples" / "tunnel_broadcast.py",
     REPOSITORY_ROOT / "examples" / "stage_stream.py",
+    REPOSITORY_ROOT / "examples" / "call_bridge.py",
     REPOSITORY_ROOT / "examples" / "event_emitter.py",
     REPOSITORY_ROOT / "examples" / "automatic_process_exit.py",
 ]

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import contextvars
 import sys
 import threading
@@ -255,8 +254,9 @@ def test_blocking_callable_does_not_settle_before_late_effect_finishes() -> None
 
     try:
         assert handle.cancel(timeout=0.01) is False
-        with pytest.raises(concurrent.futures.TimeoutError):
+        with pytest.raises(TimeoutError) as timeout:
             handle.wait_settled(timeout=0.01)
+        assert type(timeout.value) is TimeoutError
         assert not late_effect.is_set()
     finally:
         release_body.set()

@@ -4,10 +4,11 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import contextvars
+import logging
 import threading
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar, cast
 
 from .StageException import StageClosedError, StageLifecycleError, StageSettlementError
 
@@ -22,6 +23,7 @@ _CallbackKind = Literal["success", "error", "finally"]
 _OwnedTaskPhase = Literal["body", "settlement"]
 _SETTLED_FUTURE: concurrent.futures.Future[None] = concurrent.futures.Future()
 _SETTLED_FUTURE.set_result(None)
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,13 @@ class _Callback:
     kind: _CallbackKind
     function: Callable[..., object | Awaitable[object]]
     context: contextvars.Context
+
+
+@dataclass
+class _DoneCallback:
+    function: Callable[[StageHandle[Any]], object]
+    context: contextvars.Context
+    active: bool = True
 
 
 class StageHandle(Generic[T]):
@@ -61,6 +70,7 @@ class StageHandle(Generic[T]):
         self._body_error: BaseException | None = None
         self._callbacks: deque[_Callback] = deque()
         self._callback_drain_active = False
+        self._done_callbacks: list[_DoneCallback] = []
 
     @property
     def origin(self) -> str:
@@ -116,7 +126,9 @@ class StageHandle(Generic[T]):
 
     def _take_unreported_stage_errors(self) -> tuple[BaseException, ...]:
         with self._state_lock:
-            errors = tuple(self._settlement_errors[self._stage_error_cursor :])
+            errors = tuple(
+                error for error in self._settlement_errors[self._stage_error_cursor :] if error is not self._body_error
+            )
             self._stage_error_cursor = len(self._settlement_errors)
             return errors
 
@@ -128,6 +140,8 @@ class StageHandle(Generic[T]):
             self._body_result = result
             self._body_future.set_result(result)
             should_start = self._activate_callback_drain_locked()
+            done_callbacks = self._take_done_callbacks_locked()
+        self._run_done_callbacks(done_callbacks)
         self._stage._owned_activity()
         return should_start
 
@@ -142,6 +156,8 @@ class StageHandle(Generic[T]):
             else:
                 self._body_future.set_exception(error)
             should_start = self._activate_callback_drain_locked()
+            done_callbacks = self._take_done_callbacks_locked()
+        self._run_done_callbacks(done_callbacks)
         self._stage._owned_activity()
         return should_start
 
@@ -153,8 +169,24 @@ class StageHandle(Generic[T]):
             self._body_error = error or asyncio.CancelledError()
             self._body_future.cancel()
             should_start = self._activate_callback_drain_locked()
+            done_callbacks = self._take_done_callbacks_locked()
+        self._run_done_callbacks(done_callbacks)
         self._stage._owned_activity()
         return should_start
+
+    def _take_done_callbacks_locked(self) -> tuple[_DoneCallback, ...]:
+        callbacks = tuple(self._done_callbacks)
+        self._done_callbacks.clear()
+        return callbacks
+
+    def _run_done_callbacks(self, callbacks: tuple[_DoneCallback, ...]) -> None:
+        for registration in callbacks:
+            if not registration.active:
+                continue
+            try:
+                registration.context.run(registration.function, self)
+            except BaseException:
+                _LOGGER.exception("StageHandle done callback failed")
 
     def _register_initial_callback(
         self,
@@ -261,6 +293,54 @@ class StageHandle(Generic[T]):
     def is_ready(self) -> bool:
         return self._body_future.done()
 
+    def done(self) -> bool:
+        return self._body_future.done()
+
+    def cancelled(self) -> bool:
+        return self._body_future.cancelled()
+
+    def result(self, timeout: float | None = None) -> T:
+        return self.get(timeout=timeout)
+
+    def exception(self, timeout: float | None = None) -> BaseException | None:
+        self._ensure_not_owner_loop_sync_wait(
+            operation="exception",
+            async_operation="await the StageHandle",
+            already_done=self._body_future.done(),
+        )
+        try:
+            return self._body_future.exception(timeout=timeout)
+        except concurrent.futures.TimeoutError as error:
+            raise TimeoutError("StageHandle body outcome timed out") from error
+
+    def add_done_callback(
+        self,
+        callback: Callable[[StageHandle[T]], object],
+        *,
+        context: contextvars.Context | None = None,
+    ) -> None:
+        registration = _DoneCallback(
+            function=cast("Callable[[StageHandle[Any]], object]", callback),
+            context=contextvars.copy_context() if context is None else context,
+        )
+        with self._state_lock:
+            if not self._body_completed:
+                self._done_callbacks.append(registration)
+                return
+        self._run_done_callbacks((registration,))
+
+    def remove_done_callback(self, callback: Callable[[StageHandle[T]], object]) -> int:
+        removed = 0
+        with self._state_lock:
+            for registration in self._done_callbacks:
+                if registration.active and registration.function is callback:
+                    registration.active = False
+                    removed += 1
+        return removed
+
+    def __await__(self):
+        return self.async_get().__await__()
+
     def _ensure_not_owner_loop_sync_wait(
         self,
         *,
@@ -288,7 +368,10 @@ class StageHandle(Generic[T]):
             async_operation="async_get",
             already_done=self._body_future.done(),
         )
-        return self._body_future.result(timeout=timeout)
+        try:
+            return self._body_future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError as error:
+            raise TimeoutError("StageHandle body outcome timed out") from error
 
     async def async_get(self, timeout: float | None = None) -> T:
         reader = asyncio.wrap_future(self._body_future)
@@ -304,9 +387,12 @@ class StageHandle(Generic[T]):
             async_operation="async_wait_settled",
             already_done=barrier.done(),
         )
-        barrier.result(timeout=timeout)
+        try:
+            barrier.result(timeout=timeout)
+        except concurrent.futures.TimeoutError as error:
+            raise TimeoutError("StageHandle settlement timed out") from error
         with self._state_lock:
-            errors = self._settlement_errors.copy()
+            errors = [error for error in self._settlement_errors if error is not self._body_error]
         if errors:
             raise StageSettlementError(errors)
 
@@ -319,7 +405,7 @@ class StageHandle(Generic[T]):
         else:
             await asyncio.wait_for(asyncio.shield(reader), timeout)
         with self._state_lock:
-            errors = self._settlement_errors.copy()
+            errors = [error for error in self._settlement_errors if error is not self._body_error]
         if errors:
             raise StageSettlementError(errors)
 

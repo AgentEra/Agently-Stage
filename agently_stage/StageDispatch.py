@@ -8,7 +8,7 @@ from .StageException import StageException
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-    from concurrent.futures import Future, ThreadPoolExecutor
+    from concurrent.futures import Executor, Future
 
 
 T = TypeVar("T")
@@ -33,7 +33,7 @@ class StageDispatchEnvironment:
         )
         self.loop: None = None
         self.loop_thread: None = None
-        self.executor: ThreadPoolExecutor = self._stage._blocking_executor
+        self.executor: Executor = self._stage._blocking_executor
         self.exceptions: StageException = StageException()
         self.auto_close = auto_close
         self.closing: bool = False

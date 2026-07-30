@@ -10,7 +10,8 @@ import threading
 import time
 import types
 from collections import deque
-from concurrent.futures import Future, ThreadPoolExecutor
+from collections.abc import AsyncIterator, Iterator
+from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast, overload
 
@@ -27,7 +28,7 @@ from .StageHandle import StageHandle
 
 if TYPE_CHECKING:
     from asyncio import AbstractEventLoop, Task
-    from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+    from collections.abc import Awaitable, Callable
 
     from .StageStream import StageStream
 
@@ -86,6 +87,7 @@ class Stage:
         max_pending: int | None = None,
         idle_timeout: float | None = None,
         max_workers: int | None = None,
+        executor: Executor | None = None,
         exception_handler: Callable[[BaseException], object] | None = None,
         on_adopted_done: Callable[[Task[Any], str], None] | None = None,
     ) -> None: ...
@@ -99,6 +101,7 @@ class Stage:
         max_pending: int | None = None,
         idle_timeout: float | None = None,
         max_workers: int | None = None,
+        executor: Executor | None = None,
         exception_handler: Callable[[BaseException], object] | None = None,
         on_adopted_done: Callable[[Task[Any], str], None] | None = None,
     ) -> None: ...
@@ -111,6 +114,7 @@ class Stage:
         max_pending: int | None = None,
         idle_timeout: float | None = None,
         max_workers: int | None = None,
+        executor: Executor | None = None,
         exception_handler: Callable[[BaseException], object] | None = None,
         on_adopted_done: Callable[[Task[Any], str], None] | None = None,
     ) -> None:
@@ -124,6 +128,8 @@ class Stage:
             raise ValueError("max_pending requires max_concurrency")
         if idle_timeout is not None and idle_timeout <= 0:
             raise ValueError("idle_timeout must be greater than zero")
+        if executor is not None and max_workers is not None:
+            raise ValueError("executor and max_workers are mutually exclusive")
 
         self._scope_lock = threading.RLock()
         self._scope_condition = threading.Condition(self._scope_lock)
@@ -150,7 +156,9 @@ class Stage:
             if max_workers is not None
             else None
         )
-        self._blocking_executor = self._private_executor or _RUNTIME_CARRIER.blocking_executor
+        self._blocking_executor = (
+            executor if executor is not None else self._private_executor or _RUNTIME_CARRIER.blocking_executor
+        )
         self._generation_lease: _Generation | None = None
         self._active_backend: _BackendKind | None = None
         self._active_loop: AbstractEventLoop | None = None
@@ -180,9 +188,13 @@ class Stage:
             return "async_gen_func"
         if inspect.isasyncgen(task):
             return "async_gen"
+        if isinstance(task, AsyncIterator):
+            return "async_gen"
         if inspect.isgeneratorfunction(task):
             return "gen_func"
         if inspect.isgenerator(task):
+            return "gen"
+        if isinstance(task, Iterator):
             return "gen"
         if inspect.iscoroutinefunction(task):
             return "async_func"
@@ -683,18 +695,37 @@ class Stage:
         from .Tunnel import Tunnel
 
         tunnel: Tunnel[Any] = Tunnel()
+        source_stop = threading.Event()
 
         if task_class in {"async_gen_func", "async_gen"}:
 
             async def consume_async_source() -> object:
                 source = task(*args, **kwargs) if task_class == "async_gen_func" else task
                 try:
+                    if source_stop.is_set():
+                        tunnel.close()
+                        return tunnel._retained_items_reference()
                     async for item in source:
+                        if source_stop.is_set():
+                            break
                         tunnel.put(item)
                         self.tick()
+                except asyncio.CancelledError:
+                    tunnel.close()
+                    raise
                 except BaseException as error:
                     tunnel.fail(error)
                     raise
+                finally:
+                    close_source = getattr(source, "aclose", None)
+                    if close_source is not None:
+                        try:
+                            close_result = close_source()
+                            if inspect.isawaitable(close_result):
+                                await close_result
+                        except BaseException as error:
+                            tunnel.fail(error)
+                            raise
                 tunnel.close()
                 return tunnel._retained_items_reference()
 
@@ -704,12 +735,28 @@ class Stage:
             def consume_sync_source() -> object:
                 source = task(*args, **kwargs) if task_class == "gen_func" else task
                 try:
-                    for item in source:
+                    if source_stop.is_set():
+                        tunnel.close()
+                        return tunnel._retained_items_reference()
+                    iterator = iter(source)
+                    while not source_stop.is_set():
+                        try:
+                            item = next(iterator)
+                        except StopIteration:
+                            break
                         tunnel.put(item)
                         self.tick()
                 except BaseException as error:
                     tunnel.fail(error)
                     raise
+                finally:
+                    close_source = getattr(source, "close", None)
+                    if close_source is not None:
+                        try:
+                            close_source()
+                        except BaseException as error:
+                            tunnel.fail(error)
+                            raise
                 tunnel.close()
                 return tunnel._retained_items_reference()
 
@@ -735,7 +782,7 @@ class Stage:
                 ),
             )
 
-        return StageStream(start, tunnel, lazy=lazy)
+        return StageStream(start, tunnel, lazy=lazy, source_stop=source_stop.set)
 
     @overload
     def get(
@@ -1035,6 +1082,20 @@ class Stage:
     @property
     def is_available(self) -> bool:
         return not self._sealed
+
+    def owns_current_execution(self) -> bool:
+        """Return whether the current task/thread is work owned by this Stage."""
+
+        if _active_stage.get() is self or _RUNTIME_CARRIER.owns_current_execution(self):
+            return True
+        try:
+            current_task = asyncio.current_task()
+        except RuntimeError:
+            return False
+        if current_task is None:
+            return False
+        with self._scope_lock:
+            return current_task in self._adopted_tasks
 
     def __enter__(self) -> Stage:  # noqa: PYI034
         with self._scope_lock:

@@ -4,6 +4,7 @@ from .EventEmitter import EventEmitter
 from .Events import Events
 from .LocalTaskScope import LocalTaskOutcome, LocalTaskScope
 from .Stage import Stage, StageSnapshot
+from .StageCallBridge import StageCallBridge, default_stage_call_bridge
 from .StageDispatch import StageDispatch, StageDispatchEnvironment
 from .StageException import (
     StageBackpressureError,
@@ -31,6 +32,7 @@ __all__ = [
     "LocalTaskScope",
     "Stage",
     "StageCallBackTask",
+    "StageCallBridge",
     "StageBackpressureError",
     "StageClosedError",
     "StageDispatch",
@@ -51,4 +53,5 @@ __all__ = [
     "TunnelClosedError",
     "TunnelLagError",
     "TunnelSubscription",
+    "default_stage_call_bridge",
 ]

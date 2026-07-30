@@ -132,6 +132,10 @@ print(drained.is_set())  # True
 Body errors are raised by `get()` and do not become settlement errors.
 Callback, finalizer, or retained-descendant failures are reported by
 `wait_settled()` as `StageSettlementError` without replacing the body result.
+For code that consumes Future-shaped objects, `StageHandle` also provides
+`done()`, `cancelled()`, `result()`, `exception()`, `add_done_callback()`,
+`remove_done_callback()`, and `await handle`. These access the body outcome;
+`wait_settled()` remains the explicit barrier for retained work.
 
 `StageHandle.cancel()` fences the handle's Stage-owned body task tree, including
 retained descendants and descendants created while cancellation is being
@@ -279,7 +283,7 @@ classification, retry, persistence, and side effects. Observer failures are
 reported to the task loop's exception handler and do not reinterpret the task
 outcome or Stage settlement.
 
-`LocalTaskScope` remains importable in 0.3.3 only as a deprecated compatibility
+`LocalTaskScope` remains importable in the 0.3 line only as a deprecated compatibility
 facade over `Stage`. It emits `DeprecationWarning` and is scheduled for removal
 in 0.4.0. New code should use `Stage.go()` or `Stage.adopt()`.
 
@@ -290,6 +294,9 @@ in 0.4.0. New code should use `Stage.go()` or `Stage.adopt()`.
 `StageBackpressureError` immediately. Owned nested Stage work does not consume a
 second root permit, so `max_concurrency=1` does not deadlock parent/child cleanup
 chains. `max_workers` independently bounds blocking executor workers.
+Alternatively, `executor=existing_executor` borrows an application-owned
+`concurrent.futures.Executor`; it is mutually exclusive with `max_workers` and
+Stage never shuts it down.
 
 `idle_timeout` applies while Stage-owned work is unresolved. Admissions,
 terminal work, callbacks, and stream publication update the monotonic activity
@@ -311,6 +318,70 @@ types.
 
 Stage is a task-lifetime mechanism, not an event bus, workflow runtime, tenant
 boundary, provider cancellation acknowledgement, or business retry policy.
+
+## StageCallBridge
+
+`StageCallBridge` adapts call shape at sync/async boundaries without making
+application event, retry, or workflow decisions.
+
+```python
+import asyncio
+
+from agently_stage import StageCallBridge
+
+
+bridge = StageCallBridge()
+
+
+async def fetch_name(identifier: int) -> str:
+    await asyncio.sleep(0)
+    return f"user-{identifier}"
+
+
+fetch_name_sync = bridge.as_sync(fetch_name)
+assert fetch_name_sync(7) == "user-7"
+
+
+async def main() -> None:
+    calculate_async = bridge.as_async(lambda value: value * 2)
+    assert await calculate_async(21) == 42
+
+
+asyncio.run(main())
+bridge.close()
+```
+
+`as_async()` directly awaits an async callable on the caller's loop. A blocking
+sync callable runs in the selected executor with the caller's `contextvars`
+snapshot. The default adapter is a light call-shape bridge: cancelling its
+awaiting task does not wait for an already-running blocking call, because
+Python cannot preempt that thread. Use `as_async(function, managed=True)` when
+the caller owns the task lifetime and cancellation acknowledgement must wait
+until the blocking call actually returns or raises.
+
+`as_sync()` resolves awaitables through the finite Stage carrier and fails fast
+if a synchronous wait would re-enter that same carrier. It may be called while
+another loop is running in the caller thread for compatibility, but it blocks
+that thread and the awaitable must not own objects bound to the caller loop;
+ordinary async code should await instead. By default it returns the body
+outcome without adding a settlement barrier; use
+`as_sync(function, managed=True)` when the boundary owns descendant work and
+must wait for it. A primary body error is never replaced by a duplicate
+settlement error. `submit()` returns a loop-neutral managed `StageHandle`.
+`iter_sync(async_iterator)` and `iter_async(sync_iterator)` are managed because
+their source lifetime extends beyond one call: they preserve source order,
+propagate source errors, and close the source in its execution context when the
+consumer stops early.
+
+The module-level `default_stage_call_bridge` is available for framework
+adapters that want one shared bridge. Applications with an explicit lifecycle
+can own a separate bridge and call `close()`/`async_close()`; a timeout leaves
+the bridge sealed and close may be retried. A supplied Stage or executor is
+borrowed and is never closed by the bridge.
+
+StageCallBridge is intentionally not the fast path for ordinary native calls.
+Directly call sync work from sync code and directly await async work from async
+code when no call-shape bridge is needed.
 
 ## StageStream
 
@@ -341,7 +412,9 @@ Source errors are delivered after values already published. Stream callbacks
 observe source completion once and receive the complete result list; they do
 not transform individual items. `lazy=True` delays source start until the first
 reader. The source automatically publishes EOF or failure to StageStream's
-internal channel; callers do not close a StageStream.
+internal channel. A consumer that intentionally stops early can call
+`close()`/`async_close()` to request source termination and wait for settlement;
+if that wait times out, close may be called again.
 
 StageStream's complete-result and complete-replay contract is intentionally
 unbounded. The source writes into one canonical growing replay buffer;
@@ -490,6 +563,7 @@ run:
 - [Callbacks, errors, and cancellation](examples/callbacks_errors_and_cancellation.py)
 - [Tunnel broadcast, timeout, and failure](examples/tunnel_broadcast.py)
 - [StageStream lazy execution, replay, and failure](examples/stage_stream.py)
+- [Call-shape bridging and early stream close](examples/call_bridge.py)
 - [EventEmitter listeners without ordinary close](examples/event_emitter.py)
 - [Automatic process exit after retained work](examples/automatic_process_exit.py)
 
@@ -521,10 +595,10 @@ canonical Stage runtime and do not own additional event loops or bridge threads.
 `StageDispatch` and the async `TaskThreadPool.submit(...)` path explicitly use
 the shared Stage carrier so their returned `concurrent.futures.Future` objects
 remain synchronously readable even when submitted from a running event loop.
-New code should prefer `Stage`, `StageHandle`, `StageStream`, `Tunnel`, and
-`EventEmitter`, plus `TunnelSubscription` when an independent reader lifecycle
-is required. `LocalTaskScope` is compatibility-only and is not recommended for
-new code.
+New code should prefer `Stage`, `StageHandle`, `StageStream`, `StageCallBridge`,
+`Tunnel`, and `EventEmitter`, plus `TunnelSubscription` when an independent
+reader lifecycle is required. `LocalTaskScope` is compatibility-only and is not
+recommended for new code.
 
 ## Development
 
