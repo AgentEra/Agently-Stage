@@ -67,8 +67,11 @@ class StageSnapshot:
 
 @dataclass(eq=False)
 class _RootAdmission:
-    gate: Future[None]
+    gate: Future[None] | None
     granted: bool
+
+
+_IMMEDIATE_ROOT_ADMISSION = _RootAdmission(gate=None, granted=True)
 
 
 class Stage:
@@ -227,8 +230,11 @@ class Stage:
         if self._sealed and not allow_sealed:
             raise StageClosedError("Cannot submit work to a sealed Stage scope")
         backend, loop = self._resolve_backend_locked()
-        handle: StageHandle[Any] = StageHandle(self, origin=origin)
-        handle._set_backend_kind(backend)
+        handle: StageHandle[Any] = StageHandle(
+            self,
+            origin=origin,
+            backend_kind=backend,
+        )
         self._active_handles.add(handle)
         self._touch_locked()
         return handle, backend, loop
@@ -236,20 +242,18 @@ class Stage:
     def _admit_root_locked(self) -> _RootAdmission | None:
         if _active_stage.get() is self:
             return None
-        gate: Future[None] = Future()
         if self._max_concurrency is None or self._active_root_count < self._max_concurrency:
             self._active_root_count += 1
-            admission = _RootAdmission(gate=gate, granted=True)
-            gate.set_result(None)
-            return admission
+            return _IMMEDIATE_ROOT_ADMISSION
         if self._max_pending is not None and len(self._pending_admissions) >= self._max_pending:
             raise StageBackpressureError(f"Stage pending root bound reached: max_pending={self._max_pending}")
+        gate: Future[None] = Future()
         admission = _RootAdmission(gate=gate, granted=False)
         self._pending_admissions.append(admission)
         return admission
 
     async def _wait_for_admission(self, admission: _RootAdmission | None) -> None:
-        if admission is not None:
+        if admission is not None and admission.gate is not None:
             await asyncio.shield(asyncio.wrap_future(admission.gate))
 
     def _finish_admission(self, admission: _RootAdmission | None) -> None:
@@ -265,11 +269,12 @@ class Stage:
                     pass
             while self._pending_admissions:
                 next_admission = self._pending_admissions.popleft()
-                if next_admission.gate.done():
+                gate = next_admission.gate
+                if gate is None or gate.done():
                     continue
                 next_admission.granted = True
                 self._active_root_count += 1
-                next_admission.gate.set_result(None)
+                gate.set_result(None)
                 break
             self._scope_condition.notify_all()
 
@@ -524,11 +529,7 @@ class Stage:
         async def body() -> None:
             try:
                 await self._wait_for_admission(admission)
-                token = _active_stage.set(self)
-                try:
-                    result = await self._execute_scalar(task, args, kwargs)
-                finally:
-                    _active_stage.reset(token)
+                result = await self._execute_scalar(task, args, kwargs)
             except asyncio.CancelledError as error:
                 should_start_callbacks = handle._set_body_cancelled(error)
                 if should_start_callbacks:
@@ -618,8 +619,11 @@ class Stage:
             with self._scope_lock:
                 self._adopted_tasks.pop(done_task, None)
                 self._touch_locked()
-                lease = self._release_backend_if_quiescent_locked()
-                self._scope_condition.notify_all()
+                if self._has_active_work_locked():
+                    lease = None
+                else:
+                    lease = self._release_backend_if_quiescent_locked()
+                    self._scope_condition.notify_all()
             if lease is not None:
                 _RUNTIME_CARRIER.release_lease(lease)
 
@@ -821,8 +825,11 @@ class Stage:
         with self._scope_lock:
             self._scope_settlement_errors.extend(errors)
             self._active_handles.discard(handle)
-            lease = self._release_backend_if_quiescent_locked()
-            self._scope_condition.notify_all()
+            if self._has_active_work_locked():
+                lease = None
+            else:
+                lease = self._release_backend_if_quiescent_locked()
+                self._scope_condition.notify_all()
         if lease is not None:
             _RUNTIME_CARRIER.release_lease(lease)
 

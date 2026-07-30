@@ -278,6 +278,31 @@ def test_adopted_task_is_not_falsely_claimed_by_go_admission_limits() -> None:
     asyncio.run(run())
 
 
+def test_unbounded_root_fast_path_preserves_snapshot_counts() -> None:
+    async def run() -> None:
+        stage = Stage()
+        release = asyncio.Event()
+
+        first = stage.go(release.wait)
+        second = stage.go(release.wait)
+        await asyncio.sleep(0)
+
+        active = stage.snapshot()
+        assert active.active_root_count == 2
+        assert active.pending_root_count == 0
+
+        release.set()
+        await asyncio.gather(first.async_get(), second.async_get())
+        await stage.async_wait_settled(timeout=1)
+
+        settled = stage.snapshot()
+        assert settled.active_root_count == 0
+        assert settled.pending_root_count == 0
+        await stage.async_close()
+
+    asyncio.run(run())
+
+
 def test_adopt_rejects_cross_loop_task() -> None:
     foreign_loop = asyncio.new_event_loop()
     foreign_task = foreign_loop.create_task(asyncio.sleep(0))

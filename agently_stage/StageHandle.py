@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 _CallbackKind = Literal["success", "error", "finally"]
 _OwnedTaskPhase = Literal["body", "settlement"]
+_SETTLED_FUTURE: concurrent.futures.Future[None] = concurrent.futures.Future()
+_SETTLED_FUTURE.set_result(None)
 
 
 @dataclass(frozen=True)
@@ -32,15 +34,20 @@ class _Callback:
 class StageHandle(Generic[T]):
     """Loop-neutral access to a Stage body outcome and settlement barrier."""
 
-    def __init__(self, stage: Stage, *, origin: str):
+    def __init__(
+        self,
+        stage: Stage,
+        *,
+        origin: str,
+        backend_kind: Literal["caller", "stage"],
+    ):
         self._stage = stage
         self._origin = origin
-        self._backend_kind: Literal["caller", "stage"] | None = None
+        self._backend_kind = backend_kind
         self._body_future: concurrent.futures.Future[T] = concurrent.futures.Future()
         self._state_lock = threading.RLock()
         self._pending_work = 0
-        self._settlement_future: concurrent.futures.Future[None] = concurrent.futures.Future()
-        self._settlement_future.set_result(None)
+        self._settlement_future: concurrent.futures.Future[None] = _SETTLED_FUTURE
         self._settlement_errors: list[BaseException] = []
         self._stage_error_cursor = 0
         self._generation_id: int | None = None
@@ -59,10 +66,6 @@ class StageHandle(Generic[T]):
     def origin(self) -> str:
         return self._origin
 
-    def _set_backend_kind(self, backend_kind: Literal["caller", "stage"]) -> None:
-        with self._state_lock:
-            self._backend_kind = backend_kind
-
     @property
     def generation_id(self) -> int:
         with self._state_lock:
@@ -78,7 +81,7 @@ class StageHandle(Generic[T]):
     def _retain_work(self) -> None:
         with self._state_lock:
             if self._pending_work == 0:
-                self._settlement_future = concurrent.futures.Future()
+                self._settlement_future = concurrent.futures.Future[None]()
             self._pending_work += 1
 
     def _release_work(self) -> None:
