@@ -60,6 +60,21 @@ def test_stage_dispatch_to_executor_work_is_owned_by_close_barrier() -> None:
     assert future.result(timeout=1) == "done"
 
 
+def test_stage_dispatch_future_remains_sync_readable_inside_a_running_loop() -> None:
+    async def run() -> None:
+        caller_loop = asyncio.get_running_loop()
+        dispatch = StageDispatch()
+
+        async def current_loop() -> asyncio.AbstractEventLoop:
+            return asyncio.get_running_loop()
+
+        future = dispatch.run_async_function(current_loop)
+        assert future.result(timeout=1) is not caller_loop
+        dispatch.close()
+
+    asyncio.run(run())
+
+
 def test_task_thread_pool_reuses_canonical_executors() -> None:
     assert TaskThreadPool.submit(lambda: "sync").result(timeout=1) == "sync"
 
@@ -69,6 +84,19 @@ def test_task_thread_pool_reuses_canonical_executors() -> None:
 
     assert TaskThreadPool.submit(async_body).result(timeout=1) == "async"
     assert _legacy_runtime_threads() == []
+
+
+def test_task_thread_pool_async_future_remains_sync_readable_inside_a_running_loop() -> None:
+    async def run() -> None:
+        caller_loop = asyncio.get_running_loop()
+
+        async def current_loop() -> asyncio.AbstractEventLoop:
+            return asyncio.get_running_loop()
+
+        future = TaskThreadPool.submit(current_loop)
+        assert future.result(timeout=1) is not caller_loop
+
+    asyncio.run(run())
 
 
 def test_stage_callback_task_uses_stage_instead_of_raw_thread() -> None:
@@ -103,7 +131,7 @@ def test_stage_function_concurrent_first_call_submits_once() -> None:
         time.sleep(0.03)
         return original_go(*args, **kwargs)
 
-    cast(Any, stage).go = slow_go
+    cast("Any", stage).go = slow_go
     stage_function = StageFunction(stage, lambda: "done")
     start = threading.Barrier(8)
 

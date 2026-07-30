@@ -279,7 +279,7 @@ def test_task_factory_accepts_explicit_context() -> None:
             await asyncio.sleep(0)
             return marker.get()
 
-        create_task = cast(Any, asyncio.get_running_loop().create_task)
+        create_task = cast("Any", asyncio.get_running_loop().create_task)
         task = create_task(
             child(),
             context=context,

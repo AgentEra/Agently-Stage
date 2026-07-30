@@ -21,7 +21,7 @@ def test_empty_context_creates_no_generation() -> None:
     assert _runtime_snapshot() == before
 
 
-def test_pinned_context_keeps_loop_affinity_across_idle_gap() -> None:
+def test_context_manager_does_not_pin_auto_backend_across_idle_gap() -> None:
     async def current_loop() -> asyncio.AbstractEventLoop:
         return asyncio.get_running_loop()
 
@@ -29,7 +29,7 @@ def test_pinned_context_keeps_loop_affinity_across_idle_gap() -> None:
         first = stage.get(current_loop)
         second = stage.get(current_loop)
 
-    assert first is second
+    assert first is not second
 
 
 def test_context_close_waits_for_scope_work() -> None:
@@ -117,7 +117,7 @@ def test_async_close_does_not_block_caller_loop_during_executor_shutdown() -> No
 
     async def scenario() -> None:
         stage = Stage()
-        cast(Any, stage)._private_executor = SlowShutdownExecutor()
+        cast("Any", stage)._private_executor = SlowShutdownExecutor()
 
         async def tick() -> None:
             await asyncio.sleep(0.01)

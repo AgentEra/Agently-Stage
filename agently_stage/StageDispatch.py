@@ -27,9 +27,9 @@ class StageDispatchEnvironment:
     ) -> None:
         del auto_close_timeout
         self._stage = Stage(
+            loop="stage",
             exception_handler=exception_handler,
             max_workers=max_workers,
-            auto_close=auto_close,
         )
         self.loop: None = None
         self.loop_thread: None = None
@@ -77,7 +77,7 @@ class StageDispatch:
         *args: Any,
         **kwargs: Any,
     ) -> Future[T]:
-        return cast(Any, self._dispatch_env._stage.go(func, *args, **kwargs)._body_future)
+        return cast("Any", self._dispatch_env._stage.go(func, *args, **kwargs)._body_future)
 
     def to_executor(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         def invoke() -> T:

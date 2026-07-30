@@ -30,6 +30,6 @@ class TaskThreadPool:
         **kwargs: Any,
     ) -> Future[T]:
         if inspect.isawaitable(function) or inspect.iscoroutinefunction(function):
-            handle = cast("StageHandle[T]", Stage().go(cast(Any, function), *args, **kwargs))
+            handle = cast("StageHandle[T]", Stage(loop="stage").go(cast("Any", function), *args, **kwargs))
             return handle._body_future
-        return _RUNTIME_CARRIER.blocking_executor.submit(cast(Any, function), *args, **kwargs)
+        return _RUNTIME_CARRIER.blocking_executor.submit(cast("Any", function), *args, **kwargs)

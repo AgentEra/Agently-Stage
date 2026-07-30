@@ -333,7 +333,7 @@ class _RuntimeCarrier:
         def create_task() -> Task[Any]:
             if context is None:
                 return asyncio.tasks.Task(coroutine, loop=loop)
-            task_constructor = cast(Any, asyncio.tasks.Task)
+            task_constructor = cast("Any", asyncio.tasks.Task)
             return task_constructor(
                 coroutine,
                 loop=loop,
@@ -369,6 +369,7 @@ class _RuntimeCarrier:
             error = task.exception()
             if error is not None:
                 handle._record_settlement_error(error)
+        handle._stage._owned_activity()
         self._release_reservation(generation)
         handle._release_work()
 

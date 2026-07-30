@@ -230,7 +230,7 @@ class Tunnel(Generic[T]):
     ) -> TunnelSubscription[T]:
         """Create one independent reader at retained history, live edge, or checkpoint."""
 
-        effective_timeout = self._timeout if timeout is _USE_DEFAULT_TIMEOUT else cast(float | None, timeout)
+        effective_timeout = self._timeout if timeout is _USE_DEFAULT_TIMEOUT else cast("float | None", timeout)
         with self._condition:
             if start == "earliest":
                 cursor = self._base_sequence
@@ -270,5 +270,5 @@ class Tunnel(Generic[T]):
         return iter(self)
 
     def get(self, timeout: float | None | object = _USE_DEFAULT_TIMEOUT) -> list[T]:
-        effective_timeout = self._timeout if timeout is _USE_DEFAULT_TIMEOUT else cast(float | None, timeout)
+        effective_timeout = self._timeout if timeout is _USE_DEFAULT_TIMEOUT else cast("float | None", timeout)
         return list(self.subscribe(start="earliest", timeout=effective_timeout))

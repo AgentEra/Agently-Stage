@@ -9,7 +9,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic, Literal, TypeVar
 
-from .StageException import StageClosedError, StageSettlementError
+from .StageException import StageClosedError, StageLifecycleError, StageSettlementError
 
 if TYPE_CHECKING:
     from asyncio import AbstractEventLoop, Task
@@ -32,8 +32,10 @@ class _Callback:
 class StageHandle(Generic[T]):
     """Loop-neutral access to a Stage body outcome and settlement barrier."""
 
-    def __init__(self, stage: Stage):
+    def __init__(self, stage: Stage, *, origin: str):
         self._stage = stage
+        self._origin = origin
+        self._backend_kind: Literal["caller", "stage"] | None = None
         self._body_future: concurrent.futures.Future[T] = concurrent.futures.Future()
         self._state_lock = threading.RLock()
         self._pending_work = 0
@@ -52,6 +54,14 @@ class StageHandle(Generic[T]):
         self._body_error: BaseException | None = None
         self._callbacks: deque[_Callback] = deque()
         self._callback_drain_active = False
+
+    @property
+    def origin(self) -> str:
+        return self._origin
+
+    def _set_backend_kind(self, backend_kind: Literal["caller", "stage"]) -> None:
+        with self._state_lock:
+            self._backend_kind = backend_kind
 
     @property
     def generation_id(self) -> int:
@@ -114,7 +124,9 @@ class StageHandle(Generic[T]):
             self._body_completed = True
             self._body_result = result
             self._body_future.set_result(result)
-            return self._activate_callback_drain_locked()
+            should_start = self._activate_callback_drain_locked()
+        self._stage._owned_activity()
+        return should_start
 
     def _set_body_exception(self, error: BaseException, *, ignored: bool = False) -> bool:
         with self._state_lock:
@@ -126,7 +138,9 @@ class StageHandle(Generic[T]):
                 self._body_future.set_result(None)  # type: ignore[arg-type]
             else:
                 self._body_future.set_exception(error)
-            return self._activate_callback_drain_locked()
+            should_start = self._activate_callback_drain_locked()
+        self._stage._owned_activity()
+        return should_start
 
     def _set_body_cancelled(self, error: asyncio.CancelledError | None = None) -> bool:
         with self._state_lock:
@@ -135,7 +149,9 @@ class StageHandle(Generic[T]):
             self._body_completed = True
             self._body_error = error or asyncio.CancelledError()
             self._body_future.cancel()
-            return self._activate_callback_drain_locked()
+            should_start = self._activate_callback_drain_locked()
+        self._stage._owned_activity()
+        return should_start
 
     def _register_initial_callback(
         self,
@@ -160,13 +176,19 @@ class StageHandle(Generic[T]):
     ) -> StageHandle[T]:
         callback_context = contextvars.copy_context() if context is None else context
         with self._stage._scope_lock:
-            if self._stage._closed:
+            if not self._stage._callback_registration_allowed():
                 raise StageClosedError("Cannot register a callback after Stage scope close")
             with self._state_lock:
                 self._callbacks.append(_Callback(kind, callback, callback_context))
                 should_start = self._body_completed and self._activate_callback_drain_locked()
             if should_start:
-                self._stage._submit_callback_drain_locked(self)
+                try:
+                    self._stage._submit_callback_drain_locked(self)
+                except BaseException:
+                    with self._state_lock:
+                        self._callbacks.pop()
+                        self._callback_drain_active = False
+                    raise
         return self
 
     def on_success(
@@ -214,6 +236,8 @@ class StageHandle(Generic[T]):
                 )
             except BaseException as error:
                 self._record_settlement_error(error)
+            finally:
+                self._stage._owned_activity()
 
     def _set_owner_task(self, loop: AbstractEventLoop, task: Task[object]) -> None:
         with self._state_lock:
@@ -234,7 +258,33 @@ class StageHandle(Generic[T]):
     def is_ready(self) -> bool:
         return self._body_future.done()
 
+    def _ensure_not_owner_loop_sync_wait(
+        self,
+        *,
+        operation: str,
+        async_operation: str,
+        already_done: bool,
+    ) -> None:
+        if already_done:
+            return
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        with self._state_lock:
+            owner_loop = self._owner_loop
+        if owner_loop is running_loop:
+            raise StageLifecycleError(
+                f"Cannot call {operation}() while running on this StageHandle's caller-owned event loop; "
+                f"use {async_operation}()"
+            )
+
     def get(self, timeout: float | None = None) -> T:
+        self._ensure_not_owner_loop_sync_wait(
+            operation="get",
+            async_operation="async_get",
+            already_done=self._body_future.done(),
+        )
         return self._body_future.result(timeout=timeout)
 
     async def async_get(self, timeout: float | None = None) -> T:
@@ -246,6 +296,11 @@ class StageHandle(Generic[T]):
     def wait_settled(self, timeout: float | None = None) -> None:
         with self._stage._scope_lock, self._state_lock:
             barrier = self._settlement_future
+        self._ensure_not_owner_loop_sync_wait(
+            operation="wait_settled",
+            async_operation="async_wait_settled",
+            already_done=barrier.done(),
+        )
         barrier.result(timeout=timeout)
         with self._state_lock:
             errors = self._settlement_errors.copy()
@@ -266,6 +321,16 @@ class StageHandle(Generic[T]):
             raise StageSettlementError(errors)
 
     def cancel(self, timeout: float | None = None) -> bool:
+        with self._state_lock:
+            if self._body_future.done() and not self._owned_body_tasks:
+                return False
+            body_done = self._body_future.done()
+        if timeout is None or timeout > 0:
+            self._ensure_not_owner_loop_sync_wait(
+                operation="cancel",
+                async_operation="Stage.async_cancel_and_wait_settled",
+                already_done=body_done,
+            )
         with self._state_lock:
             if self._body_future.done() and not self._owned_body_tasks:
                 return False

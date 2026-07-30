@@ -71,7 +71,12 @@ class StageStream(Generic[T]):
         return self._ensure_started().cancel(timeout=timeout)
 
     def __iter__(self) -> Iterator[T]:
-        self._ensure_started()
+        handle = self._ensure_started()
+        handle._ensure_not_owner_loop_sync_wait(
+            operation="iterate StageStream synchronously",
+            async_operation="async for",
+            already_done=handle.is_ready(),
+        )
         return iter(self._tunnel)
 
     def __aiter__(self) -> AsyncIterator[T]:

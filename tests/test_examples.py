@@ -13,7 +13,6 @@ EXAMPLES = [
     REPOSITORY_ROOT / "examples" / "body_result_and_background_drain.py",
     REPOSITORY_ROOT / "examples" / "generation_and_pinned_context.py",
     REPOSITORY_ROOT / "examples" / "callbacks_errors_and_cancellation.py",
-    REPOSITORY_ROOT / "examples" / "local_task_scope.py",
     REPOSITORY_ROOT / "examples" / "tunnel_broadcast.py",
     REPOSITORY_ROOT / "examples" / "stage_stream.py",
     REPOSITORY_ROOT / "examples" / "event_emitter.py",

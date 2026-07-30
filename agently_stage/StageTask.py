@@ -76,9 +76,9 @@ class StageTaskProxy(Generic[T]):
         try:
             result = self._func(*args, **kwargs)
             if inspect.isawaitable(result):
-                result = await cast(Any, result)
+                result = await cast("Any", result)
             else:
-                result = cast(T, result)
+                result = cast("T", result)
             if self._on_success is not None:
                 await self._async_wait_callback(self._on_success(result))
             return result
@@ -97,7 +97,7 @@ class StageTaskProxy(Generic[T]):
             result = self._func(*args, **kwargs)
             if inspect.isawaitable(result):
                 raise TypeError("Async StageTaskProxy call requires use_async=True")
-            result = cast(T, result)
+            result = cast("T", result)
             if self._on_success is not None:
                 self._wait_callback(self._on_success(result))
             return result

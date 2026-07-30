@@ -43,6 +43,21 @@ class StageLifecycleError(StageError):
     """Raised when the private runtime carrier cannot preserve its contract."""
 
 
+class StageBackpressureError(StageError):
+    """Raised when a Stage cannot admit another root within its configured bounds."""
+
+
+class StageIdleTimeoutError(StageError, TimeoutError):
+    """Raised when unresolved Stage-owned work exceeds its idle budget."""
+
+    def __init__(self, *, idle_timeout: float, unresolved_origins: Iterable[str]):
+        self.idle_timeout = idle_timeout
+        self.unresolved_origins = tuple(unresolved_origins)
+        super().__init__(
+            f"Stage idle timeout after {idle_timeout:.6g}s; unresolved origins: {list(self.unresolved_origins)}"
+        )
+
+
 class StageSettlementError(StageError):
     """Raised after body completion when retained settlement work failed."""
 
@@ -89,7 +104,7 @@ class StageException(Exception):
             message += f"❌ [Exception {index + 1}]\n\n"
             context = exception_record["context"]
             if isinstance(context, dict):
-                for key, content in cast(dict[object, object], context).items():
+                for key, content in cast("dict[object, object]", context).items():
                     message += f"   - {key}: {content}\n"
             elif isinstance(context, types.TracebackType):
                 error = exception_record["exception"]

@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from .Stage import Stage
 from .StageException import StageClosedError, StageLifecycleError
 
 if TYPE_CHECKING:
@@ -29,7 +31,7 @@ T = TypeVar("T")
 
 @dataclass(frozen=True)
 class LocalTaskOutcome:
-    """One completion observation from a task explicitly owned by a local scope."""
+    """Compatibility completion observation for ``LocalTaskScope``."""
 
     task: asyncio.Task[Any]
     origin: str
@@ -38,37 +40,40 @@ class LocalTaskOutcome:
 
 
 class LocalTaskScope:
-    """Own explicitly admitted tasks on one caller-managed event loop."""
+    """Deprecated compatibility facade over a caller-loop ``Stage`` scope."""
 
     def __init__(
         self,
         *,
         on_done: Callable[[LocalTaskOutcome], object] | None = None,
     ) -> None:
+        warnings.warn(
+            "LocalTaskScope is deprecated; use Stage.go() or Stage.adopt()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._loop: asyncio.AbstractEventLoop | None = None
-        self._idle: asyncio.Event | None = None
-        self._tasks: set[asyncio.Task[Any]] = set()
+        self._stage: Stage | None = None
+        self._adopted: set[asyncio.Task[Any]] = set()
         self._origins: dict[asyncio.Task[Any], str] = {}
         self._on_done = on_done
         self._closed = False
         self._close_completed = False
-        self._cancelling = False
 
     def _bind_running_loop(self) -> asyncio.AbstractEventLoop:
         loop = asyncio.get_running_loop()
         if self._loop is None:
             self._loop = loop
-            self._idle = asyncio.Event()
-            self._idle.set()
+            self._stage = Stage(loop=loop)
         elif self._loop is not loop:
             raise StageLifecycleError("A local Stage task scope cannot cross event loops")
         return loop
 
-    def _idle_event(self) -> asyncio.Event:
+    def _bound_stage(self) -> Stage:
         self._bind_running_loop()
-        if self._idle is None:
-            raise StageLifecycleError("Local Stage task scope did not bind its idle event")
-        return self._idle
+        if self._stage is None:
+            raise StageLifecycleError("Local Stage task scope did not bind its Stage")
+        return self._stage
 
     def spawn(
         self,
@@ -91,10 +96,10 @@ class LocalTaskScope:
     ) -> asyncio.Task[T]:
         if self._closed:
             raise StageClosedError("Cannot adopt work into a closed local Stage task scope")
-        loop = self._bind_running_loop()
-        if task.get_loop() is not loop:
+        stage = self._bound_stage()
+        if task.get_loop() is not self._loop:
             raise StageLifecycleError("A local Stage task scope cannot adopt a task from another event loop")
-        if task in self._tasks:
+        if task in self._adopted:
             registered_origin = self._origins[task]
             if registered_origin != origin:
                 raise StageLifecycleError(
@@ -102,75 +107,46 @@ class LocalTaskScope:
                 )
             return task
 
-        idle = self._idle_event()
-        idle.clear()
-        self._tasks.add(task)
+        stage.adopt(task, origin=origin)
+        self._adopted.add(task)
         self._origins[task] = origin
         task.add_done_callback(self._task_done)
-        if self._cancelling and not task.done():
-            task.cancel()
         return task
 
     def _task_done(self, task: asyncio.Task[Any]) -> None:
         origin = self._origins.pop(task, "<unknown>")
-        self._tasks.discard(task)
+        self._adopted.discard(task)
         cancelled = task.cancelled()
         error = None if cancelled else task.exception()
+        if self._on_done is None:
+            return
         outcome = LocalTaskOutcome(
             task=task,
             origin=origin,
             cancelled=cancelled,
             error=error,
         )
-        if self._on_done is not None:
-            try:
-                self._on_done(outcome)
-            except BaseException as callback_error:
-                loop = self._loop
-                if loop is not None:
-                    loop.call_exception_handler(
-                        {
-                            "message": "Local Stage task completion callback failed",
-                            "exception": callback_error,
-                            "task": task,
-                            "origin": origin,
-                        }
-                    )
-        if not self._tasks:
-            self._cancelling = False
-            idle = self._idle
-            if idle is not None:
-                idle.set()
-
-    def _unresolved_origins(self) -> list[str]:
-        return sorted(self._origins.get(task, "<unknown>") for task in self._tasks)
+        try:
+            self._on_done(outcome)
+        except BaseException as callback_error:
+            loop = self._loop
+            if loop is not None:
+                loop.call_exception_handler(
+                    {
+                        "message": "Local Stage task completion callback failed",
+                        "exception": callback_error,
+                        "task": task,
+                        "origin": origin,
+                    }
+                )
 
     async def wait_settled(self, timeout: float | None = None) -> None:
-        idle = self._idle_event()
-        if idle.is_set():
-            return
-        try:
-            if timeout is None:
-                await idle.wait()
-            else:
-                await asyncio.wait_for(idle.wait(), timeout=timeout)
-        except asyncio.TimeoutError:
-            unresolved = self._unresolved_origins()
-            raise TimeoutError(
-                f"Local Stage task scope settlement timed out; unresolved origins: {unresolved}"
-            ) from None
+        stage = self._bound_stage()
+        await stage.async_wait_settled(timeout=timeout)
 
     async def cancel_and_wait(self, timeout: float | None = None) -> bool:
-        self._bind_running_loop()
-        tasks = tuple(self._tasks)
-        if not tasks:
-            return False
-        self._cancelling = True
-        for task in tasks:
-            if not task.done():
-                task.cancel()
-        await self.wait_settled(timeout=timeout)
-        return True
+        stage = self._bound_stage()
+        return await stage.async_cancel_and_wait_settled(timeout=timeout)
 
     async def close(
         self,
@@ -178,23 +154,22 @@ class LocalTaskScope:
         timeout: float | None = None,
         cancel: bool = False,
     ) -> None:
-        self._bind_running_loop()
+        stage = self._bound_stage()
         if self._close_completed:
             return
         self._closed = True
         if cancel:
-            await self.cancel_and_wait(timeout=timeout)
-        else:
-            await self.wait_settled(timeout=timeout)
+            await stage.async_cancel_and_wait_settled(timeout=timeout)
+        await stage.async_close(timeout=timeout)
         self._close_completed = True
 
     @property
     def pending_count(self) -> int:
-        return len(self._tasks)
+        return len(self._adopted)
 
     @property
     def pending_tasks(self) -> tuple[asyncio.Task[Any], ...]:
-        return tuple(self._tasks)
+        return tuple(self._adopted)
 
     @property
     def pending_origins(self) -> tuple[str, ...]:

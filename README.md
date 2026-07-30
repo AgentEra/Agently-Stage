@@ -4,10 +4,17 @@ Agently Stage is a Python 3.10+ runtime bridge for safely combining synchronous
 callers, asyncio work, blocking functions, generators, streaming channels, and
 local event listeners.
 
-It uses one process-wide control worker with finite asyncio loop generations.
-Creating a `Stage` does not create a thread or loop. Work opens a generation
-lazily; retained work drains, the loop closes, and a later batch can open a new
-generation. Ordinary scripts do not need a process shutdown hook.
+Creating a `Stage` does not create a thread, loop, or permanent loop binding.
+The first admitted root in each active epoch selects its backend lazily:
+
+- inside an async service, `Stage()` uses that service's current running loop;
+- without a running loop, `Stage()` uses the process-wide Stage carrier;
+- after complete settlement, a reusable automatic Stage releases the binding
+  and selects again when later work arrives.
+
+The Stage carrier uses one process-wide control worker with finite asyncio loop
+generations. Retained work drains, its loop closes, and a later batch can open a
+new generation. Ordinary scripts do not need a process shutdown hook.
 
 ## Install
 
@@ -41,8 +48,8 @@ stage = Stage()
 fetch_handle = stage.go(fetch)
 calculate_handle = stage.go(calculate)
 
-print(fetch_handle.get())       # network-result
-print(calculate_handle.get())   # 42
+print(fetch_handle.get())  # network-result
+print(calculate_handle.get())  # 42
 ```
 
 Async services can read the same handles without blocking their own event loop:
@@ -58,18 +65,44 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-The user's event loop is never reused or replaced. Calling `asyncio.run()`
-before or after Stage remains valid.
+When automatic or explicit Stage work uses the caller's running loop, blocking
+`get()`, `wait_settled()`, `close()`, a waiting `cancel()`, or synchronous
+StageStream iteration on that same loop would prevent the work from advancing.
+Stage detects this case and raises `StageLifecycleError`; use the corresponding
+async API or `async for`. A zero-timeout `handle.cancel(timeout=0)` may still be
+used to request cancellation without claiming settlement.
+
+Stage never stops or closes a caller-owned event loop and never replaces its
+task factory. Calling `asyncio.run()` before or after Stage remains valid.
+
+Backend selection can also be explicit:
+
+```python
+async def service() -> None:
+    loop = asyncio.get_running_loop()
+
+    same_loop = Stage(loop=loop)  # pinned to this caller-owned loop
+    carrier = Stage(loop="stage")  # always use the finite Stage carrier
+
+    assert await same_loop.go(fetch).async_get() == "network-result"
+    assert await carrier.go(fetch).async_get() == "network-result"
+
+    await same_loop.async_close()
+    await carrier.async_close()
+```
+
+`None`, `"new"`, and `"default"` are not loop modes. Omit `loop` for automatic
+selection or use the exact `"stage"` policy.
 
 Each `Stage.go()` admission captures the caller's `contextvars` context. The
-root task, its retained descendants, and initial callbacks inherit that
-snapshot. A callback registered later captures its own registration-time
-context. Context changes made inside Stage do not mutate the caller's context.
+root and initial callbacks inherit that snapshot. A callback registered later
+captures its own registration-time context. Context changes made inside Stage
+do not mutate the caller's context.
 
 ### Body result and settlement are different
 
 `get()` returns the root/body outcome. `wait_settled()` additionally waits for
-Stage-retained descendants, callbacks, and finalizers.
+Stage-retained work, callbacks, and finalizers.
 
 ```python
 import asyncio
@@ -90,10 +123,10 @@ async def request() -> str:
 
 
 handle = Stage().go(request)
-print(handle.get())              # business-result
-print(drained.is_set())          # False
+print(handle.get())  # business-result
+print(drained.is_set())  # False
 handle.wait_settled()
-print(drained.is_set())          # True
+print(drained.is_set())  # True
 ```
 
 Body errors are raised by `get()` and do not become settlement errors.
@@ -107,6 +140,12 @@ must be ruled out. Cleanup callbacks and finalizers still settle. Cancellation
 cannot preempt a non-cooperative blocking function or undo an external side
 effect that has already committed; applications must use their own idempotency,
 authorization, or compensation policy for those effects.
+
+On the Stage-owned carrier, tasks created inside Stage work are retained by the
+carrier task factory. On a caller-owned loop, Stage deliberately does not
+replace the loop's task factory: settlement covers work created through
+`Stage.go()` and tasks explicitly attached with `Stage.adopt()`. An unrelated
+raw `asyncio.create_task()` remains owned by the caller.
 
 ### Callback observers
 
@@ -129,13 +168,11 @@ Callbacks can be sync or async. A callback registered after the body finishes
 still observes the cached outcome while the Stage scope remains open. Registering
 after scope close raises `StageClosedError`.
 
-## Plain Stage or context-managed Stage?
+## Lazy epochs and scope lifetime
 
-A plain Stage is unpinned. It remains reusable after an idle loop generation
-closes, so later `go()` calls may run in a new generation.
-
-Use `with Stage()` or `async with Stage()` when several calls need the same
-loop-affine resource:
+Automatic backend selection happens when work enters, not when `Stage()` is
+constructed. A Stage created during synchronous application setup can therefore
+share a service loop when its first task is submitted later:
 
 ```python
 import asyncio
@@ -147,74 +184,113 @@ async def current_loop() -> asyncio.AbstractEventLoop:
     return asyncio.get_running_loop()
 
 
-with Stage() as stage:
-    first_loop = stage.get(current_loop)
-    second_loop = stage.get(current_loop)
-    assert first_loop is second_loop
+stage = Stage()
+carrier_loop = stage.get(current_loop)
+stage.wait_settled()
+
+
+async def service() -> None:
+    service_loop = asyncio.get_running_loop()
+    selected = await stage.go(current_loop).async_get()
+    assert selected is service_loop
+    assert selected is not carrier_loop
+    await stage.async_close()
+
+
+asyncio.run(service())
 ```
 
-The first submission lazily acquires a generation lease. Context exit seals
-that Stage scope and waits for its work, without waiting for unrelated Stage
-scopes. An empty context creates no loop.
+One active epoch never spans multiple loops. Cross-thread submissions during an
+active epoch are delivered to that epoch's selected loop. Complete settlement
+releases an automatic binding; the next root selects again.
+
+`with Stage()` and `async with Stage()` are lifecycle conveniences. Context exit
+seals the scope and waits for its work, but context entry does not pin an
+automatic Stage to a carrier generation. Use `Stage(loop="stage")` or an exact
+loop object when the backend policy must be pinned. An empty context creates no
+loop.
 
 `Stage.close()` and `Stage.async_close()` are scope barriers for explicit
 application lifecycles. They are not required to make an ordinary script exit:
 an active non-daemon control job keeps retained work alive, then the finite loop
 closes by itself.
 
-When a close timeout expires, Stage raises `TimeoutError` with the number of
-unsettled handles. The scope remains closed to new submissions, and `close()`
-may be called again after the outstanding work settles.
+`seal()` rejects new external roots while already accepted roots, queued work,
+owned nested work, callbacks, and finalizers drain. `wait_settled()` waits
+without sealing. `close()` combines seal and settlement. Async counterparts are
+available for all blocking barriers.
 
-## LocalTaskScope
+When a settlement timeout expires, Stage raises `TimeoutError` with unresolved
+origins. The scope remains sealed, and `close()` may be called again after the
+outstanding work settles.
 
-`LocalTaskScope` is the same-loop counterpart to `Stage.go()`. Use it only when
-an async component already owns its event loop and needs explicit long-lived
-task membership, origin diagnostics, cancellation, and settlement without
-crossing into Stage's loop-neutral carrier.
+### Adopt caller-loop tasks
+
+`adopt()` attaches an already scheduled task from the selected caller loop to
+Stage cancellation, origin diagnostics, and settlement:
 
 ```python
 import asyncio
 
-from agently_stage import LocalTaskOutcome, LocalTaskScope
+from agently_stage import Stage
 
 
 async def main() -> None:
-    outcomes: list[LocalTaskOutcome] = []
-    scope = LocalTaskScope(on_done=outcomes.append)
-
     async def hook() -> str:
         await asyncio.sleep(0)
         return "ready"
 
-    task = scope.spawn(hook(), origin="event:ready-hook")
-    assert await task == "ready"
-    await scope.close(timeout=1)
+    stage = Stage()
+    task = asyncio.create_task(hook())
+    adopted = stage.adopt(task, origin="event:ready-hook")
 
-    assert scope.pending_count == 0
-    assert outcomes[0].origin == "event:ready-hook"
+    assert adopted is task
+    assert await task == "ready"
+    await stage.async_close(timeout=1)
 
 
 asyncio.run(main())
 ```
 
-The first operation binds the scope to the current running loop. `spawn()`
-creates a new task from a coroutine and captures the caller's current
-`contextvars`; `adopt()` accepts an existing task only from the same loop.
-Admission is explicit: the scope does not install a task factory or discover
-unrelated tasks.
+An adopted task has already been scheduled by its loop, so
+`max_concurrency`/`max_pending` cannot honestly delay it. Those admission limits
+apply to roots created by `Stage.go()`. `adopt()` returns the original task:
+the task remains the body-outcome handle, while Stage adds scope ownership,
+origin diagnostics, cancellation, idle tracking, and settlement without
+wrapping it in a second `StageHandle`.
 
-`pending_tasks` and sorted `pending_origins` are immutable snapshots.
-`wait_settled()` waits for all currently and transitively admitted work.
-`cancel_and_wait()` cancels owned work and does not acknowledge success before
-that work settles. `close()` seals admission and may either wait naturally or
-cancel first. A timeout raises `TimeoutError` and leaves the scope sealed but
-retryable; `pending_origins` identifies the unresolved owners.
+`LocalTaskScope` remains importable in 0.3.3 only as a deprecated compatibility
+facade over `Stage`. It emits `DeprecationWarning` and is scheduled for removal
+in 0.4.0. New code should use `Stage.go()` or `Stage.adopt()`.
 
-This is a task-lifetime mechanism, not an event bus, workflow runtime, tenant
+### Pressure and idle budgets
+
+`max_concurrency` bounds concurrently running external `go()` roots.
+`max_pending` bounds accepted roots waiting for a permit; overflow raises
+`StageBackpressureError` immediately. Owned nested Stage work does not consume a
+second root permit, so `max_concurrency=1` does not deadlock parent/child cleanup
+chains. `max_workers` independently bounds blocking executor workers.
+
+`idle_timeout` applies while Stage-owned work is unresolved. Admissions,
+terminal work, callbacks, and stream publication update the monotonic activity
+clock. Long-running providers or tools can call `stage.tick()` to report
+cooperative progress:
+
+```python
+stage = Stage(max_concurrency=8, max_pending=32, idle_timeout=30)
+```
+
+An idle timeout seals the Stage, requests cancellation of owned work, and is
+reported as `StageIdleTimeoutError` after settlement. It does not claim that a
+non-cooperative blocking call or external side effect has stopped.
+
+`snapshot()` returns a bounded immutable `StageSnapshot` with scope state,
+backend mode, active/pending counts, unresolved origins, activity time, idle
+state, and carrier generation id. It contains no application event or workflow
+types.
+
+Stage is a task-lifetime mechanism, not an event bus, workflow runtime, tenant
 boundary, provider cancellation acknowledgement, or business retry policy.
-Use direct `await` or `asyncio.TaskGroup` for ordinary lexical async work that
-does not need this longer-lived membership contract.
 
 ## StageStream
 
@@ -235,8 +311,8 @@ async def source():
 stage = Stage()
 stream = stage.go(source)
 
-print(stream.get())   # [0, 1, 2]
-print(list(stream))   # [0, 1, 2] (replay)
+print(stream.get())  # [0, 1, 2]
+print(list(stream))  # [0, 1, 2] (replay)
 stage.close()
 ```
 
@@ -390,9 +466,8 @@ run:
 - [Runtime foundation overview](examples/runtime_foundation.py)
 - [Sync, async, and concurrent calls](examples/basic_sync_async.py)
 - [Body result and retained background settlement](examples/body_result_and_background_drain.py)
-- [Finite generations and pinned loop affinity](examples/generation_and_pinned_context.py)
+- [Finite generations and lazy backend reselection](examples/generation_and_pinned_context.py)
 - [Callbacks, errors, and cancellation](examples/callbacks_errors_and_cancellation.py)
-- [Same-loop task ownership and settlement](examples/local_task_scope.py)
 - [Tunnel broadcast, timeout, and failure](examples/tunnel_broadcast.py)
 - [StageStream lazy execution, replay, and failure](examples/stage_stream.py)
 - [EventEmitter listeners without ordinary close](examples/event_emitter.py)
@@ -400,8 +475,8 @@ run:
 
 ## Runtime constraints
 
-- Async callables remain concurrent on one Stage loop; the single control
-  worker is not a serial task executor.
+- Async callables remain concurrent on one active backend loop; the shared
+  carrier control worker is not a serial task executor.
 - Stage scopes share the process-wide carrier. A scope is a lifetime and
   settlement boundary, not a tenant, fault, process, or resource-isolation
   boundary.
@@ -410,7 +485,8 @@ run:
 - No daemon Stage control thread, generator bridge thread, polling thread, or
   user `atexit` scheduling is used.
 - Cross-thread submission has fixed overhead. For very fine-grained work,
-  submit one async root that creates many asyncio tasks, or use a pinned context.
+  submit one async root that creates many asyncio tasks, or select an explicit
+  loop policy.
 - Native async callers should directly await native async work when no
   sync/thread/loop-neutral bridge is needed.
 - CPU-bound parallelism still belongs in a process executor or another
@@ -422,9 +498,13 @@ The preview imports `StageResponse`, `StageHybridGenerator`, `StageDispatch`,
 `StageDispatchEnvironment`, `StageCallBackTask`, `StageTaskProxy`,
 `TaskThreadPool`, and `StageFunction` remain available. They delegate to the
 canonical Stage runtime and do not own additional event loops or bridge threads.
+`StageDispatch` and the async `TaskThreadPool.submit(...)` path explicitly use
+the shared Stage carrier so their returned `concurrent.futures.Future` objects
+remain synchronously readable even when submitted from a running event loop.
 New code should prefer `Stage`, `StageHandle`, `StageStream`, `Tunnel`, and
-`EventEmitter`, plus `LocalTaskScope` and `TunnelSubscription` when their
-explicit same-loop or reader-lifecycle contracts are required.
+`EventEmitter`, plus `TunnelSubscription` when an independent reader lifecycle
+is required. `LocalTaskScope` is compatibility-only and is not recommended for
+new code.
 
 ## Development
 

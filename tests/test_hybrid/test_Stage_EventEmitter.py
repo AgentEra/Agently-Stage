@@ -48,7 +48,7 @@ def test_stage_eventemitter():
 
 
 def test_stage_eventemitter_timeout():
-    stage = Stage(auto_close=True)
+    stage = Stage()
     emitter = EventEmitter()
 
     async def listener(data):
@@ -66,3 +66,4 @@ def test_stage_eventemitter_timeout():
     # Get responses from all event listeners
     for response in responses:
         assert response.get()
+    stage.close()

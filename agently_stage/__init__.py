@@ -3,12 +3,14 @@ from __future__ import annotations
 from .EventEmitter import EventEmitter
 from .Events import Events
 from .LocalTaskScope import LocalTaskOutcome, LocalTaskScope
-from .Stage import Stage
+from .Stage import Stage, StageSnapshot
 from .StageDispatch import StageDispatch, StageDispatchEnvironment
 from .StageException import (
+    StageBackpressureError,
     StageClosedError,
     StageError,
     StageException,
+    StageIdleTimeoutError,
     StageLifecycleError,
     StageSettlementError,
     TunnelClosedError,
@@ -29,6 +31,7 @@ __all__ = [
     "LocalTaskScope",
     "Stage",
     "StageCallBackTask",
+    "StageBackpressureError",
     "StageClosedError",
     "StageDispatch",
     "StageDispatchEnvironment",
@@ -38,9 +41,11 @@ __all__ = [
     "StageHandle",
     "StageHybridGenerator",
     "StageLifecycleError",
+    "StageIdleTimeoutError",
     "StageResponse",
     "StageSettlementError",
     "StageStream",
+    "StageSnapshot",
     "StageTaskProxy",
     "Tunnel",
     "TunnelClosedError",

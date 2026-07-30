@@ -7,6 +7,8 @@ import pytest
 
 from agently_stage import LocalTaskOutcome, LocalTaskScope, StageClosedError, StageLifecycleError
 
+pytestmark = pytest.mark.filterwarnings("ignore:LocalTaskScope is deprecated:DeprecationWarning")
+
 
 def test_spawn_runs_on_caller_loop_with_captured_context() -> None:
     async def run() -> None:
