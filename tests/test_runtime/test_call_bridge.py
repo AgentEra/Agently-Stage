@@ -263,6 +263,62 @@ def test_sync_bridge_reentry_on_its_carrier_fails_before_inner_submission() -> N
     bridge.close()
 
 
+def test_sync_bridge_rejects_same_physical_carrier_from_another_stage() -> None:
+    bridge = StageCallBridge()
+    outer_stage = Stage(loop="stage")
+    inner_calls = 0
+
+    async def inner() -> str:
+        nonlocal inner_calls
+        inner_calls += 1
+        return "inner"
+
+    async def outer() -> None:
+        with pytest.raises(StageLifecycleError, match="carrier"):
+            bridge.as_sync(inner)()
+
+    outer_stage.get(outer)
+    outer_stage.close()
+    assert inner_calls == 0
+    bridge.close()
+
+
+def test_sync_bridge_allows_worker_round_trip_back_to_carrier() -> None:
+    bridge = StageCallBridge()
+
+    async def async_leaf() -> tuple[str, asyncio.AbstractEventLoop]:
+        return "ok", asyncio.get_running_loop()
+
+    def sync_middle() -> tuple[str, asyncio.AbstractEventLoop]:
+        return bridge.as_sync(async_leaf)()
+
+    async def async_root() -> tuple[str, bool]:
+        outer_loop = asyncio.get_running_loop()
+        value, leaf_loop = await bridge.as_async(sync_middle)()
+        return value, leaf_loop is outer_loop
+
+    assert bridge.as_sync(async_root)() == ("ok", True)
+    bridge.close()
+
+
+def test_sync_bridge_worker_round_trip_stress_does_not_deadlock() -> None:
+    bridge = StageCallBridge()
+
+    async def async_leaf(value: int) -> int:
+        await asyncio.sleep(0)
+        return value
+
+    def sync_middle(value: int) -> int:
+        return bridge.as_sync(async_leaf)(value)
+
+    async def async_root() -> list[int]:
+        bridged = bridge.as_async(sync_middle)
+        return await asyncio.gather(*(bridged(value) for value in range(64)))
+
+    assert bridge.as_sync(async_root)() == list(range(64))
+    bridge.close()
+
+
 def test_iter_sync_closes_async_source_on_early_consumer_close() -> None:
     finalized = threading.Event()
 

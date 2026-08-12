@@ -8,12 +8,21 @@ import inspect
 import threading
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
+from ._runtime import _RUNTIME_CARRIER
 from .Stage import Stage
 from .StageException import StageLifecycleError
 from .StageStream import StageStream
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, Coroutine, Generator, Iterator
+    from collections.abc import (
+        AsyncGenerator,
+        AsyncIterator,
+        Awaitable,
+        Callable,
+        Coroutine,
+        Generator,
+        Iterator,
+    )
     from concurrent.futures import Executor
 
     from .StageHandle import StageHandle
@@ -54,7 +63,7 @@ class StageCallBridge:
         return callable(function) and inspect.iscoroutinefunction(function.__call__)
 
     def _resolve_awaitable_sync(self, awaitable: Awaitable[T], *, managed: bool) -> T:
-        if self._carrier_stage.owns_current_execution():
+        if _RUNTIME_CARRIER.would_sync_wait_block_current_carrier(self._carrier_stage):
             close = getattr(awaitable, "close", None)
             if close is not None:
                 close()
@@ -89,7 +98,7 @@ class StageCallBridge:
         @functools.wraps(function)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             self._ensure_open()
-            if async_callable and self._carrier_stage.owns_current_execution():
+            if async_callable and _RUNTIME_CARRIER.would_sync_wait_block_current_carrier(self._carrier_stage):
                 raise StageLifecycleError(
                     "A synchronous StageCallBridge call cannot re-enter and block its own carrier execution"
                 )

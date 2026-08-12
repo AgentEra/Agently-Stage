@@ -12,9 +12,10 @@ The first admitted root in each active epoch selects its backend lazily:
 - after complete settlement, a reusable automatic Stage releases the binding
   and selects again when later work arrives.
 
-The Stage carrier uses one process-wide control worker with finite asyncio loop
-generations. Retained work drains, its loop closes, and a later batch can open a
-new generation. Ordinary scripts do not need a process shutdown hook.
+The Stage carrier uses a finite process-wide pool of lazy asyncio loop lanes.
+The default pool has one control worker. Retained work drains, its loop closes,
+and a later batch can open a new generation. Ordinary scripts do not need a
+process shutdown hook.
 
 ## Install
 
@@ -74,6 +75,22 @@ used to request cancellation without claiming settlement.
 
 Stage never stops or closes a caller-owned event loop and never replaces its
 task factory. Calling `asyncio.run()` before or after Stage remains valid.
+
+A synchronous context deliberately requests a synchronous boundary. Therefore
+`with Stage()` inside a running async function selects a safe carrier instead
+of binding work to the event loop that the context will block:
+
+```python
+async def compatibility_entry() -> str:
+    with Stage() as stage:
+        return stage.get(fetch)
+```
+
+This form is supported for compatibility, but it still blocks the calling
+thread. Native async code should normally use `async with Stage()` and await the
+handle. Work that owns objects bound to the blocked caller loop cannot be moved
+safely; use `await` for that work. An explicitly supplied exact loop is never
+silently redirected.
 
 Backend selection can also be explicit:
 
@@ -209,11 +226,13 @@ One active epoch never spans multiple loops. Cross-thread submissions during an
 active epoch are delivered to that epoch's selected loop. Complete settlement
 releases an automatic binding; the next root selects again.
 
-`with Stage()` and `async with Stage()` are lifecycle conveniences. Context exit
-seals the scope and waits for its work, but context entry does not pin an
-automatic Stage to a carrier generation. Use `Stage(loop="stage")` or an exact
-loop object when the backend policy must be pinned. An empty context creates no
-loop.
+`with Stage()` and `async with Stage()` are lifecycle conveniences. A sync
+context selects a physically safe carrier; an async context prefers its current
+running loop. Context exit seals the scope and waits for Stage-owned work. An
+empty context creates no loop. Nested automatic sync scopes reuse an inherited
+carrier when the caller is a worker; if the caller physically runs the only
+eligible carrier loop, Stage uses a temporary escape carrier rather than
+deadlocking. The logical scopes and settlement inventories remain independent.
 
 `Stage.close()` and `Stage.async_close()` are scope barriers for explicit
 application lifecycles. They are not required to make an ordinary script exit:
@@ -354,10 +373,65 @@ types.
 Stage is a task-lifetime mechanism, not an event bus, workflow runtime, tenant
 boundary, provider cancellation acknowledgement, or business retry policy.
 
-## StageCallBridge
+## Scoped sync/async adapters
+
+Use the class-level adapters when a provider deliberately exposes the opposite
+call shape. Each invocation owns one automatic Stage scope, so the body result
+is returned only after that scope's Stage-owned work settles:
+
+```python
+async def fetch_name(identifier: int) -> str:
+    await asyncio.sleep(0)
+    return f"user-{identifier}"
+
+
+fetch_name_sync = Stage.as_sync(fetch_name)
+assert fetch_name_sync(7) == "user-7"
+
+
+async def main() -> None:
+    calculate_async = Stage.as_async(lambda value: value * 2)
+    assert await calculate_async(21) == 42
+```
+
+`Stage.as_sync()` and `Stage.as_async()` preserve callable metadata and accept
+callables that return awaitables dynamically. They adapt scalar calls only;
+use `StageCallBridge.iter_sync()` / `iter_async()` for stream conversion. They
+do not expose a `managed` switch because the Stage scope owns settlement by
+definition.
+
+Choose the smallest matching entry:
+
+| Caller need | Recommended entry | Runtime behavior |
+|---|---|---|
+| native async call | direct `await` | stays on the caller loop |
+| explicit async lifetime scope | `async with Stage()` | caller loop plus async settlement |
+| deliberate synchronous boundary | `with Stage()` or `Stage.as_sync()` | safe carrier; calling thread blocks |
+| deliberate asynchronous view of sync code | `Stage.as_async()` | blocking executor plus async settlement |
+| injected resources, light adaptation, or stream conversion | `StageCallBridge` | advanced explicit bridge lifecycle |
+
+### Carrier pool setting
+
+The normal carrier pool defaults to one loop lane. Applications that have
+measured one carrier as a bottleneck may configure a larger finite pool before
+the first carrier lease:
+
+```python
+Stage.set_settings("runtime.carrier_loop_count", 4)
+```
+
+New Stage epochs reuse a safe inherited carrier when possible; otherwise they
+select a lower-pressure lane and remain sticky until settlement. Equal-pressure
+selection rotates across lanes. The setting must be a positive integer and is
+frozen after first carrier use; setting the same value again is allowed, while
+changing it requires a process restart. It controls carrier loop threads, not
+blocking `max_workers`, application admission, or coroutine concurrency.
+
+## Advanced StageCallBridge
 
 `StageCallBridge` adapts call shape at sync/async boundaries without making
-application event, retry, or workflow decisions.
+application event, retry, or workflow decisions. Most application code should
+prefer the scoped `Stage.as_sync()` / `Stage.as_async()` facade above.
 
 ```python
 import asyncio
@@ -598,6 +672,7 @@ run:
 - [Callbacks, errors, and cancellation](examples/callbacks_errors_and_cancellation.py)
 - [Tunnel broadcast, timeout, and failure](examples/tunnel_broadcast.py)
 - [StageStream lazy execution, replay, and failure](examples/stage_stream.py)
+- [Automatic sync/async scopes and adapters](examples/automatic_environment.py)
 - [Call-shape bridging and early stream close](examples/call_bridge.py)
 - [EventEmitter listeners without ordinary close](examples/event_emitter.py)
 - [Automatic process exit after retained work](examples/automatic_process_exit.py)
@@ -606,7 +681,7 @@ run:
 
 - Async callables remain concurrent on one active backend loop; the shared
   carrier control worker is not a serial task executor.
-- Stage scopes share the process-wide carrier. A scope is a lifetime and
+- Stage scopes share the process-wide carrier pool. A scope is a lifetime and
   settlement boundary, not a tenant, fault, process, or resource-isolation
   boundary.
 - Blocking functions and synchronous generator stepping use a separate blocking

@@ -10,10 +10,10 @@ import threading
 import time
 import types
 from collections import deque
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine, Iterator
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar, cast, overload
 
 from ._runtime import _RUNTIME_CARRIER, _Generation, _WorkPhase
 from .StageException import (
@@ -28,13 +28,14 @@ from .StageHandle import StageHandle
 
 if TYPE_CHECKING:
     from asyncio import AbstractEventLoop, Task
-    from collections.abc import Awaitable, Callable, Coroutine
 
     from .StageStream import StageStream
 
 T = TypeVar("T")
 StreamT = TypeVar("StreamT")
+P = ParamSpec("P")
 _BackendKind = Literal["caller", "stage"]
+_ContextMode = Literal["sync", "async"]
 
 
 class _AutoLoop:
@@ -78,6 +79,71 @@ _IMMEDIATE_ROOT_ADMISSION = _RootAdmission(gate=None, granted=True)
 
 class Stage:
     """A structured scope whose work may use a caller loop or the Stage carrier."""
+
+    @classmethod
+    def set_settings(cls, key: str, value: object) -> type[Stage]:
+        """Set one process-level Stage runtime option before carrier use."""
+
+        if key != "runtime.carrier_loop_count":
+            raise KeyError(f"Unknown Stage setting: {key}")
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise TypeError("runtime.carrier_loop_count must be a positive integer")
+        if value <= 0:
+            raise ValueError("runtime.carrier_loop_count must be greater than zero")
+        _RUNTIME_CARRIER.set_carrier_loop_count(value)
+        return cls
+
+    @classmethod
+    def as_sync(
+        cls,
+        function: Callable[P, T | Awaitable[T]],
+    ) -> Callable[P, T]:
+        """Expose a callable through one automatically routed synchronous scope."""
+
+        if not callable(function):
+            raise TypeError(f"Expected a callable, got {type(function)}")
+        if inspect.isasyncgenfunction(function) or inspect.isgeneratorfunction(function):
+            raise TypeError("Stage.as_sync accepts scalar callables; use StageCallBridge.iter_sync for streams")
+
+        @functools.wraps(function)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            with cls() as stage:
+                response = stage.go(function, *args, **kwargs)
+                from .StageStream import StageStream
+
+                if isinstance(response, StageStream):
+                    response.close()
+                    raise TypeError("Stage.as_sync accepts scalar callables; use StageCallBridge.iter_sync for streams")
+                return cast("StageHandle[T]", response).get()
+
+        return wrapper
+
+    @classmethod
+    def as_async(
+        cls,
+        function: Callable[P, T | Awaitable[T]],
+    ) -> Callable[P, Coroutine[Any, Any, T]]:
+        """Expose a callable through one automatically routed asynchronous scope."""
+
+        if not callable(function):
+            raise TypeError(f"Expected a callable, got {type(function)}")
+        if inspect.isasyncgenfunction(function) or inspect.isgeneratorfunction(function):
+            raise TypeError("Stage.as_async accepts scalar callables; use StageCallBridge.iter_async for streams")
+
+        @functools.wraps(function)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            async with cls() as stage:
+                response = stage.go(function, *args, **kwargs)
+                from .StageStream import StageStream
+
+                if isinstance(response, StageStream):
+                    await response.async_close()
+                    raise TypeError(
+                        "Stage.as_async accepts scalar callables; use StageCallBridge.iter_async for streams"
+                    )
+                return await cast("StageHandle[T]", response).async_get()
+
+        return wrapper
 
     @overload
     def __init__(
@@ -162,6 +228,7 @@ class Stage:
         self._generation_lease: _Generation | None = None
         self._active_backend: _BackendKind | None = None
         self._active_loop: AbstractEventLoop | None = None
+        self._context_mode: _ContextMode | None = None
 
         if isinstance(loop, _AutoLoop):
             self._backend_mode: Literal["auto", "caller", "stage"] = "auto"
@@ -224,16 +291,22 @@ class Stage:
             backend = "stage"
             loop = None
         else:
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
+            if self._context_mode == "sync":
                 backend = "stage"
                 loop = None
             else:
-                backend = "caller"
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    backend = "stage"
+                    loop = None
+                else:
+                    backend = "caller"
 
         if backend == "stage":
-            self._generation_lease = _RUNTIME_CARRIER.acquire_lease()
+            self._generation_lease = _RUNTIME_CARRIER.acquire_lease(
+                avoid_current_loop=self._context_mode == "sync",
+            )
         self._active_backend = backend
         self._active_loop = loop
         return backend, loop
@@ -273,6 +346,20 @@ class Stage:
         if admission is not None and admission.gate is not None:
             await asyncio.shield(asyncio.wrap_future(admission.gate))
 
+    async def _await_with_loop_affinity_guidance(self, awaitable: Awaitable[T]) -> T:
+        try:
+            return await awaitable
+        except RuntimeError as error:
+            message = str(error).lower()
+            if self._active_backend == "stage" and (
+                "attached to a different loop" in message or "bound to a different event loop" in message
+            ):
+                raise StageLifecycleError(
+                    "This work depends on an object bound to another event loop and cannot run on the selected "
+                    "Stage carrier; use 'async with Stage()' and await it on the object's owner loop"
+                ) from error
+            raise
+
     def _finish_admission(self, admission: _RootAdmission | None) -> None:
         if admission is None:
             return
@@ -302,13 +389,13 @@ class Stage:
         kwargs: dict[str, Any],
     ) -> T:
         if isinstance(task, Future):
-            return await asyncio.wrap_future(cast("Future[T]", task))
+            return await self._await_with_loop_affinity_guidance(asyncio.wrap_future(cast("Future[T]", task)))
         if inspect.isawaitable(task):
             if args or kwargs:
                 raise TypeError("Arguments cannot be supplied with a coroutine object")
-            return await cast("Awaitable[T]", task)
+            return await self._await_with_loop_affinity_guidance(cast("Awaitable[T]", task))
         if inspect.iscoroutinefunction(task):
-            return await task(*args, **kwargs)
+            return await self._await_with_loop_affinity_guidance(task(*args, **kwargs))
 
         loop = asyncio.get_running_loop()
         context = contextvars.copy_context()
@@ -320,7 +407,7 @@ class Stage:
             await asyncio.shield(blocking_future)
             raise
         if inspect.isawaitable(result):
-            return await cast("Awaitable[T]", result)
+            return await self._await_with_loop_affinity_guidance(cast("Awaitable[T]", result))
         return cast("T", result)
 
     async def _execute_callback(
@@ -1147,16 +1234,56 @@ class Stage:
         with self._scope_lock:
             if self._sealed:
                 raise StageClosedError("Cannot enter a sealed Stage scope")
+            if self._context_mode is not None:
+                raise StageLifecycleError("A Stage scope cannot be entered more than once")
+            self._context_mode = "sync"
         return self
 
     def __exit__(self, exc_type: object, value: BaseException | None, traceback: object) -> None:
-        self.close()
+        self.seal()
+        if value is None:
+            self.close()
+            return
+        try:
+            self.close()
+        except BaseException as cleanup_error:
+            cleanup_error.__context__ = None
+            value.__context__ = cleanup_error
+            if isinstance(cleanup_error, StageLifecycleError):
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    return
+                deferred_close = loop.run_in_executor(None, self.close)
+
+                def observe_deferred_close(future: asyncio.Future[None]) -> None:
+                    try:
+                        future.result()
+                    except BaseException as deferred_error:
+                        deferred_error.__context__ = None
+                        value.__context__ = deferred_error
+
+                deferred_close.add_done_callback(observe_deferred_close)
 
     async def __aenter__(self) -> Stage:  # noqa: PYI034
-        return self.__enter__()
+        with self._scope_lock:
+            if self._sealed:
+                raise StageClosedError("Cannot enter a sealed Stage scope")
+            if self._context_mode is not None:
+                raise StageLifecycleError("A Stage scope cannot be entered more than once")
+            self._context_mode = "async"
+        return self
 
     async def __aexit__(self, exc_type: object, value: BaseException | None, traceback: object) -> None:
-        await self.async_close()
+        self.seal()
+        if value is None:
+            await self.async_close()
+            return
+        try:
+            await self.async_close()
+        except BaseException as cleanup_error:
+            cleanup_error.__context__ = None
+            value.__context__ = cleanup_error
 
     def func(self, task: Callable[..., T]) -> StageFunction[T]:
         return StageFunction(self, task)

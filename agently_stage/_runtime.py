@@ -40,6 +40,9 @@ class _RuntimeSnapshot:
     queued_generation_id: int | None
     active_loop_count: int
     control_thread_count: int
+    carrier_loop_count: int
+    escape_loop_count: int
+    active_generation_ids: tuple[int, ...]
 
 
 @dataclass
@@ -54,6 +57,7 @@ class _Submission:
 @dataclass
 class _Generation:
     generation_id: int
+    slot_id: int
     state: _GenerationState = _GenerationState.QUEUED
     reservations: int = 0
     loop: AbstractEventLoop | None = None
@@ -74,26 +78,26 @@ _active_execution: contextvars.ContextVar[_ExecutionContext | None] = contextvar
 )
 
 
-class _RuntimeCarrier:
-    """Process-local owner of finite Stage event-loop generations."""
+class _CarrierSlot:
+    """One finite carrier-loop lane owned by the process runtime."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        slot_id: int,
+        allocate_generation_id: Callable[[], int],
+        *,
+        on_idle: Callable[[_CarrierSlot], None] | None = None,
+    ) -> None:
+        self.slot_id = slot_id
+        self._allocate_generation_id = allocate_generation_id
+        self._on_idle = on_idle
         self._admission_lock = threading.RLock()
-        self._control_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="AgentlyStageControl")
-        self._blocking_executor = ThreadPoolExecutor(thread_name_prefix="AgentlyStageBlocking")
+        self._control_executor = ThreadPoolExecutor(
+            max_workers=1,
+            thread_name_prefix=f"AgentlyStageControl-{slot_id}",
+        )
         self._current: _Generation | None = None
         self._next: _Generation | None = None
-        self._generation_counter = 0
-
-    @property
-    def blocking_executor(self) -> ThreadPoolExecutor:
-        return self._blocking_executor
-
-    def owns_current_execution(self, stage: Stage) -> bool:
-        """Return whether the caller is executing work retained by ``stage``."""
-
-        context = _active_execution.get()
-        return context is not None and context.handle._stage is stage
 
     def submit(
         self,
@@ -127,14 +131,14 @@ class _RuntimeCarrier:
             handle._release_work()
             raise
 
-    def acquire_lease(self) -> _Generation:
+    def acquire_lease(self, preferred: _Generation | None = None) -> _Generation:
         with self._admission_lock:
-            return self._reserve_locked(None)
+            return self._reserve_locked(preferred)
 
     def release_lease(self, generation: _Generation) -> None:
         self._release_reservation(generation)
 
-    def snapshot(self) -> _RuntimeSnapshot:
+    def snapshot(self) -> tuple[int | None, int | None, int, int]:
         with self._admission_lock:
             current = self._current
             queued = self._next
@@ -143,40 +147,22 @@ class _RuntimeCarrier:
             active_loop_count = sum(
                 generation is not None and generation.loop is not None for generation in (current, queued)
             )
-        control_thread_count = sum(thread.name.startswith("AgentlyStageControl") for thread in threading.enumerate())
-        return _RuntimeSnapshot(
-            active_generation_id=current_id,
-            queued_generation_id=queued_id,
-            active_loop_count=active_loop_count,
-            control_thread_count=control_thread_count,
-        )
-
-    def create_settlement_task(self, coroutine: Any) -> Task[Any]:
-        """Create one retained task in the active handle's settlement phase."""
-
-        context = _active_execution.get()
-        if context is None:
-            raise StageLifecycleError("Settlement task requires active Stage execution")
-        token = _active_execution.set(
-            _ExecutionContext(
-                generation=context.generation,
-                handle=context.handle,
-                phase=_WorkPhase.SETTLEMENT,
+            reservations = sum(
+                generation.reservations
+                for generation in (current, queued)
+                if generation is not None and generation.state is not _GenerationState.CLOSED
             )
-        )
-        try:
-            return asyncio.create_task(coroutine)
-        finally:
-            _active_execution.reset(token)
+        return current_id, queued_id, active_loop_count, reservations
 
-    def bind_current_execution(self, context: contextvars.Context) -> contextvars.Context:
-        """Overlay the active private Stage lineage on a user context snapshot."""
+    def owns_loop(self, loop: AbstractEventLoop) -> bool:
+        with self._admission_lock:
+            return any(generation is not None and generation.loop is loop for generation in (self._current, self._next))
 
-        bound_context = context.copy()
-        execution = _active_execution.get()
-        if execution is not None:
-            bound_context.run(_active_execution.set, execution)
-        return bound_context
+    def owns_generation(self, generation: _Generation) -> bool:
+        return generation.slot_id == self.slot_id
+
+    def shutdown(self) -> None:
+        self._control_executor.shutdown(wait=False)
 
     def _reserve_locked(self, preferred: _Generation | None) -> _Generation:
         if preferred is not None:
@@ -205,8 +191,10 @@ class _RuntimeCarrier:
         return generation
 
     def _create_generation_locked(self, *, as_next: bool) -> _Generation:
-        self._generation_counter += 1
-        generation = _Generation(self._generation_counter)
+        generation = _Generation(
+            generation_id=self._allocate_generation_id(),
+            slot_id=self.slot_id,
+        )
         if as_next:
             self._next = generation
         else:
@@ -287,6 +275,9 @@ class _RuntimeCarrier:
                 if self._current is generation:
                     self._current = self._next
                     self._next = None
+                became_idle = self._current is None and self._next is None
+            if became_idle and self._on_idle is not None:
+                self._on_idle(self)
 
     def _start_submission(self, generation: _Generation, submission: _Submission) -> None:
         loop = generation.loop
@@ -372,6 +363,220 @@ class _RuntimeCarrier:
         handle._stage._owned_activity()
         self._release_reservation(generation)
         handle._release_work()
+
+
+class _RuntimeCarrier:
+    """Process-local finite pool of lazy carrier-loop slots."""
+
+    def __init__(self) -> None:
+        self._pool_lock = threading.RLock()
+        self._blocking_executor = ThreadPoolExecutor(thread_name_prefix="AgentlyStageBlocking")
+        self._generation_counter = 0
+        self._slot_counter = 0
+        self._selection_cursor = 0
+        self._carrier_loop_count = 1
+        self._settings_frozen = False
+        self._slots: list[_CarrierSlot] = [self._new_slot_locked()]
+        self._escape_slots: dict[int, _CarrierSlot] = {}
+
+    @property
+    def blocking_executor(self) -> ThreadPoolExecutor:
+        return self._blocking_executor
+
+    def set_carrier_loop_count(self, count: int) -> None:
+        retired: list[_CarrierSlot] = []
+        with self._pool_lock:
+            if self._settings_frozen:
+                if count == self._carrier_loop_count:
+                    return
+                raise StageLifecycleError(
+                    "runtime.carrier_loop_count is frozen after the first carrier lease; restart the process to change it"
+                )
+            while len(self._slots) < count:
+                self._slots.append(self._new_slot_locked())
+            while len(self._slots) > count:
+                retired.append(self._slots.pop())
+            self._carrier_loop_count = count
+            self._selection_cursor %= count
+        for slot in retired:
+            slot.shutdown()
+
+    def owns_current_execution(self, stage: Stage) -> bool:
+        """Return whether logical execution lineage belongs to ``stage``."""
+
+        context = _active_execution.get()
+        return context is not None and context.handle._stage is stage
+
+    def would_sync_wait_block_current_carrier(self, stage: Stage) -> bool:
+        """Return whether ``stage`` would target the carrier loop now executing."""
+
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return False
+        with stage._scope_lock:
+            generation = stage._generation_lease
+            active_backend = stage._active_backend
+        if active_backend == "stage" and generation is not None:
+            return generation.loop is running_loop
+
+        # An unbound carrier Stage inherits the physically active generation on
+        # first lease. Context propagation into a blocking worker is harmless:
+        # such a worker has no running loop and returned above.
+        context = _active_execution.get()
+        return active_backend is None and context is not None and context.generation.loop is running_loop
+
+    def submit(
+        self,
+        handle: StageHandle[Any],
+        runner: Callable[[_Generation], Awaitable[None]],
+        *,
+        preferred: _Generation | None = None,
+        owner: bool = True,
+        phase: _WorkPhase = _WorkPhase.BODY,
+    ) -> int:
+        if preferred is None:
+            slot = self._select_slot(avoid_current_loop=False)
+        else:
+            slot = self._slot_for_generation(preferred)
+        return slot.submit(
+            handle,
+            runner,
+            preferred=preferred,
+            owner=owner,
+            phase=phase,
+        )
+
+    def acquire_lease(self, *, avoid_current_loop: bool = False) -> _Generation:
+        self._freeze_settings()
+        inherited = _active_execution.get()
+        if inherited is not None and not self._generation_is_current_loop(
+            inherited.generation,
+            only_when=avoid_current_loop,
+        ):
+            try:
+                return self._slot_for_generation(inherited.generation).acquire_lease(inherited.generation)
+            except StageLifecycleError:
+                pass
+        return self._select_slot(avoid_current_loop=avoid_current_loop).acquire_lease()
+
+    def release_lease(self, generation: _Generation) -> None:
+        self._slot_for_generation(generation).release_lease(generation)
+
+    def create_settlement_task(self, coroutine: Any) -> Task[Any]:
+        """Create one retained task in the active handle's settlement phase."""
+
+        context = _active_execution.get()
+        if context is None:
+            raise StageLifecycleError("Settlement task requires active Stage execution")
+        token = _active_execution.set(
+            _ExecutionContext(
+                generation=context.generation,
+                handle=context.handle,
+                phase=_WorkPhase.SETTLEMENT,
+            )
+        )
+        try:
+            return asyncio.create_task(coroutine)
+        finally:
+            _active_execution.reset(token)
+
+    def bind_current_execution(self, context: contextvars.Context) -> contextvars.Context:
+        """Overlay the active private Stage lineage on a user context snapshot."""
+
+        bound_context = context.copy()
+        execution = _active_execution.get()
+        if execution is not None:
+            bound_context.run(_active_execution.set, execution)
+        return bound_context
+
+    def snapshot(self) -> _RuntimeSnapshot:
+        with self._pool_lock:
+            slots = tuple(self._slots)
+            escape_slots = tuple(self._escape_slots.values())
+            configured_count = self._carrier_loop_count
+        snapshots = [slot.snapshot() for slot in (*slots, *escape_slots)]
+        active_ids = tuple(current_id for current_id, _, _, _ in snapshots if current_id is not None)
+        queued_ids = tuple(queued_id for _, queued_id, _, _ in snapshots if queued_id is not None)
+        active_loop_count = sum(loop_count for _, _, loop_count, _ in snapshots)
+        control_thread_count = sum(thread.name.startswith("AgentlyStageControl") for thread in threading.enumerate())
+        return _RuntimeSnapshot(
+            active_generation_id=active_ids[0] if active_ids else None,
+            queued_generation_id=queued_ids[0] if queued_ids else None,
+            active_loop_count=active_loop_count,
+            control_thread_count=control_thread_count,
+            carrier_loop_count=configured_count,
+            escape_loop_count=len(escape_slots),
+            active_generation_ids=active_ids,
+        )
+
+    def _freeze_settings(self) -> None:
+        with self._pool_lock:
+            self._settings_frozen = True
+
+    def _allocate_generation_id(self) -> int:
+        with self._pool_lock:
+            self._generation_counter += 1
+            return self._generation_counter
+
+    def _new_slot_locked(self, *, escape: bool = False) -> _CarrierSlot:
+        self._slot_counter += 1
+        slot = _CarrierSlot(
+            self._slot_counter,
+            self._allocate_generation_id,
+            on_idle=self._escape_slot_idle if escape else None,
+        )
+        if escape:
+            self._escape_slots[slot.slot_id] = slot
+        return slot
+
+    def _escape_slot_idle(self, slot: _CarrierSlot) -> None:
+        with self._pool_lock:
+            removed = self._escape_slots.pop(slot.slot_id, None)
+        if removed is not None:
+            removed.shutdown()
+
+    def _slot_for_generation(self, generation: _Generation) -> _CarrierSlot:
+        with self._pool_lock:
+            slots = (*self._slots, *self._escape_slots.values())
+        for slot in slots:
+            if slot.owns_generation(generation):
+                return slot
+        raise StageLifecycleError("Stage generation is no longer owned by the carrier pool")
+
+    def _generation_is_current_loop(self, generation: _Generation, *, only_when: bool) -> bool:
+        if not only_when:
+            return False
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return False
+        return generation.loop is running_loop
+
+    def _select_slot(self, *, avoid_current_loop: bool) -> _CarrierSlot:
+        self._freeze_settings()
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+        with self._pool_lock:
+            slots = tuple(self._slots)
+            cursor = self._selection_cursor
+        candidates: list[tuple[int, int, _CarrierSlot]] = []
+        for index, slot in enumerate(slots):
+            if avoid_current_loop and running_loop is not None and slot.owns_loop(running_loop):
+                continue
+            _, _, _, pressure = slot.snapshot()
+            distance = (index - cursor) % len(slots)
+            candidates.append((pressure, distance, slot))
+        if not candidates:
+            with self._pool_lock:
+                return self._new_slot_locked(escape=True)
+        _, _, selected = min(candidates, key=lambda item: (item[0], item[1]))
+        with self._pool_lock:
+            selected_index = self._slots.index(selected)
+            self._selection_cursor = (selected_index + 1) % len(self._slots)
+        return selected
 
 
 _RUNTIME_CARRIER = _RuntimeCarrier()
