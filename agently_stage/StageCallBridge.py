@@ -6,6 +6,7 @@ import contextvars
 import functools
 import inspect
 import threading
+import weakref
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
 from ._runtime import _RUNTIME_CARRIER
@@ -50,6 +51,7 @@ class StageCallBridge:
         self._submit_stage = stage if stage is not None else Stage(executor=executor)
         self._owns_submit_stage = stage is None
         self._carrier_stage = Stage(loop="stage", executor=executor)
+        self._routed_stages: weakref.WeakSet[Stage] = weakref.WeakSet()
 
     def _ensure_open(self) -> None:
         with self._lock:
@@ -63,13 +65,8 @@ class StageCallBridge:
         return callable(function) and inspect.iscoroutinefunction(function.__call__)
 
     def _resolve_awaitable_sync(self, awaitable: Awaitable[T], *, managed: bool) -> T:
-        if _RUNTIME_CARRIER.would_sync_wait_block_current_carrier(self._carrier_stage):
-            close = getattr(awaitable, "close", None)
-            if close is not None:
-                close()
-            raise StageLifecycleError(
-                "A synchronous StageCallBridge call cannot re-enter and block its own carrier execution"
-            )
+        if self._requires_routed_sync_scope():
+            return self._resolve_awaitable_in_routed_scope(awaitable, managed=managed)
         handle = self._carrier_stage.go(awaitable)
         if not managed:
             return handle.result()
@@ -84,6 +81,57 @@ class StageCallBridge:
         handle.wait_settled()
         return result
 
+    def _requires_routed_sync_scope(self) -> bool:
+        return (
+            Stage._inherited_caller_loop_for_sync() is not None
+            or _RUNTIME_CARRIER.would_sync_wait_block_current_carrier(self._carrier_stage)
+        )
+
+    def _resolve_awaitable_in_routed_scope(self, awaitable: Awaitable[T], *, managed: bool) -> T:
+        with self._lock:
+            if self._closing:
+                close = getattr(awaitable, "close", None)
+                if close is not None:
+                    close()
+                raise StageLifecycleError("StageCallBridge is closed")
+            stage = Stage(executor=self._executor)
+            self._routed_stages.add(stage)
+
+        entered = False
+        try:
+            stage.__enter__()
+            entered = True
+            try:
+                handle = stage.go(awaitable)
+            except BaseException:
+                close = getattr(awaitable, "close", None)
+                if close is not None:
+                    close()
+                raise
+            try:
+                result = handle.result()
+            except BaseException:
+                stage.seal()
+                if managed:
+                    try:
+                        stage.close()
+                    except BaseException:
+                        pass
+                raise
+            stage.seal()
+            if managed:
+                stage.close()
+            return result
+        finally:
+            if not entered:
+                try:
+                    stage.close()
+                except BaseException:
+                    pass
+            if managed or stage.snapshot().active_count == 0:
+                with self._lock:
+                    self._routed_stages.discard(stage)
+
     def as_sync(
         self,
         function: Callable[P, T | Awaitable[T]],
@@ -92,16 +140,11 @@ class StageCallBridge:
     ) -> Callable[P, T]:
         if not callable(function):
             raise TypeError(f"Expected a callable, got {type(function)}")
-        async_callable = self._is_async_callable(function)
         should_manage = self._managed_by_default if managed is None else managed
 
         @functools.wraps(function)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             self._ensure_open()
-            if async_callable and _RUNTIME_CARRIER.would_sync_wait_block_current_carrier(self._carrier_stage):
-                raise StageLifecycleError(
-                    "A synchronous StageCallBridge call cannot re-enter and block its own carrier execution"
-                )
             result = function(*args, **kwargs)
             if inspect.isawaitable(result):
                 return self._resolve_awaitable_sync(
@@ -211,11 +254,15 @@ class StageCallBridge:
                 if self._closed:
                     return
                 self._closing = True
+                routed_stages = tuple(self._routed_stages)
+            for stage in routed_stages:
+                stage.close(timeout=timeout)
             self._carrier_stage.close(timeout=timeout)
             if self._owns_submit_stage:
                 self._submit_stage.close(timeout=timeout)
             with self._lock:
                 self._closed = True
+                self._routed_stages.clear()
 
     async def async_close(self, timeout: float | None = None) -> None:
         await asyncio.to_thread(self.close, timeout)

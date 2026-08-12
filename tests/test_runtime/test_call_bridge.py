@@ -243,43 +243,85 @@ def test_done_callback_uses_registration_context() -> None:
     bridge.close()
 
 
-def test_sync_bridge_reentry_on_its_carrier_fails_before_inner_submission() -> None:
+def test_sync_bridge_reentry_on_its_carrier_uses_an_escape_scope() -> None:
     bridge = StageCallBridge()
-    inner_calls = 0
 
-    async def inner() -> str:
-        nonlocal inner_calls
-        inner_calls += 1
-        return "inner"
+    async def inner() -> tuple[str, asyncio.AbstractEventLoop]:
+        return "inner", asyncio.get_running_loop()
 
     sync_inner = bridge.as_sync(inner)
 
-    async def outer() -> None:
-        with pytest.raises(StageLifecycleError, match="carrier"):
-            sync_inner()
+    async def outer() -> tuple[str, bool]:
+        outer_loop = asyncio.get_running_loop()
+        value, inner_loop = sync_inner()
+        return value, inner_loop is not outer_loop
 
-    bridge.as_sync(outer)()
-    assert inner_calls == 0
+    assert bridge.as_sync(outer)() == ("inner", True)
     bridge.close()
 
 
-def test_sync_bridge_rejects_same_physical_carrier_from_another_stage() -> None:
+def test_sync_bridge_escape_keeps_light_settlement_semantics() -> None:
     bridge = StageCallBridge()
-    outer_stage = Stage(loop="stage")
-    inner_calls = 0
+    child_started = threading.Event()
+    child_release = threading.Event()
+    child_finished = threading.Event()
 
     async def inner() -> str:
-        nonlocal inner_calls
-        inner_calls += 1
+        async def child() -> None:
+            child_started.set()
+            await asyncio.to_thread(child_release.wait, 5)
+            child_finished.set()
+
+        asyncio.create_task(child())
+        await asyncio.sleep(0)
         return "inner"
 
-    async def outer() -> None:
-        with pytest.raises(StageLifecycleError, match="carrier"):
-            bridge.as_sync(inner)()
+    async def outer() -> str:
+        return bridge.as_sync(inner)()
 
-    outer_stage.get(outer)
+    assert bridge.as_sync(outer)() == "inner"
+    assert child_started.wait(1)
+    assert not child_finished.is_set()
+
+    child_release.set()
+    bridge.close()
+    assert child_finished.is_set()
+
+
+def test_sync_bridge_escape_honors_managed_settlement() -> None:
+    bridge = StageCallBridge()
+    child_finished = threading.Event()
+
+    async def inner() -> str:
+        async def child() -> None:
+            await asyncio.sleep(0.01)
+            child_finished.set()
+
+        asyncio.create_task(child())
+        return "inner"
+
+    async def outer() -> str:
+        return bridge.as_sync(inner, managed=True)()
+
+    assert bridge.as_sync(outer)() == "inner"
+    assert child_finished.is_set()
+    bridge.close()
+
+
+def test_sync_bridge_uses_escape_scope_on_another_stage_carrier() -> None:
+    bridge = StageCallBridge()
+    outer_stage = Stage(loop="stage")
+
+    async def inner() -> tuple[str, asyncio.AbstractEventLoop]:
+        return "inner", asyncio.get_running_loop()
+
+    async def outer() -> tuple[str, bool]:
+        outer_loop = asyncio.get_running_loop()
+        value, inner_loop = bridge.as_sync(inner)()
+        return value, inner_loop is not outer_loop
+
+    assert outer_stage.get(outer) == ("inner", True)
     outer_stage.close()
-    assert inner_calls == 0
     bridge.close()
 
 
@@ -298,6 +340,61 @@ def test_sync_bridge_allows_worker_round_trip_back_to_carrier() -> None:
         return value, leaf_loop is outer_loop
 
     assert bridge.as_sync(async_root)() == ("ok", True)
+    bridge.close()
+
+
+def test_sync_bridge_worker_round_trip_reuses_caller_loop() -> None:
+    bridge = StageCallBridge()
+
+    async def scenario() -> tuple[str, bool]:
+        caller_loop = asyncio.get_running_loop()
+
+        async def async_state_update() -> tuple[str, asyncio.AbstractEventLoop]:
+            task = owner.create_task(asyncio.sleep(0), origin="state-listener")
+            await task
+            return "updated", asyncio.get_running_loop()
+
+        def sync_chunk() -> tuple[str, asyncio.AbstractEventLoop]:
+            return bridge.as_sync(async_state_update)()
+
+        async def run_sync_chunk() -> tuple[str, asyncio.AbstractEventLoop]:
+            return await bridge.as_async(sync_chunk, managed=True)()
+
+        async with Stage() as owner:
+            task = owner.create_task(run_sync_chunk(), origin="sync-chunk")
+            value, observed_loop = await task
+        return value, observed_loop is caller_loop
+
+    assert asyncio.run(scenario()) == ("updated", True)
+    bridge.close()
+
+
+def test_sync_bridge_fails_fast_for_work_bound_to_blocked_owner_loop() -> None:
+    bridge = StageCallBridge()
+
+    async def scenario() -> None:
+        started = asyncio.Event()
+        release = asyncio.Event()
+
+        async def hold_owner_loop() -> None:
+            started.set()
+            await release.wait()
+
+        async def loop_bound_update() -> None:
+            task = owner.create_task(asyncio.sleep(0), origin="state-listener")
+            await task
+
+        async with Stage() as owner:
+            owner_task = owner.create_task(hold_owner_loop(), origin="owner-loop")
+            await started.wait()
+            try:
+                with pytest.raises(StageLifecycleError, match=r"await.+owner loop"):
+                    bridge.as_sync(loop_bound_update)()
+            finally:
+                release.set()
+                await owner_task
+
+    asyncio.run(scenario())
     bridge.close()
 
 

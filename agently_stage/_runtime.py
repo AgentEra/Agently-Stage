@@ -52,6 +52,7 @@ class _Submission:
     owner: bool
     context: contextvars.Context
     phase: _WorkPhase
+    blocked_generation_ids: frozenset[int]
 
 
 @dataclass
@@ -70,6 +71,7 @@ class _ExecutionContext:
     generation: _Generation
     handle: StageHandle[Any]
     phase: _WorkPhase
+    blocked_generation_ids: frozenset[int] = frozenset()
 
 
 _active_execution: contextvars.ContextVar[_ExecutionContext | None] = contextvars.ContextVar(
@@ -107,6 +109,7 @@ class _CarrierSlot:
         preferred: _Generation | None = None,
         owner: bool = True,
         phase: _WorkPhase = _WorkPhase.BODY,
+        blocked_generation_ids: frozenset[int] = frozenset(),
     ) -> int:
         submission_context = contextvars.copy_context()
         handle._retain_work()
@@ -120,6 +123,7 @@ class _CarrierSlot:
                     owner=owner,
                     context=submission_context,
                     phase=phase,
+                    blocked_generation_ids=blocked_generation_ids,
                 )
                 loop = generation.loop
                 if loop is None:
@@ -160,6 +164,17 @@ class _CarrierSlot:
 
     def owns_generation(self, generation: _Generation) -> bool:
         return generation.slot_id == self.slot_id
+
+    def owns_any_generation_id(self, generation_ids: frozenset[int]) -> bool:
+        if not generation_ids:
+            return False
+        with self._admission_lock:
+            return any(
+                generation is not None
+                and generation.state is not _GenerationState.CLOSED
+                and generation.generation_id in generation_ids
+                for generation in (self._current, self._next)
+            )
 
     def shutdown(self) -> None:
         self._control_executor.shutdown(wait=False)
@@ -303,6 +318,7 @@ class _CarrierSlot:
                 generation=generation,
                 handle=submission.handle,
                 phase=submission.phase,
+                blocked_generation_ids=submission.blocked_generation_ids,
             )
         )
         try:
@@ -410,20 +426,28 @@ class _RuntimeCarrier:
     def would_sync_wait_block_current_carrier(self, stage: Stage) -> bool:
         """Return whether ``stage`` would target the carrier loop now executing."""
 
+        context = _active_execution.get()
+        with stage._scope_lock:
+            generation = stage._generation_lease
+            active_backend = stage._active_backend
+        if (
+            active_backend == "stage"
+            and generation is not None
+            and context is not None
+            and generation.generation_id in context.blocked_generation_ids
+        ):
+            return True
+
         try:
             running_loop = asyncio.get_running_loop()
         except RuntimeError:
             return False
-        with stage._scope_lock:
-            generation = stage._generation_lease
-            active_backend = stage._active_backend
         if active_backend == "stage" and generation is not None:
             return generation.loop is running_loop
 
         # An unbound carrier Stage inherits the physically active generation on
         # first lease. Context propagation into a blocking worker is harmless:
         # such a worker has no running loop and returned above.
-        context = _active_execution.get()
         return active_backend is None and context is not None and context.generation.loop is running_loop
 
     def submit(
@@ -434,9 +458,13 @@ class _RuntimeCarrier:
         preferred: _Generation | None = None,
         owner: bool = True,
         phase: _WorkPhase = _WorkPhase.BODY,
+        blocked_generation_ids: frozenset[int] = frozenset(),
     ) -> int:
         if preferred is None:
-            slot = self._select_slot(avoid_current_loop=False)
+            slot = self._select_slot(
+                avoid_current_loop=False,
+                blocked_generation_ids=blocked_generation_ids,
+            )
         else:
             slot = self._slot_for_generation(preferred)
         return slot.submit(
@@ -445,20 +473,47 @@ class _RuntimeCarrier:
             preferred=preferred,
             owner=owner,
             phase=phase,
+            blocked_generation_ids=blocked_generation_ids,
         )
 
     def acquire_lease(self, *, avoid_current_loop: bool = False) -> _Generation:
         self._freeze_settings()
         inherited = _active_execution.get()
-        if inherited is not None and not self._generation_is_current_loop(
-            inherited.generation,
-            only_when=avoid_current_loop,
+        blocked_generation_ids: frozenset[int] = frozenset() if inherited is None else inherited.blocked_generation_ids
+        if (
+            inherited is not None
+            and inherited.generation.generation_id not in blocked_generation_ids
+            and not self._generation_is_current_loop(
+                inherited.generation,
+                only_when=avoid_current_loop,
+            )
         ):
             try:
                 return self._slot_for_generation(inherited.generation).acquire_lease(inherited.generation)
             except StageLifecycleError:
                 pass
-        return self._select_slot(avoid_current_loop=avoid_current_loop).acquire_lease()
+        return self._select_slot(
+            avoid_current_loop=avoid_current_loop,
+            blocked_generation_ids=blocked_generation_ids,
+        ).acquire_lease()
+
+    def blocked_generation_ids_for_submission(
+        self,
+        generation: _Generation,
+        *,
+        synchronous_scope: bool,
+    ) -> frozenset[int]:
+        """Return carrier ancestors that must not receive this scope's descendants."""
+
+        context = _active_execution.get()
+        if context is None:
+            return frozenset()
+        blocked_generation_ids = context.blocked_generation_ids
+        if synchronous_scope and generation is not context.generation:
+            blocked_generation_ids = blocked_generation_ids | {
+                context.generation.generation_id,
+            }
+        return blocked_generation_ids
 
     def release_lease(self, generation: _Generation) -> None:
         self._slot_for_generation(generation).release_lease(generation)
@@ -474,6 +529,7 @@ class _RuntimeCarrier:
                 generation=context.generation,
                 handle=context.handle,
                 phase=_WorkPhase.SETTLEMENT,
+                blocked_generation_ids=context.blocked_generation_ids,
             )
         )
         try:
@@ -553,7 +609,12 @@ class _RuntimeCarrier:
             return False
         return generation.loop is running_loop
 
-    def _select_slot(self, *, avoid_current_loop: bool) -> _CarrierSlot:
+    def _select_slot(
+        self,
+        *,
+        avoid_current_loop: bool,
+        blocked_generation_ids: frozenset[int] = frozenset(),
+    ) -> _CarrierSlot:
         self._freeze_settings()
         try:
             running_loop = asyncio.get_running_loop()
@@ -564,6 +625,8 @@ class _RuntimeCarrier:
             cursor = self._selection_cursor
         candidates: list[tuple[int, int, _CarrierSlot]] = []
         for index, slot in enumerate(slots):
+            if slot.owns_any_generation_id(blocked_generation_ids):
+                continue
             if avoid_current_loop and running_loop is not None and slot.owns_loop(running_loop):
                 continue
             _, _, _, pressure = slot.snapshot()

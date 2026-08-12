@@ -146,6 +146,82 @@ def test_sync_context_on_carrier_uses_an_escape_loop() -> None:
     assert _runtime_snapshot().escape_loop_count == 0
 
 
+def test_sync_context_avoids_every_transitively_blocked_carrier() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            textwrap.dedent(
+                """
+                import asyncio
+                import time
+                from concurrent.futures import ThreadPoolExecutor
+
+                from agently_stage import Stage
+                from agently_stage._runtime import _runtime_snapshot
+
+                loops = []
+
+                async def sdk():
+                    loops.append(asyncio.get_running_loop())
+                    return "ok"
+
+                async def action():
+                    loops.append(asyncio.get_running_loop())
+                    with Stage() as inner:
+                        return inner.get(sdk)
+
+                def manager():
+                    with Stage() as outer:
+                        return outer.get(action)
+
+                async def chunk():
+                    loops.append(asyncio.get_running_loop())
+                    return manager()
+
+                assert Stage.as_sync(chunk)() == "ok"
+                assert len(set(loops)) == 3
+
+                with ThreadPoolExecutor(max_workers=8) as executor:
+                    results = list(executor.map(lambda _: Stage.as_sync(chunk)(), range(24)))
+                assert results == ["ok"] * 24
+
+                deadline = time.monotonic() + 1
+                while _runtime_snapshot().escape_loop_count and time.monotonic() < deadline:
+                    time.sleep(0.001)
+                assert _runtime_snapshot().escape_loop_count == 0
+                print("transitive-carrier-ok")
+                """
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        cwd=".",
+        text=True,
+        timeout=3,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["transitive-carrier-ok"]
+
+
+def test_sync_context_in_worker_reuses_inherited_caller_loop() -> None:
+    async def scenario() -> tuple[asyncio.AbstractEventLoop, asyncio.AbstractEventLoop]:
+        caller_loop = asyncio.get_running_loop()
+
+        def sync_middle() -> asyncio.AbstractEventLoop:
+            with Stage() as nested:
+                return nested.get(_current_loop)
+
+        async with Stage() as outer:
+            observed_loop = await outer.go(sync_middle).async_get()
+        return caller_loop, observed_loop
+
+    caller_loop, observed_loop = asyncio.run(scenario())
+
+    assert observed_loop is caller_loop
+
+
 def test_stage_adapters_resolve_dynamic_awaitables() -> None:
     async def resolve(value: int) -> int:
         await asyncio.sleep(0)

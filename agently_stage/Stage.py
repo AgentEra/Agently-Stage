@@ -226,6 +226,7 @@ class Stage:
             executor if executor is not None else self._private_executor or _RUNTIME_CARRIER.blocking_executor
         )
         self._generation_lease: _Generation | None = None
+        self._blocked_generation_ids: frozenset[int] = frozenset()
         self._active_backend: _BackendKind | None = None
         self._active_loop: AbstractEventLoop | None = None
         self._context_mode: _ContextMode | None = None
@@ -278,6 +279,27 @@ class Stage:
     def _callback_registration_allowed(self) -> bool:
         return not self._sealed or _active_stage.get() is self
 
+    @staticmethod
+    def _inherited_caller_loop_for_sync() -> AbstractEventLoop | None:
+        """Return a caller loop that is asynchronously waiting for this worker."""
+
+        outer = _active_stage.get()
+        if outer is None:
+            return None
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            return None
+        with outer._scope_lock:
+            if outer._active_backend != "caller":
+                return None
+            loop = outer._active_loop
+        if loop is None or loop.is_closed() or not loop.is_running():
+            return None
+        return loop
+
     def _resolve_backend_locked(self) -> tuple[_BackendKind, AbstractEventLoop | None]:
         if self._active_backend is not None:
             return self._active_backend, self._active_loop
@@ -291,15 +313,24 @@ class Stage:
             backend = "stage"
             loop = None
         else:
+            inherited_caller_loop = self._inherited_caller_loop_for_sync()
             if self._context_mode == "sync":
-                backend = "stage"
-                loop = None
+                if inherited_caller_loop is None:
+                    backend = "stage"
+                    loop = None
+                else:
+                    backend = "caller"
+                    loop = inherited_caller_loop
             else:
                 try:
                     loop = asyncio.get_running_loop()
                 except RuntimeError:
-                    backend = "stage"
-                    loop = None
+                    if inherited_caller_loop is None:
+                        backend = "stage"
+                        loop = None
+                    else:
+                        backend = "caller"
+                        loop = inherited_caller_loop
                 else:
                     backend = "caller"
 
@@ -307,6 +338,12 @@ class Stage:
             self._generation_lease = _RUNTIME_CARRIER.acquire_lease(
                 avoid_current_loop=self._context_mode == "sync",
             )
+            self._blocked_generation_ids = _RUNTIME_CARRIER.blocked_generation_ids_for_submission(
+                self._generation_lease,
+                synchronous_scope=self._context_mode == "sync",
+            )
+        else:
+            self._blocked_generation_ids = frozenset()
         self._active_backend = backend
         self._active_loop = loop
         return backend, loop
@@ -498,10 +535,15 @@ class Stage:
                     raise StageLifecycleError("Stage callback owner loop is unavailable")
                 self._active_backend = "caller"
                 self._active_loop = handle_loop
+                self._blocked_generation_ids = frozenset()
             else:
                 self._active_backend = "stage"
                 self._active_loop = None
                 self._generation_lease = _RUNTIME_CARRIER.acquire_lease()
+                self._blocked_generation_ids = _RUNTIME_CARRIER.blocked_generation_ids_for_submission(
+                    self._generation_lease,
+                    synchronous_scope=False,
+                )
         elif self._active_backend != handle._backend_kind or (
             self._active_backend == "caller" and self._active_loop is not handle_loop
         ):
@@ -524,6 +566,7 @@ class Stage:
             preferred=self._generation_lease,
             owner=False,
             phase=_WorkPhase.SETTLEMENT,
+            blocked_generation_ids=self._blocked_generation_ids,
         )
 
     @overload
@@ -665,6 +708,7 @@ class Stage:
                     handle,
                     body,
                     preferred=self._generation_lease,
+                    blocked_generation_ids=self._blocked_generation_ids,
                 )
             except BaseException:
                 self._finish_admission(admission)
@@ -715,6 +759,11 @@ class Stage:
                     lease = self._release_backend_if_quiescent_locked()
                     if lease is not None:
                         _RUNTIME_CARRIER.release_lease(lease)
+                    if backend == "caller" and selected_loop is not None:
+                        raise StageLifecycleError(
+                            "Stage.create_task cannot move caller-loop-owned work to another event loop; "
+                            "use 'async with Stage()' and await the async operation on its owner loop"
+                        )
                     raise StageLifecycleError(
                         "Stage.create_task requires the current running caller event loop backend"
                     )
@@ -723,6 +772,7 @@ class Stage:
             raise
 
         context = contextvars.copy_context()
+        context.run(_active_stage.set, self)
         try:
             if name is None:
                 task = context.run(loop.create_task, coroutine)
@@ -1029,6 +1079,7 @@ class Stage:
             timer.cancel()
         lease = self._generation_lease
         self._generation_lease = None
+        self._blocked_generation_ids = frozenset()
         self._active_backend = None
         self._active_loop = None
         self._cancelling = False

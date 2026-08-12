@@ -8,7 +8,10 @@ Creating a `Stage` does not create a thread, loop, or permanent loop binding.
 The first admitted root in each active epoch selects its backend lazily:
 
 - inside an async service, `Stage()` uses that service's current running loop;
-- without a running loop, `Stage()` uses the process-wide Stage carrier;
+- in a Stage-owned worker without a running loop, `Stage()` reuses a safe
+  inherited caller loop or carrier;
+- otherwise, without a running loop, `Stage()` uses the process-wide Stage
+  carrier;
 - after complete settlement, a reusable automatic Stage releases the binding
   and selects again when later work arrives.
 
@@ -169,6 +172,12 @@ replace the loop's task factory: settlement covers work created through
 tasks explicitly attached with `Stage.adopt()`. An unrelated raw
 `asyncio.create_task()` remains owned by the caller.
 
+`Stage.create_task()` also installs the Stage's logical lineage in the new
+task's context. If that task later awaits a blocking worker, a nested automatic
+sync scope can safely return to the caller loop that is asynchronously waiting
+for the worker. This propagates ownership information without treating the
+worker as if it physically executed that loop.
+
 ### Callback observers
 
 Callbacks are ordered observers, not Promise-style result transformations.
@@ -229,10 +238,13 @@ releases an automatic binding; the next root selects again.
 `with Stage()` and `async with Stage()` are lifecycle conveniences. A sync
 context selects a physically safe carrier; an async context prefers its current
 running loop. Context exit seals the scope and waits for Stage-owned work. An
-empty context creates no loop. Nested automatic sync scopes reuse an inherited
-carrier when the caller is a worker; if the caller physically runs the only
-eligible carrier loop, Stage uses a temporary escape carrier rather than
-deadlocking. The logical scopes and settlement inventories remain independent.
+empty context creates no loop. Nested automatic sync scopes reuse a safe
+inherited caller loop or carrier when the caller is a worker. If the caller
+physically runs the selected carrier, Stage uses another configured carrier or
+a temporary escape carrier. The selector also excludes every upstream carrier
+generation that is synchronously waiting for the current scope, preventing a
+transitive `carrier A -> escape B -> carrier A` wait cycle. The logical scopes
+and settlement inventories remain independent.
 
 `Stage.close()` and `Stage.async_close()` are scope barriers for explicit
 application lifecycles. They are not required to make an ordinary script exit:
@@ -468,12 +480,16 @@ Python cannot preempt that thread. Use `as_async(function, managed=True)` when
 the caller owns the task lifetime and cancellation acknowledgement must wait
 until the blocking call actually returns or raises.
 
-`as_sync()` resolves awaitables through the finite Stage carrier and fails fast
-if a synchronous wait would re-enter that same carrier. It may be called while
-another loop is running in the caller thread for compatibility, but it blocks
-that thread and the awaitable must not own objects bound to the caller loop;
-ordinary async code should await instead. By default it returns the body
-outcome without adding a settlement barrier; use
+`as_sync()` resolves awaitables through an automatically routed Stage
+environment. A Stage-owned worker can return to the caller loop or carrier that
+is asynchronously waiting for it. A call made on its selected carrier uses an
+alternate or temporary escape carrier, and transitive synchronous-wait
+ancestors remain ineligible. It may be called while another loop is running in
+the caller thread for compatibility, but it blocks that thread. Work bound to
+that blocked owner loop cannot be moved safely and fails with guidance to use
+`async with Stage()` / `await`; ordinary async code should await directly. By
+default the bridge returns the body outcome without adding a settlement
+barrier; use
 `as_sync(function, managed=True)` when the boundary owns descendant work and
 must wait for it. A primary body error is never replaced by a duplicate
 settlement error. `submit()` returns a loop-neutral managed `StageHandle`.
