@@ -64,14 +64,15 @@ jobs:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           uv run python - <<'PY'
+          import importlib.metadata
           import os
-          import pathlib
-          import tomllib
 
-          version = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"]
+          project_version = importlib.metadata.version("agently-stage")
           expected = os.environ["RELEASE_VERSION"]
-          if version != expected:
-              raise SystemExit(f"tag version {expected} does not match pyproject version {version}")
+          if project_version != expected:
+              raise SystemExit(
+                  f"tag version {expected} does not match installed project version {project_version}"
+              )
           PY
       - name: Type check
         if: matrix.python-version == '3.10'
