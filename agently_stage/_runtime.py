@@ -333,19 +333,13 @@ class _CarrierSlot:
         generation: _Generation,
         loop: AbstractEventLoop,
         coroutine: Any,
-        context: contextvars.Context | None = None,
+        **kwargs: Any,
     ) -> Task[Any]:
         active_execution = _active_execution.get()
 
         def create_task() -> Task[Any]:
-            if context is None:
-                return asyncio.tasks.Task(coroutine, loop=loop)
             task_constructor = cast("Any", asyncio.tasks.Task)
-            return task_constructor(
-                coroutine,
-                loop=loop,
-                context=context,
-            )
+            return task_constructor(coroutine, loop=loop, **kwargs)
 
         if active_execution is None or active_execution.generation is not generation:
             return create_task()

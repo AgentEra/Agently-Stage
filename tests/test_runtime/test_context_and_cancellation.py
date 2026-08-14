@@ -290,3 +290,17 @@ def test_task_factory_accepts_explicit_context() -> None:
     assert handle.get(timeout=1) == "explicit"
     handle.wait_settled(timeout=1)
     stage.close(timeout=1)
+
+
+def test_task_factory_accepts_and_forwards_task_name() -> None:
+    stage = Stage()
+
+    async def root() -> str:
+        task = asyncio.create_task(asyncio.sleep(0), name="named-stage-child")
+        await task
+        return task.get_name()
+
+    handle = stage.go(root)
+    assert handle.get(timeout=1) == "named-stage-child"
+    handle.wait_settled(timeout=1)
+    stage.close(timeout=1)
