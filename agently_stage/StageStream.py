@@ -16,7 +16,14 @@ _CallbackKind = Literal["success", "error", "finally"]
 
 
 class StageStream(Generic[T]):
-    """Read-only task-bound stream composed from Tunnel and StageHandle."""
+    """Read-only task-bound stream composed from Tunnel and StageHandle.
+
+    Retains complete history for independent replay (O(N) memory); each get or
+    success callback receives a separate list copy. Prefer iteration when a
+    materialized result is unnecessary, though history remains retained. Use an
+    explicitly bounded Tunnel when application semantics permit history loss;
+    StageStream does not silently discard items to cap memory.
+    """
 
     def __init__(
         self,

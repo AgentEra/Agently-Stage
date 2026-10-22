@@ -1,0 +1,7 @@
+Python 3.14.8
+COMMAND: ['/Users/moxin/dev/.worktrees/Agently-long-task-artifact-delivery/spec/experiments/release-4.1.4.10/python314-env/bin/python', '-m', 'pytest', '-q', 'tests', '--ignore=tests/test_api/test_Stage_benchmark.py']
+........................................................................ [ 31%]
+........................................................................ [ 62%]
+........................................................................ [ 93%]
+...............                                                          [100%]
+231 passed in 25.12s

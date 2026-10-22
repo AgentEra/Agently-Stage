@@ -1,0 +1,1 @@
+{"raw_archives_verified": 718, "formal_runs": {"main": {"total": 640, "valid": 620, "failed": 20}, "native-adapter": {"total": 70, "valid": 70, "failed": 0}}, "selected_configs": 128, "selected_runs": 640, "selection": "main non-native arms + complete native-adapter arms; no cross-run H8 pairing"}

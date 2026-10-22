@@ -1,0 +1,13 @@
+{
+  "python": "3.14.8 | packaged by Anaconda, Inc. | (main, Oct  1 2026, 20:20:32) [Clang 20.1.8 ]",
+  "gil_disabled_build": 0,
+  "gil_enabled": true,
+  "process": {
+    "direct_pow": 1024,
+    "stage_error": "TypeError: cannot pickle '_contextvars.Context' object"
+  },
+  "interpreter": {
+    "direct_pow": 1024,
+    "stage_error": "NotShareableError: (Queue(1), <built-in method run of _contextvars.Context object at 0x1029d89c0>, (functools.partial(<built-in function pow>, 2, 10),), {}) does not support cross-interpreter data"
+  }
+}

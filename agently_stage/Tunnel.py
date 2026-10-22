@@ -143,7 +143,20 @@ class TunnelSubscription(Generic[T]):
 
 
 class Tunnel(Generic[T]):
-    """A writable, replayable channel with independent subscriber cursors."""
+    """A writable, replayable channel with independent subscriber cursors.
+
+    ``max_history=None`` retains every item, using O(N) memory and constant-time
+    indexed replay. Set a positive limit for bounded retention; a reader that
+    falls behind raises TunnelLagError. Retention is not producer backpressure.
+
+    ``wake_mode='individual'`` (default) schedules each async reader separately.
+    Opt into ``'grouped'`` for many waiting readers on the same event loop: one
+    callback per loop resolves that notification's readers. This can reduce
+    cross-thread notification cost, but grouping adds overhead for small fan-out
+    and can worsen tail latency. Measure your actual producer/reader cadence.
+    Both modes preserve items, independent cursors and terminal semantics; they
+    introduce no batching delay. Sync readers use the same condition in both.
+    """
 
     def __init__(
         self,
@@ -151,11 +164,16 @@ class Tunnel(Generic[T]):
         timeout: float | None = 10,
         timeout_after_start: bool = True,
         max_history: int | None = None,
+        *,
+        wake_mode: Literal["individual", "grouped"] = "individual",
     ) -> None:
         if max_history is not None and max_history <= 0:
             raise ValueError("Tunnel max_history must be positive")
+        if wake_mode not in ("individual", "grouped"):
+            raise ValueError("Tunnel wake_mode must be 'individual' or 'grouped'")
         self._condition = threading.Condition(threading.RLock())
-        self._items: deque[T] = deque()
+        self._items: list[T] | deque[T] = [] if max_history is None else deque()
+        self._wake_mode = wake_mode
         self._base_sequence = 0
         self._next_sequence = 0
         self._closed = False
@@ -173,13 +191,33 @@ class Tunnel(Generic[T]):
 
     def _wake_waiters_locked(self) -> None:
         self._condition.notify_all()
+        if not self._async_waiters:
+            return
         waiters = tuple(self._async_waiters)
         self._async_waiters.clear()
+        if self._wake_mode == "grouped":
+            groups: dict[AbstractEventLoop, list[Future[None]]] = {}
+            for waiter in waiters:
+                groups.setdefault(waiter.loop, []).append(waiter.future)
+            for loop, futures in groups.items():
+                try:
+                    loop.call_soon_threadsafe(self._resolve_group, futures)
+                except RuntimeError:
+                    # A closed owner loop cannot resume its readers. Do not
+                    # touch its futures from this thread or block other loops.
+                    pass
+            return
         for waiter in waiters:
             try:
                 waiter.loop.call_soon_threadsafe(self._resolve_waiter, waiter.future)
             except RuntimeError:
-                waiter.future.cancel()
+                pass
+
+    @staticmethod
+    def _resolve_group(futures: list[Future[None]]) -> None:
+        for future in futures:
+            if not future.done():
+                future.set_result(None)
 
     def put(self, data: T) -> None:
         with self._condition:
@@ -188,7 +226,7 @@ class Tunnel(Generic[T]):
             self._items.append(data)
             self._next_sequence += 1
             if self._max_history is not None and len(self._items) > self._max_history:
-                self._items.popleft()
+                cast("deque[T]", self._items).popleft()
                 self._base_sequence += 1
             self._wake_waiters_locked()
 
@@ -249,7 +287,7 @@ class Tunnel(Generic[T]):
                 raise ValueError("Tunnel subscription start must be 'earliest', 'latest', or an absolute sequence")
         return TunnelSubscription(self, cursor=cursor, timeout=effective_timeout)
 
-    def _retained_items_reference(self) -> deque[T]:
+    def _retained_items_reference(self) -> list[T] | deque[T]:
         """Return the terminal retained buffer to the owning StageStream."""
 
         with self._condition:

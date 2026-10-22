@@ -1,0 +1,8 @@
+{"id": "boundary-026da205c8bd", "repeat": 0, "case": {"group": "boundary", "language": "rust", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:34:34.773924+00:00"}
+{"id": "callbacks-fc9bcfb73d14", "repeat": 0, "case": {"group": "callbacks", "workers": 1, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:34:35.319169+00:00"}
+{"id": "replay-80fdce3f7efa", "repeat": 0, "case": {"group": "replay", "count": 1000, "storage": "deque", "mode": "sync"}, "started_at": "2026-10-22T06:34:35.603847+00:00"}
+{"id": "dispatch-1c3cb01603b4", "repeat": 0, "case": {"group": "dispatch", "count": 2000, "delay": 0, "mode": "asyncio"}, "started_at": "2026-10-22T06:34:35.692947+00:00"}
+{"id": "carrier-28dec13e576c", "repeat": 0, "case": {"group": "carrier", "lanes": 1, "scopes": 1, "kind": "io", "count": 1000}, "started_at": "2026-10-22T06:34:35.787701+00:00"}
+{"id": "compute-5b1d23695ec1", "repeat": 0, "case": {"group": "compute", "kind": "python", "iterations": 64, "count": 256, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:34:35.920786+00:00"}
+{"id": "broadcast-a5c3a49a0e0c", "repeat": 0, "case": {"group": "broadcast", "count": 1500, "readers": 1, "wake": "baseline", "producer": "loop", "interval": 0}, "started_at": "2026-10-22T06:34:36.073410+00:00"}
+{"id": "mixed-edd2e78daf55", "repeat": 0, "case": {"group": "mixed", "mode": "shared"}, "started_at": "2026-10-22T06:34:36.181689+00:00"}

@@ -1,0 +1,3 @@
+python=3.14.7 | packaged by Anaconda, Inc. | (main, Aug 14 2026, 10:13:42) [Clang 20.1.8 ]
+import=/tmp/stage-candidate-installed/agently_stage/__init__.py
+wheel_sha256=23582a3ce95d764d94e4d588d2697615dda91541df0bb8bbe59dc0871519ca03

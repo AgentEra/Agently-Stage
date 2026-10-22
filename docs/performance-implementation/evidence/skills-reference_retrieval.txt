@@ -1,0 +1,172 @@
+V2 reference retrieval validation
+passes: 167
+PASS  reference_cases_present: reference retrieval fixtures contain cases
+PASS  project-framework-daily-news-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  project-framework-daily-news-zh_skills_exist: all matched skills exist
+PASS  project-framework-daily-news-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  project-framework-daily-news-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  project-framework-daily-news-zh_concept_ids: concept ids are unique and non-empty
+PASS  project-framework-daily-news-zh_required_concepts: required concepts are declared in the concept list
+PASS  prompt-placeholder-config-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  prompt-placeholder-config-en_skills_exist: all matched skills exist
+PASS  prompt-placeholder-config-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  prompt-placeholder-config-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  prompt-placeholder-config-en_concept_ids: concept ids are unique and non-empty
+PASS  prompt-placeholder-config-en_required_concepts: required concepts are declared in the concept list
+PASS  request-prompt-context-locality-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  request-prompt-context-locality-zh_skills_exist: all matched skills exist
+PASS  request-prompt-context-locality-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  request-prompt-context-locality-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  request-prompt-context-locality-zh_concept_ids: concept ids are unique and non-empty
+PASS  request-prompt-context-locality-zh_required_concepts: required concepts are declared in the concept list
+PASS  model-settings-env-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  model-settings-env-en_skills_exist: all matched skills exist
+PASS  model-settings-env-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  model-settings-env-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  model-settings-env-en_concept_ids: concept ids are unique and non-empty
+PASS  model-settings-env-en_required_concepts: required concepts are declared in the concept list
+PASS  response-fanout-example-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  response-fanout-example-en_skills_exist: all matched skills exist
+PASS  response-fanout-example-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  response-fanout-example-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  response-fanout-example-en_concept_ids: concept ids are unique and non-empty
+PASS  response-fanout-example-en_required_concepts: required concepts are declared in the concept list
+PASS  triggerflow-lifecycle-close-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  triggerflow-lifecycle-close-zh_skills_exist: all matched skills exist
+PASS  triggerflow-lifecycle-close-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  triggerflow-lifecycle-close-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  triggerflow-lifecycle-close-zh_concept_ids: concept ids are unique and non-empty
+PASS  triggerflow-lifecycle-close-zh_required_concepts: required concepts are declared in the concept list
+PASS  triggerflow-runtime-stream-close-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  triggerflow-runtime-stream-close-en_skills_exist: all matched skills exist
+PASS  triggerflow-runtime-stream-close-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  triggerflow-runtime-stream-close-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  triggerflow-runtime-stream-close-en_concept_ids: concept ids are unique and non-empty
+PASS  triggerflow-runtime-stream-close-en_required_concepts: required concepts are declared in the concept list
+PASS  triggerflow-state-vs-flow-data-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  triggerflow-state-vs-flow-data-zh_skills_exist: all matched skills exist
+PASS  triggerflow-state-vs-flow-data-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  triggerflow-state-vs-flow-data-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  triggerflow-state-vs-flow-data-zh_concept_ids: concept ids are unique and non-empty
+PASS  triggerflow-state-vs-flow-data-zh_required_concepts: required concepts are declared in the concept list
+PASS  model-quality-validation-routing-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  model-quality-validation-routing-zh_skills_exist: all matched skills exist
+PASS  model-quality-validation-routing-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  model-quality-validation-routing-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  model-quality-validation-routing-zh_concept_ids: concept ids are unique and non-empty
+PASS  model-quality-validation-routing-zh_required_concepts: required concepts are declared in the concept list
+PASS  model-quality-hard-soft-acceptance-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  model-quality-hard-soft-acceptance-zh_skills_exist: all matched skills exist
+PASS  model-quality-hard-soft-acceptance-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  model-quality-hard-soft-acceptance-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  model-quality-hard-soft-acceptance-zh_skills/agently/references/model-quality-validation.md_anchor_path: anchor path exists and belongs to the matched-skill candidates
+PASS  model-quality-hard-soft-acceptance-zh_skills/agently/references/model-quality-validation.md_anchors_in_source: every declared excerpt anchor exists in the full source file
+PASS  model-quality-hard-soft-acceptance-zh_skills/agently/references/model-quality-validation.md_anchors_delivered: every declared excerpt anchor is present in the delivered candidate excerpt
+PASS  model-quality-hard-soft-acceptance-zh_concept_ids: concept ids are unique and non-empty
+PASS  model-quality-hard-soft-acceptance-zh_required_concepts: required concepts are declared in the concept list
+PASS  execution-topology-validation-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  execution-topology-validation-zh_skills_exist: all matched skills exist
+PASS  execution-topology-validation-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  execution-topology-validation-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  execution-topology-validation-zh_concept_ids: concept ids are unique and non-empty
+PASS  execution-topology-validation-zh_required_concepts: required concepts are declared in the concept list
+PASS  taskdag-foundation-dynamic-task-facade-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  taskdag-foundation-dynamic-task-facade-en_skills_exist: all matched skills exist
+PASS  taskdag-foundation-dynamic-task-facade-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  taskdag-foundation-dynamic-task-facade-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  taskdag-foundation-dynamic-task-facade-en_concept_ids: concept ids are unique and non-empty
+PASS  taskdag-foundation-dynamic-task-facade-en_required_concepts: required concepts are declared in the concept list
+PASS  design-system-boundaries-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  design-system-boundaries-zh_skills_exist: all matched skills exist
+PASS  design-system-boundaries-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  design-system-boundaries-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  design-system-boundaries-zh_concept_ids: concept ids are unique and non-empty
+PASS  design-system-boundaries-zh_required_concepts: required concepts are declared in the concept list
+PASS  design-model-request-topology-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  design-model-request-topology-en_skills_exist: all matched skills exist
+PASS  design-model-request-topology-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  design-model-request-topology-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  design-model-request-topology-en_concept_ids: concept ids are unique and non-empty
+PASS  design-model-request-topology-en_required_concepts: required concepts are declared in the concept list
+PASS  design-replaceable-handoff-reference-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  design-replaceable-handoff-reference-zh_skills_exist: all matched skills exist
+PASS  design-replaceable-handoff-reference-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  design-replaceable-handoff-reference-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  design-replaceable-handoff-reference-zh_skills/agently-design/references/model-request-topology.md_anchor_path: anchor path exists and belongs to the matched-skill candidates
+PASS  design-replaceable-handoff-reference-zh_skills/agently-design/references/model-request-topology.md_anchors_in_source: every declared excerpt anchor exists in the full source file
+PASS  design-replaceable-handoff-reference-zh_skills/agently-design/references/model-request-topology.md_anchors_delivered: every declared excerpt anchor is present in the delivered candidate excerpt
+PASS  design-replaceable-handoff-reference-zh_concept_ids: concept ids are unique and non-empty
+PASS  design-replaceable-handoff-reference-zh_required_concepts: required concepts are declared in the concept list
+PASS  design-stage-scoped-output-progress-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  design-stage-scoped-output-progress-zh_skills_exist: all matched skills exist
+PASS  design-stage-scoped-output-progress-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  design-stage-scoped-output-progress-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  design-stage-scoped-output-progress-zh_skills/agently-design/references/model-request-topology.md_anchor_path: anchor path exists and belongs to the matched-skill candidates
+PASS  design-stage-scoped-output-progress-zh_skills/agently-design/references/model-request-topology.md_anchors_in_source: every declared excerpt anchor exists in the full source file
+PASS  design-stage-scoped-output-progress-zh_skills/agently-design/references/model-request-topology.md_anchors_delivered: every declared excerpt anchor is present in the delivered candidate excerpt
+PASS  design-stage-scoped-output-progress-zh_concept_ids: concept ids are unique and non-empty
+PASS  design-stage-scoped-output-progress-zh_required_concepts: required concepts are declared in the concept list
+PASS  design-instant-overlap-reconcile-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  design-instant-overlap-reconcile-zh_skills_exist: all matched skills exist
+PASS  design-instant-overlap-reconcile-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  design-instant-overlap-reconcile-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  design-instant-overlap-reconcile-zh_concept_ids: concept ids are unique and non-empty
+PASS  design-instant-overlap-reconcile-zh_required_concepts: required concepts are declared in the concept list
+PASS  design-request-snapshot-boundary-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  design-request-snapshot-boundary-zh_skills_exist: all matched skills exist
+PASS  design-request-snapshot-boundary-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  design-request-snapshot-boundary-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  design-request-snapshot-boundary-zh_concept_ids: concept ids are unique and non-empty
+PASS  design-request-snapshot-boundary-zh_required_concepts: required concepts are declared in the concept list
+PASS  request-rule-first-validation-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  request-rule-first-validation-zh_skills_exist: all matched skills exist
+PASS  request-rule-first-validation-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  request-rule-first-validation-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  request-rule-first-validation-zh_concept_ids: concept ids are unique and non-empty
+PASS  request-rule-first-validation-zh_required_concepts: required concepts are declared in the concept list
+PASS  request-strict-hot-only-agent-isolation-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  request-strict-hot-only-agent-isolation-en_skills_exist: all matched skills exist
+PASS  request-strict-hot-only-agent-isolation-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  request-strict-hot-only-agent-isolation-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  request-strict-hot-only-agent-isolation-en_skills/agently-request/references/prompt-management.md_anchor_path: anchor path exists and belongs to the matched-skill candidates
+PASS  request-strict-hot-only-agent-isolation-en_skills/agently-request/references/prompt-management.md_anchors_in_source: every declared excerpt anchor exists in the full source file
+PASS  request-strict-hot-only-agent-isolation-en_skills/agently-request/references/prompt-management.md_anchors_delivered: every declared excerpt anchor is present in the delivered candidate excerpt
+PASS  request-strict-hot-only-agent-isolation-en_concept_ids: concept ids are unique and non-empty
+PASS  request-strict-hot-only-agent-isolation-en_required_concepts: required concepts are declared in the concept list
+PASS  request-special-case-example-balance-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  request-special-case-example-balance-zh_skills_exist: all matched skills exist
+PASS  request-special-case-example-balance-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  request-special-case-example-balance-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  request-special-case-example-balance-zh_skills/agently-request/references/prompt-management.md_anchor_path: anchor path exists and belongs to the matched-skill candidates
+PASS  request-special-case-example-balance-zh_skills/agently-request/references/prompt-management.md_anchors_in_source: every declared excerpt anchor exists in the full source file
+PASS  request-special-case-example-balance-zh_skills/agently-request/references/prompt-management.md_anchors_delivered: every declared excerpt anchor is present in the delivered candidate excerpt
+PASS  request-special-case-example-balance-zh_concept_ids: concept ids are unique and non-empty
+PASS  request-special-case-example-balance-zh_required_concepts: required concepts are declared in the concept list
+PASS  design-selection-key-freshness-correlation-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  design-selection-key-freshness-correlation-en_skills_exist: all matched skills exist
+PASS  design-selection-key-freshness-correlation-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  design-selection-key-freshness-correlation-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  design-selection-key-freshness-correlation-en_skills/agently-design/references/information-and-evidence-design.md_anchor_path: anchor path exists and belongs to the matched-skill candidates
+PASS  design-selection-key-freshness-correlation-en_skills/agently-design/references/information-and-evidence-design.md_anchors_in_source: every declared excerpt anchor exists in the full source file
+PASS  design-selection-key-freshness-correlation-en_skills/agently-design/references/information-and-evidence-design.md_anchors_delivered: every declared excerpt anchor is present in the delivered candidate excerpt
+PASS  design-selection-key-freshness-correlation-en_skills/agently-design/references/model-request-topology.md_anchor_path: anchor path exists and belongs to the matched-skill candidates
+PASS  design-selection-key-freshness-correlation-en_skills/agently-design/references/model-request-topology.md_anchors_in_source: every declared excerpt anchor exists in the full source file
+PASS  design-selection-key-freshness-correlation-en_skills/agently-design/references/model-request-topology.md_anchors_delivered: every declared excerpt anchor is present in the delivered candidate excerpt
+PASS  design-selection-key-freshness-correlation-en_concept_ids: concept ids are unique and non-empty
+PASS  design-selection-key-freshness-correlation-en_required_concepts: required concepts are declared in the concept list
+PASS  stage-independent-scope-adapters-en_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  stage-independent-scope-adapters-en_skills_exist: all matched skills exist
+PASS  stage-independent-scope-adapters-en_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  stage-independent-scope-adapters-en_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  stage-independent-scope-adapters-en_concept_ids: concept ids are unique and non-empty
+PASS  stage-independent-scope-adapters-en_required_concepts: required concepts are declared in the concept list
+PASS  stage-tunnel-event-emitter-zh_shape: case has query, matched_skills, expected reference sets, excerpt anchors, and concepts
+PASS  stage-tunnel-event-emitter-zh_skills_exist: all matched skills exist
+PASS  stage-tunnel-event-emitter-zh_expected_set_0: expected reference set points to candidate files inside matched skills
+PASS  stage-tunnel-event-emitter-zh_excerpt_anchors_shape: excerpt anchors map candidate paths to unique non-empty strings
+PASS  stage-tunnel-event-emitter-zh_concept_ids: concept ids are unique and non-empty
+PASS  stage-tunnel-event-emitter-zh_required_concepts: required concepts are declared in the concept list
+PASS  model_authorization: skipped model-backed retrieval; explicit --allow-model-calls and --max-model-requests are required
+failures: 0
+
+exit_code=0

@@ -1,0 +1,5 @@
+Using CPython 3.14.7 interpreter at: /Users/moxin/dev/public/Agently/.venv/bin/python
+Resolved 1 package in 5ms
+Prepared 1 package in 6ms
+Installed 1 package in 1ms
+ + agently-stage==0.3.8 (from file:///Users/moxin/dev/public/Agently-Stage/dist/agently_stage-0.3.8-py3-none-any.whl)

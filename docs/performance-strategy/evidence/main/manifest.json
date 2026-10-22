@@ -1,0 +1,988 @@
+{
+  "schema": 1,
+  "started_at": "2026-10-22T06:37:24.713700+00:00",
+  "baseline": "cfa1db5b9663b4559226dfab4db120adcac22b11",
+  "branch": "feature/performance-strategy-evaluation",
+  "python": "3.10.21 (main, Aug 27 2026, 14:36:16) [Clang 20.1.8 ]",
+  "executable": "/opt/miniconda3/envs/3.10/bin/python",
+  "machine": "Darwin localhost 25.5.0 Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:12 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6050 arm64",
+  "hardware": "Mac17,9\n15\n15\n51539607552",
+  "repetitions": 5,
+  "seed": 20261022,
+  "cases": [
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0,
+      "mode": "asyncio"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0,
+      "mode": "caller"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0,
+      "mode": "carrier_each"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0,
+      "mode": "carrier_batch"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0.001,
+      "mode": "asyncio"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0.001,
+      "mode": "caller"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0.001,
+      "mode": "carrier_each"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0.001,
+      "mode": "carrier_batch"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0,
+      "mode": "asyncio",
+      "loop": "uvloop"
+    },
+    {
+      "group": "dispatch",
+      "count": 2000,
+      "delay": 0,
+      "mode": "caller",
+      "loop": "uvloop"
+    },
+    {
+      "group": "carrier",
+      "lanes": 1,
+      "scopes": 1,
+      "kind": "io",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 1,
+      "scopes": 1,
+      "kind": "cpu",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 1,
+      "scopes": 16,
+      "kind": "io",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 1,
+      "scopes": 16,
+      "kind": "cpu",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 2,
+      "scopes": 1,
+      "kind": "io",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 2,
+      "scopes": 1,
+      "kind": "cpu",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 2,
+      "scopes": 16,
+      "kind": "io",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 2,
+      "scopes": 16,
+      "kind": "cpu",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 4,
+      "scopes": 1,
+      "kind": "io",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 4,
+      "scopes": 1,
+      "kind": "cpu",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 4,
+      "scopes": 16,
+      "kind": "io",
+      "count": 1000
+    },
+    {
+      "group": "carrier",
+      "lanes": 4,
+      "scopes": 16,
+      "kind": "cpu",
+      "count": 1000
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "thread",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "thread",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "thread",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "thread",
+      "workers": 8
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "stage",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "stage",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "stage",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "stage",
+      "workers": 8
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "process",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "process",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "process",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 64,
+      "count": 256,
+      "mode": "process",
+      "workers": 8
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 8
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 8
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "process",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "process",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "process",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "python",
+      "iterations": 100000,
+      "count": 32,
+      "mode": "process",
+      "workers": 8
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 8
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 8
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "process",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "process",
+      "workers": 2
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "process",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "hash",
+      "iterations": 50000,
+      "count": 32,
+      "mode": "process",
+      "workers": 8
+    },
+    {
+      "group": "replay",
+      "count": 1000,
+      "storage": "deque",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 1000,
+      "storage": "deque",
+      "mode": "async"
+    },
+    {
+      "group": "replay",
+      "count": 1000,
+      "storage": "list",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 1000,
+      "storage": "list",
+      "mode": "async"
+    },
+    {
+      "group": "replay",
+      "count": 1000,
+      "storage": "chunk",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 1000,
+      "storage": "chunk",
+      "mode": "async"
+    },
+    {
+      "group": "replay",
+      "count": 10000,
+      "storage": "deque",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 10000,
+      "storage": "deque",
+      "mode": "async"
+    },
+    {
+      "group": "replay",
+      "count": 10000,
+      "storage": "list",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 10000,
+      "storage": "list",
+      "mode": "async"
+    },
+    {
+      "group": "replay",
+      "count": 10000,
+      "storage": "chunk",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 10000,
+      "storage": "chunk",
+      "mode": "async"
+    },
+    {
+      "group": "replay",
+      "count": 100000,
+      "storage": "deque",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 100000,
+      "storage": "deque",
+      "mode": "async"
+    },
+    {
+      "group": "replay",
+      "count": 100000,
+      "storage": "list",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 100000,
+      "storage": "list",
+      "mode": "async"
+    },
+    {
+      "group": "replay",
+      "count": 100000,
+      "storage": "chunk",
+      "mode": "sync"
+    },
+    {
+      "group": "replay",
+      "count": 100000,
+      "storage": "chunk",
+      "mode": "async"
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 1,
+      "wake": "baseline",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 1,
+      "wake": "baseline",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 1,
+      "wake": "baseline",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 1,
+      "wake": "baseline",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 1,
+      "wake": "grouped",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 1,
+      "wake": "grouped",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 1,
+      "wake": "grouped",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 1,
+      "wake": "grouped",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 1,
+      "wake": "local",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 1,
+      "wake": "local",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 1,
+      "wake": "local",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 1,
+      "wake": "local",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 8,
+      "wake": "baseline",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 8,
+      "wake": "baseline",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 8,
+      "wake": "baseline",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 8,
+      "wake": "baseline",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 8,
+      "wake": "grouped",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 8,
+      "wake": "grouped",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 8,
+      "wake": "grouped",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 8,
+      "wake": "grouped",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 8,
+      "wake": "local",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 8,
+      "wake": "local",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 8,
+      "wake": "local",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 8,
+      "wake": "local",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 32,
+      "wake": "baseline",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 32,
+      "wake": "baseline",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 32,
+      "wake": "baseline",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 32,
+      "wake": "baseline",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 32,
+      "wake": "grouped",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 32,
+      "wake": "grouped",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 32,
+      "wake": "grouped",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 32,
+      "wake": "grouped",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 32,
+      "wake": "local",
+      "producer": "loop",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 32,
+      "wake": "local",
+      "producer": "loop",
+      "interval": 0.001
+    },
+    {
+      "group": "broadcast",
+      "count": 1500,
+      "readers": 32,
+      "wake": "local",
+      "producer": "thread",
+      "interval": 0
+    },
+    {
+      "group": "broadcast",
+      "count": 300,
+      "readers": 32,
+      "wake": "local",
+      "producer": "thread",
+      "interval": 0.001
+    },
+    {
+      "group": "mixed",
+      "mode": "shared"
+    },
+    {
+      "group": "mixed",
+      "mode": "split"
+    },
+    {
+      "group": "boundary",
+      "language": "rust",
+      "mode": "each",
+      "count": 50000,
+      "iterations": 1
+    },
+    {
+      "group": "boundary",
+      "language": "rust",
+      "mode": "batch",
+      "count": 50000,
+      "iterations": 1
+    },
+    {
+      "group": "compute",
+      "kind": "rust",
+      "iterations": 5000000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "rust",
+      "iterations": 5000000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "rust",
+      "iterations": 5000000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "rust",
+      "iterations": 5000000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 4
+    },
+    {
+      "group": "boundary",
+      "language": "go",
+      "mode": "each",
+      "count": 50000,
+      "iterations": 1
+    },
+    {
+      "group": "boundary",
+      "language": "go",
+      "mode": "batch",
+      "count": 50000,
+      "iterations": 1
+    },
+    {
+      "group": "compute",
+      "kind": "go",
+      "iterations": 5000000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "go",
+      "iterations": 5000000,
+      "count": 32,
+      "mode": "thread",
+      "workers": 4
+    },
+    {
+      "group": "compute",
+      "kind": "go",
+      "iterations": 5000000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 1
+    },
+    {
+      "group": "compute",
+      "kind": "go",
+      "iterations": 5000000,
+      "count": 32,
+      "mode": "stage",
+      "workers": 4
+    },
+    {
+      "group": "callbacks",
+      "workers": 1,
+      "iterations": 20000,
+      "count": 64
+    },
+    {
+      "group": "callbacks",
+      "workers": 4,
+      "iterations": 20000,
+      "count": 64
+    }
+  ],
+  "psutil": "7.2.2",
+  "uvloop": "0.22.1",
+  "source_hashes": {
+    "agently_stage/StageHandle.py": "3a9fb22f495834878d5210298cde8ad5e11e87b9ff4324693b9b31d6565f78d4",
+    "agently_stage/StageStream.py": "d9235e2904101f070f6001268f9d1585fe0514c3133fa3a815c1ddc1061f0241",
+    "agently_stage/StageFunction.py": "a19a6e5b3c939798ea0926bd41cef282b303857daf812c3460931dcb0e1a4d4f",
+    "agently_stage/Events.py": "19660fc39eac0f5e8802fe4204c5fbc28e50f07c5f8805114f1e05f1cbe8c020",
+    "agently_stage/StageTask.py": "adc7ae47d230cc416a804b9b73be5dd72deeb2d4685f9fbab752e9e82873d9e7",
+    "agently_stage/__init__.py": "7d05e23450d8f3f0d5147fea8ae51066675fb74e1b77eb4da02f3d15bb786b2a",
+    "agently_stage/_runtime.py": "443a0157e119f19e24a05cde43d46b39c706bd6c97260130dab5d8bc024ce6ec",
+    "agently_stage/StageCallBridge.py": "b5e2c16ad05df9e058a8fa6ce7e05ca9d9687412a07f6d4db125847502be292d",
+    "agently_stage/Tunnel.py": "51d241d03b6b335874ec64dbff78c9b0f9cc80c92d6417ef1aa7c49b0d7c483a",
+    "agently_stage/StageDispatch.py": "0db7e7507348563c5ca04b580abebdf48f974aa0815d811e953cbcc751a65f59",
+    "agently_stage/StageResponse.py": "0df634937076c5ab32895989375ba9bef846c064e000a2ed7199a2bd550c186a",
+    "agently_stage/EventEmitter.py": "7021a0b7ebee8e0194f5bbd8797807c7d3b4e4d38f7512c2d27d6450c745db95",
+    "agently_stage/Stage.py": "0386abbfe5171c7e4fd338551a65650f31e2b50b8ff1b6fb480ec5e6d1926367",
+    "agently_stage/LocalTaskScope.py": "f281ad552dbe351c8f903c3aeb1dce56729e4bcc501ebd2870b548357fb4db4d",
+    "agently_stage/TaskThreadPool.py": "f3141330eb813bb6155567b858318bd0e5624683c4971a050b607344ece35962",
+    "agently_stage/StageHybridGenerator.py": "94161ab4638a8b901a330fb63b6ca4cfbdb31fe6136a3f67da766290147d53be",
+    "agently_stage/StageException.py": "1b1bc0b1d67d55fe3d15e289c00bebd102def2544db86c4f7c1295aaed7f3f9f",
+    "docs/performance-strategy/test_candidates.py": "9a390047f7ad72e6cf80f9cd9923d3daac2dbe2bddd00e28c525316f64a5bab2",
+    "docs/performance-strategy/suite.py": "62a822ae8c891544bca3b2b6c5c21b737165e8619c7b913546b40e531c6150d8",
+    "docs/performance-strategy/bench.py": "cd9a042ad3aa0ba4b1267fa02cb470ca7c1b2afa1f4f1edc3b0f03d7d4de3b8e",
+    "docs/performance-strategy/capabilities.py": "0cf4a42a694eebce1f30b47d9cd3d63c93e0c78d238bd81d98f0f66f5bfb1800",
+    "docs/performance-strategy/candidates.py": "3f52bb864ef2a78d24da0c4dcf52d0a0ab82897d6f81363f5524b2f4299f2b80",
+    "docs/performance-strategy/native.rs": "ddea573e03ce49f776b683454661ed417b883a7762af289ea7e9ef4c84184415",
+    "docs/performance-strategy/native.go": "02afd10ce686aedb83f47481a5166ac73f5f88da582788a3657da734c0227e1e"
+  },
+  "kind": "synthetic-infrastructure",
+  "model_calls": 0,
+  "external_calls": 0,
+  "limits": "non-isolated workstation; no CPU affinity; GC enabled; no production capacity claim"
+}

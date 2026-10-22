@@ -1,0 +1,62 @@
+[
+  {
+    "version": "310",
+    "returncode": 0,
+    "command": [
+      "/opt/miniconda3/envs/3.10/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests",
+      "--ignore=tests/test_api/test_Stage_benchmark.py"
+    ]
+  },
+  {
+    "version": "311",
+    "returncode": 0,
+    "command": [
+      "/opt/miniconda3/envs/3.11/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests",
+      "--ignore=tests/test_api/test_Stage_benchmark.py"
+    ]
+  },
+  {
+    "version": "312",
+    "returncode": 0,
+    "command": [
+      "/tmp/stage-matrix-312/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests",
+      "--ignore=tests/test_api/test_Stage_benchmark.py"
+    ]
+  },
+  {
+    "version": "313",
+    "returncode": 0,
+    "command": [
+      "/tmp/stage-matrix-313/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests",
+      "--ignore=tests/test_api/test_Stage_benchmark.py"
+    ]
+  },
+  {
+    "version": "314",
+    "returncode": 0,
+    "command": [
+      "/Users/moxin/dev/.worktrees/Agently-long-task-artifact-delivery/spec/experiments/release-4.1.4.10/python314-env/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests",
+      "--ignore=tests/test_api/test_Stage_benchmark.py"
+    ]
+  }
+]

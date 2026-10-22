@@ -1,0 +1,10 @@
+venv .venv subdirectory not found in venv path /Users/moxin/dev/public/Agently-Stage.
+/Users/moxin/dev/public/Agently-Stage/examples/test.py
+  /Users/moxin/dev/public/Agently-Stage/examples/test.py:13:11 - error: No overloads for "go" match the provided arguments (reportCallIssue)
+  /Users/moxin/dev/public/Agently-Stage/examples/test.py:17:20 - error: Argument of type "(item: int) -> CoroutineType[Any, Any, int]" cannot be assigned to parameter "on_success" of type "((T@go) -> (object | Awaitable[object])) | None" in function "go"
+    Type "(item: int) -> CoroutineType[Any, Any, int]" is not assignable to type "((AsyncGenerator[int, Any]) -> (object | Awaitable[object])) | None"
+      Type "(item: int) -> CoroutineType[Any, Any, int]" is not assignable to type "(AsyncGenerator[int, Any]) -> (object | Awaitable[object])"
+        Parameter 1: type "AsyncGenerator[int, Any]" is incompatible with type "int"
+          "AsyncGenerator[int, Any]" is not assignable to "int"
+      "FunctionType" is not assignable to "None" (reportArgumentType)
+2 errors, 0 warnings, 0 informations

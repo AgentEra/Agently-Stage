@@ -1,0 +1,34 @@
+....FF......                                                             [100%]
+=================================== FAILURES ===================================
+_________________________ test_bounded_eviction[deque] _________________________
+
+storage = 'deque'
+
+    @pytest.mark.parametrize("storage", ["deque", "chunk"])
+    def test_bounded_eviction(storage):
+        channel = ReplayTunnel(storage, max_history=300, timeout=None)
+        old = channel.subscribe()
+        for i in range(2000):
+            channel.put(i)
+>       assert channel.retained_range() == (1700, 2000)
+E       TypeError: 'tuple' object is not callable
+
+docs/performance-strategy/test_candidates.py:58: TypeError
+_________________________ test_bounded_eviction[chunk] _________________________
+
+storage = 'chunk'
+
+    @pytest.mark.parametrize("storage", ["deque", "chunk"])
+    def test_bounded_eviction(storage):
+        channel = ReplayTunnel(storage, max_history=300, timeout=None)
+        old = channel.subscribe()
+        for i in range(2000):
+            channel.put(i)
+>       assert channel.retained_range() == (1700, 2000)
+E       TypeError: 'tuple' object is not callable
+
+docs/performance-strategy/test_candidates.py:58: TypeError
+=========================== short test summary info ============================
+FAILED docs/performance-strategy/test_candidates.py::test_bounded_eviction[deque]
+FAILED docs/performance-strategy/test_candidates.py::test_bounded_eviction[chunk]
+2 failed, 10 passed in 0.70s

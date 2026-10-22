@@ -1,0 +1,23 @@
+{
+  "archive_raw.py": "e3c9809ef783558d426bc0113ca522723a2ad9ed510053870ca60b9cfdf5d4a5",
+  "test_candidates.py": "9a390047f7ad72e6cf80f9cd9923d3daac2dbe2bddd00e28c525316f64a5bab2",
+  "suite.py": "2475ae066f61e4411860d95c61dba5da5e2ebcceea497a5fbad8a45dc7b44d2c",
+  "audit.py": "d97d9f27d52eb9de8fcac93fe535b8f772173a327e3f6b65f6ae37ba344bcad3",
+  "test_batch_contracts.py": "f73708da239725cf4847ee947bc15a01249ae51f183e77ad8585dcba9a873b1a",
+  "bench.py": "61f35b3d41a4ca0d8f05d5afab0f9200a53d151dc731481700ee491881c287e5",
+  "check_contracts.py": "8757928a000ed82e3e3876560b93d4235bb2375f7e98864b1ca9c7f0a985a8a8",
+  "capabilities.py": "0cf4a42a694eebce1f30b47d9cd3d63c93e0c78d238bd81d98f0f66f5bfb1800",
+  "candidates.py": "3f52bb864ef2a78d24da0c4dcf52d0a0ab82897d6f81363f5524b2f4299f2b80",
+  "analyze.py": "31a49a07cc3d6cf32a279ffb1a0293c42c310da7344bf95ed1862a6e5be6276a",
+  "README.md": "877e91e5f6063bc79d0fe8f9254c856178993a9afe00e5af79b45625c6cba363",
+  "SHA256SUMS": "03f379fbafdd5259c616eabd59dc55ecde3ef5780179efccbfc4c82fabb003ed",
+  "BUILD.md": "6ecd9cf25d6e7cb57333c2858557d735a92064d37fdcfdde7320ca45f50601d5",
+  "evidence/main/completion.json": "5c1d1bd290e5719bca65397dbf5d89a240da580831d26081991fb7d490dcae65",
+  "evidence/main/manifest.json": "458d2b0fccf88e3126006f833236767232b6a6ab4eb2163ac271b04b0cf9e71f",
+  "evidence/main/summary.json": "80a3ccd9ed4aa13638a53cca5ccdb14266fb3499f70fee020306398853692328",
+  "evidence/native-adapter/completion.json": "fc0cfdd018069dffa298719f5da2f68689029f1b20cc8f197821e04545098487",
+  "evidence/native-adapter/manifest.json": "50b16c8c25687156922e31b8c0f78a6eaaa97512ed7fbbccaa2e1d9e890fece5",
+  "evidence/native-adapter/summary.json": "8751d1bfa46fe74e20b389fa3c65028c77a1739a65d57b89b14b7b46dddf585e",
+  "evidence/preflight/completion.json": "ff4f8b26b097d53964dd352b52f725863e1a4b8073479dabb6147f5f3b2da4b4",
+  "evidence/preflight/manifest.json": "8550578f7a4ca8ed01467506bba401e90009dd896b896b62d9602065cf836bf2"
+}
