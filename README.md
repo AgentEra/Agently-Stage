@@ -25,7 +25,7 @@ process shutdown hook.
 For workload-based defaults, optional notification grouping, thread budgets and
 their tradeoffs, see the [performance guide](docs/performance-implementation/README.md)
 and [runnable example](examples/performance_options.py). The `wake_mode` option
-described there is part of this development candidate, not the published 0.3.8.
+requires Agently-Stage 0.3.9 or later. See the [0.3.9 release notes](docs/releases/0.3.9/README.md).
 
 ```shell
 pip install agently-stage

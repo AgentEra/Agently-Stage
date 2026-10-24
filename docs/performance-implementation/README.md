@@ -1,6 +1,7 @@
 # 性能策略落地：默认行为、可选配置与代价
 
-本目录对应 `feature/performance-strategy-evaluation` 的实现候选，尚未发布。
+本目录说明 Agently-Stage 0.3.9 的默认行为与显式配置；升级说明见
+[0.3.9 发布记录](../releases/0.3.9/README.md)。
 历史研究与原始数据完整保留在 [performance-strategy](../performance-strategy/README.md)，
 本轮验证独立保存于 `evidence/`，不改写原研究结论或校验清单。
 研究脚本提交前仅做格式规范；原字节快照与恢复方法见
@@ -121,10 +122,10 @@ uvloop.run(main())
 ## 兼容与证据边界
 
 新增参数为 keyword-only，原来的四个位置参数保持有效；允许值由 Literal 和
-运行时校验共同约束。0.3.8 已发布包没有 `wake_mode`，本候选不提高 Agently
-依赖下限、不改包版本、不发布。Skills 对新参数明确标注候选限制。
+运行时校验共同约束。0.3.8 没有 `wake_mode`；使用该参数需要安装 Agently-Stage >=0.3.9,<0.4.0。
+本次不提高 Agently 框架的最低 Stage 依赖；旧调用仍可在原支持范围使用。
 保留裸 ctypes 分类、透明进程池、free-threaded 的已知限制，不假装已实现。
 
-历史研究的 `audit.py` 校验的是研究时生产源码；在本候选工作区运行会因源码
+历史研究的 `audit.py` 校验的是研究时生产源码；在新版本工作区运行会因源码
 已修改而失败，这是预期。验证历史请使用对应基线 `cfa1db5` 与原证据清单，
 不要把新实现塞回旧实验重新生成原始结果。本目录的清单独立记录新证据。
