@@ -1,0 +1,23 @@
+{
+  "version": "0.3.9",
+  "release_commit": "b568605d65a914a0b75ad50ed79eacbc8b357ecb",
+  "tag": "v0.3.9",
+  "files": [
+    {
+      "name": "agently_stage-0.3.9-py3-none-any.whl",
+      "sha256": "129b67a209fdb52d8b6ab802ded549c4a8685df9d3174ff66065c3785c2b431e",
+      "url": "https://files.pythonhosted.org/packages/08/dc/a1b9d151d28b2a8ba7f007fe311ada5cb1e4a3e7d62c762eefd1946ff596/agently_stage-0.3.9-py3-none-any.whl",
+      "uploaded_at": "2026-10-24T13:01:03.049627Z"
+    },
+    {
+      "name": "agently_stage-0.3.9.tar.gz",
+      "sha256": "a70a9e8bcb0f4cb93e480520ae8b954d71777f9120bd6497484c9ea7a172aac8",
+      "url": "https://files.pythonhosted.org/packages/9b/82/6eb22aa270e0b9c096685b7b109d17d063c2e4840f7cd10516f3daedf9d5/agently_stage-0.3.9.tar.gz",
+      "uploaded_at": "2026-10-24T13:01:04.339407Z"
+    }
+  ],
+  "installed_runtime_files_equal": 19,
+  "published_vs_local_wheel_content_difference": [
+    "agently_stage-0.3.9.dist-info/RECORD"
+  ]
+}

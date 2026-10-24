@@ -1,0 +1,345 @@
+{
+  "conclusion": "success",
+  "headSha": "b568605d65a914a0b75ad50ed79eacbc8b357ecb",
+  "jobs": [
+    {
+      "completedAt": "2026-10-24T13:00:47Z",
+      "conclusion": "success",
+      "databaseId": 120879017917,
+      "name": "Validate and build (Python 3.10)",
+      "startedAt": "2026-10-24T13:00:00Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-24T13:00:02Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-24T13:00:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:03Z",
+          "conclusion": "success",
+          "name": "Resolve release tag",
+          "number": 2,
+          "startedAt": "2026-10-24T13:00:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:04Z",
+          "conclusion": "success",
+          "name": "Checkout release tag",
+          "number": 3,
+          "startedAt": "2026-10-24T13:00:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:04Z",
+          "conclusion": "success",
+          "name": "Verify tag belongs to main",
+          "number": 4,
+          "startedAt": "2026-10-24T13:00:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:05Z",
+          "conclusion": "success",
+          "name": "Install uv",
+          "number": 5,
+          "startedAt": "2026-10-24T13:00:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:06Z",
+          "conclusion": "success",
+          "name": "Install Python",
+          "number": 6,
+          "startedAt": "2026-10-24T13:00:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:06Z",
+          "conclusion": "success",
+          "name": "Install locked dependencies",
+          "number": 7,
+          "startedAt": "2026-10-24T13:00:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:06Z",
+          "conclusion": "success",
+          "name": "Verify package version",
+          "number": 8,
+          "startedAt": "2026-10-24T13:00:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:10Z",
+          "conclusion": "success",
+          "name": "Type check",
+          "number": 9,
+          "startedAt": "2026-10-24T13:00:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:35Z",
+          "conclusion": "success",
+          "name": "Test",
+          "number": 10,
+          "startedAt": "2026-10-24T13:00:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:40Z",
+          "conclusion": "success",
+          "name": "Lint and format check",
+          "number": 11,
+          "startedAt": "2026-10-24T13:00:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:41Z",
+          "conclusion": "success",
+          "name": "Build distributions",
+          "number": 12,
+          "startedAt": "2026-10-24T13:00:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:44Z",
+          "conclusion": "success",
+          "name": "Upload distributions",
+          "number": 13,
+          "startedAt": "2026-10-24T13:00:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:45Z",
+          "conclusion": "success",
+          "name": "Post Install uv",
+          "number": 25,
+          "startedAt": "2026-10-24T13:00:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:45Z",
+          "conclusion": "success",
+          "name": "Post Checkout release tag",
+          "number": 26,
+          "startedAt": "2026-10-24T13:00:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:45Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 27,
+          "startedAt": "2026-10-24T13:00:45Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/AgentEra/Agently-Stage/actions/runs/40096245953/job/120879017917"
+    },
+    {
+      "completedAt": "2026-10-24T13:00:40Z",
+      "conclusion": "success",
+      "databaseId": 120879018047,
+      "name": "Validate and build (Python 3.14)",
+      "startedAt": "2026-10-24T13:00:01Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-24T13:00:03Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-24T13:00:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:03Z",
+          "conclusion": "success",
+          "name": "Resolve release tag",
+          "number": 2,
+          "startedAt": "2026-10-24T13:00:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:05Z",
+          "conclusion": "success",
+          "name": "Checkout release tag",
+          "number": 3,
+          "startedAt": "2026-10-24T13:00:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:05Z",
+          "conclusion": "success",
+          "name": "Verify tag belongs to main",
+          "number": 4,
+          "startedAt": "2026-10-24T13:00:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:07Z",
+          "conclusion": "success",
+          "name": "Install uv",
+          "number": 5,
+          "startedAt": "2026-10-24T13:00:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:08Z",
+          "conclusion": "success",
+          "name": "Install Python",
+          "number": 6,
+          "startedAt": "2026-10-24T13:00:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:09Z",
+          "conclusion": "success",
+          "name": "Install locked dependencies",
+          "number": 7,
+          "startedAt": "2026-10-24T13:00:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:09Z",
+          "conclusion": "success",
+          "name": "Verify package version",
+          "number": 8,
+          "startedAt": "2026-10-24T13:00:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:09Z",
+          "conclusion": "skipped",
+          "name": "Type check",
+          "number": 9,
+          "startedAt": "2026-10-24T13:00:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:36Z",
+          "conclusion": "success",
+          "name": "Test",
+          "number": 10,
+          "startedAt": "2026-10-24T13:00:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:36Z",
+          "conclusion": "skipped",
+          "name": "Lint and format check",
+          "number": 11,
+          "startedAt": "2026-10-24T13:00:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:36Z",
+          "conclusion": "skipped",
+          "name": "Build distributions",
+          "number": 12,
+          "startedAt": "2026-10-24T13:00:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:36Z",
+          "conclusion": "skipped",
+          "name": "Upload distributions",
+          "number": 13,
+          "startedAt": "2026-10-24T13:00:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:37Z",
+          "conclusion": "success",
+          "name": "Post Install uv",
+          "number": 25,
+          "startedAt": "2026-10-24T13:00:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:38Z",
+          "conclusion": "success",
+          "name": "Post Checkout release tag",
+          "number": 26,
+          "startedAt": "2026-10-24T13:00:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:38Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 27,
+          "startedAt": "2026-10-24T13:00:38Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/AgentEra/Agently-Stage/actions/runs/40096245953/job/120879018047"
+    },
+    {
+      "completedAt": "2026-10-24T13:01:08Z",
+      "conclusion": "success",
+      "databaseId": 120879210352,
+      "name": "publish",
+      "startedAt": "2026-10-24T13:00:50Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-24T13:00:52Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-24T13:00:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:00:53Z",
+          "conclusion": "success",
+          "name": "Download distributions",
+          "number": 2,
+          "startedAt": "2026-10-24T13:00:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:01:06Z",
+          "conclusion": "success",
+          "name": "Publish to PyPI with shared API token",
+          "number": 3,
+          "startedAt": "2026-10-24T13:00:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:01:06Z",
+          "conclusion": "skipped",
+          "name": "Publish to PyPI with trusted publishing",
+          "number": 4,
+          "startedAt": "2026-10-24T13:01:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:01:06Z",
+          "conclusion": "success",
+          "name": "Post Publish to PyPI with shared API token",
+          "number": 8,
+          "startedAt": "2026-10-24T13:01:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-24T13:01:06Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 9,
+          "startedAt": "2026-10-24T13:01:06Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/AgentEra/Agently-Stage/actions/runs/40096245953/job/120879210352"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/AgentEra/Agently-Stage/actions/runs/40096245953"
+}
