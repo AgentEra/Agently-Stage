@@ -1,0 +1,25 @@
+{
+  "stage_base": "cfa1db5b9663b4559226dfab4db120adcac22b11",
+  "stage_branch": "feature/performance-strategy-evaluation",
+  "agently_dev": "b385ab2b8abfaf583d79ddbb1d5218646610a9da",
+  "skills_commit": "28d16e3",
+  "stage_commit_status": "VPN restored; complete pre-commit passes; final commit recorded in Git and RioWork",
+  "published": false,
+  "python_matrix": [
+    "3.10.21",
+    "3.11.16",
+    "3.12.15",
+    "3.13.17",
+    "3.14.8"
+  ],
+  "performance_runs": 215,
+  "agently_dev_suite": {
+    "passed": 4071,
+    "skipped": 32
+  },
+  "limitations": [
+    "macOS arm64 only; Linux/Windows CI not run",
+    "current dirty Agently 4.2 workspace has 22 baseline collection errors",
+    "free-threaded/native/process strategies unchanged and not revalidated in this implementation round"
+  ]
+}

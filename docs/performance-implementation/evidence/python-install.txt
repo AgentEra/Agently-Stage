@@ -1,0 +1,7 @@
+Downloading cpython-3.13.17-macos-aarch64-none (download) (24.1MiB)
+Downloading cpython-3.12.15-macos-aarch64-none (download) (23.9MiB)
+ Downloaded cpython-3.13.17-macos-aarch64-none (download)
+ Downloaded cpython-3.12.15-macos-aarch64-none (download)
+Installed 2 versions in 12.28s
+ + cpython-3.12.15-macos-aarch64-none (python3.12)
+ + cpython-3.13.17-macos-aarch64-none (python3.13)

@@ -1,0 +1,25 @@
+V2 bundle manifest validation
+passes: 20
+PASS  version_is_v3: manifest version is 3
+PASS  catalog_generation: default manifest declares catalog generation v2
+PASS  bundle_ids: bundle ids match current app/migration set
+PASS  app_kind: kind is valid
+PASS  app_skills: bundle declares skills
+PASS  app_skills_exist: all bundle skills exist
+PASS  app_install_order: bundle install order starts with agently
+PASS  app_install_matches_active: recommended install order covers active skills exactly
+PASS  app_entry: entry skill is agently
+PASS  migration_kind: kind is valid
+PASS  migration_skills: bundle declares skills
+PASS  migration_skills_exist: all bundle skills exist
+PASS  migration_install_order: bundle install order starts with agently
+PASS  migration_install_matches_active: recommended install order covers active skills exactly
+PASS  migration_entry: entry skill is agently
+PASS  app_skills: app bundle combines router, cross-layer design, request, Stage, runtime, Dynamic Task, and TriggerFlow skills
+PASS  migration_base: migration attaches to app bundle
+PASS  migration_superset: migration includes every app skill
+PASS  migration_extra_skills: migration adds compact framework migration skill
+PASS  default_no_legacy_v1_skills: default bundles do not reference legacy-only V1 skill ids
+failures: 0
+
+exit_code=0

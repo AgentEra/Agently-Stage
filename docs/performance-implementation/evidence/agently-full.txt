@@ -1,0 +1,247 @@
+
+==================================== ERRORS ====================================
+_________ ERROR collecting tests/test_agent_execution_step_contract.py _________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_agent_execution_step_contract.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_agent_execution_step_contract.py:19: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+_________ ERROR collecting tests/test_agent_execution_task_context.py __________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_agent_execution_task_context.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_agent_execution_task_context.py:12: in <module>
+    from agently.core import AgentTask, SkillLibrary, TaskContext, TaskWorkspace
+E   ImportError: cannot import name 'AgentTask' from 'agently.core' (/Users/moxin/dev/public/Agently/agently/core/__init__.py)
+__________ ERROR collecting tests/test_agent_task_context_readers.py ___________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_agent_task_context_readers.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_agent_task_context_readers.py:9: in <module>
+    from agently.core import AgentTask, SkillLibrary
+E   ImportError: cannot import name 'AgentTask' from 'agently.core' (/Users/moxin/dev/public/Agently/agently/core/__init__.py)
+___________ ERROR collecting tests/test_agent_task_delta_progress.py ___________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_agent_task_delta_progress.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_agent_task_delta_progress.py:14: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+___________ ERROR collecting tests/test_agent_task_lifecycle_flow.py ___________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_agent_task_lifecycle_flow.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_agent_task_lifecycle_flow.py:8: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+__________ ERROR collecting tests/test_agent_task_lifecycle_state.py ___________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_agent_task_lifecycle_state.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_agent_task_lifecycle_state.py:6: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+________________ ERROR collecting tests/test_agent_task_loop.py ________________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_agent_task_loop.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_agent_task_loop.py:28: in <module>
+    from agently.builtins.plugins.AgentExecution.long_task.BlockCarrier import (
+E   ModuleNotFoundError: No module named 'agently.builtins.plugins.AgentExecution.long_task.BlockCarrier'
+_________ ERROR collecting tests/test_agent_task_terminal_carriers.py __________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_agent_task_terminal_carriers.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_agent_task_terminal_carriers.py:8: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+_____________ ERROR collecting tests/test_bounded_action_scope.py ______________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_bounded_action_scope.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_bounded_action_scope.py:10: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+______ ERROR collecting tests/test_context_selection_prompt_transport.py _______
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_context_selection_prompt_transport.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_context_selection_prompt_transport.py:13: in <module>
+    from agently.core import AgentTask, PluginManager, SkillLibrary
+E   ImportError: cannot import name 'AgentTask' from 'agently.core' (/Users/moxin/dev/public/Agently/agently/core/__init__.py)
+_____ ERROR collecting tests/test_cores/test_action_artifact_retention.py ______
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_cores/test_action_artifact_retention.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_cores/test_action_artifact_retention.py:14: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+____ ERROR collecting tests/test_cores/test_agent_task_workspace_effects.py ____
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_cores/test_agent_task_workspace_effects.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_cores/test_agent_task_workspace_effects.py:13: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+________ ERROR collecting tests/test_cores/test_task_board_contracts.py ________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_cores/test_task_board_contracts.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_cores/test_task_board_contracts.py:24: in <module>
+    from agently.core.application.AgentTask.Task import AgentTask
+E   ModuleNotFoundError: No module named 'agently.core.application.AgentTask.Task'
+________ ERROR collecting tests/test_flat_action_argument_readiness.py _________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_flat_action_argument_readiness.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_flat_action_argument_readiness.py:10: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+_________ ERROR collecting tests/test_flat_observation_continuation.py _________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_flat_observation_continuation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_flat_observation_continuation.py:15: in <module>
+    from agently.builtins.plugins.AgentExecution.long_task.TerminalConvergence import TerminalIssue
+E   ModuleNotFoundError: No module named 'agently.builtins.plugins.AgentExecution.long_task.TerminalConvergence'
+___________ ERROR collecting tests/test_flat_scoped_action_inputs.py ___________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_flat_scoped_action_inputs.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_flat_scoped_action_inputs.py:14: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+_________ ERROR collecting tests/test_task_evidence_context_source.py __________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_task_evidence_context_source.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_task_evidence_context_source.py:5: in <module>
+    from agently.builtins.plugins.AgentExecution.long_task.TaskEvidenceContextSource import (
+E   ModuleNotFoundError: No module named 'agently.builtins.plugins.AgentExecution.long_task.TaskEvidenceContextSource'
+____________ ERROR collecting tests/test_task_repair_projection.py _____________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_task_repair_projection.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_task_repair_projection.py:12: in <module>
+    from agently.builtins.plugins.AgentExecution.long_task import Rework
+E   ImportError: cannot import name 'Rework' from 'agently.builtins.plugins.AgentExecution.long_task' (unknown location)
+__________ ERROR collecting tests/test_task_required_action_scope.py ___________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_task_required_action_scope.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_task_required_action_scope.py:11: in <module>
+    from agently.core.application.AgentTask import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core.application.AgentTask' (unknown location)
+___________ ERROR collecting tests/test_taskboard_delivery_seams.py ____________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_taskboard_delivery_seams.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_taskboard_delivery_seams.py:7: in <module>
+    from agently.core import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core' (/Users/moxin/dev/public/Agently/agently/core/__init__.py)
+_________ ERROR collecting tests/test_taskboard_final_continuation.py __________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_taskboard_final_continuation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_taskboard_final_continuation.py:7: in <module>
+    from agently.core import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core' (/Users/moxin/dev/public/Agently/agently/core/__init__.py)
+__________ ERROR collecting tests/test_taskboard_planning_context.py ___________
+ImportError while importing test module '/Users/moxin/dev/public/Agently/tests/test_taskboard_planning_context.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/miniconda3/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_taskboard_planning_context.py:10: in <module>
+    from agently.core import AgentTask
+E   ImportError: cannot import name 'AgentTask' from 'agently.core' (/Users/moxin/dev/public/Agently/agently/core/__init__.py)
+=========================== short test summary info ============================
+ERROR tests/test_agent_execution_step_contract.py
+ERROR tests/test_agent_execution_task_context.py
+ERROR tests/test_agent_task_context_readers.py
+ERROR tests/test_agent_task_delta_progress.py
+ERROR tests/test_agent_task_lifecycle_flow.py
+ERROR tests/test_agent_task_lifecycle_state.py
+ERROR tests/test_agent_task_loop.py
+ERROR tests/test_agent_task_terminal_carriers.py
+ERROR tests/test_bounded_action_scope.py
+ERROR tests/test_context_selection_prompt_transport.py
+ERROR tests/test_cores/test_action_artifact_retention.py
+ERROR tests/test_cores/test_agent_task_workspace_effects.py
+ERROR tests/test_cores/test_task_board_contracts.py
+ERROR tests/test_flat_action_argument_readiness.py
+ERROR tests/test_flat_observation_continuation.py
+ERROR tests/test_flat_scoped_action_inputs.py
+ERROR tests/test_task_evidence_context_source.py
+ERROR tests/test_task_repair_projection.py
+ERROR tests/test_task_required_action_scope.py
+ERROR tests/test_taskboard_delivery_seams.py
+ERROR tests/test_taskboard_final_continuation.py
+ERROR tests/test_taskboard_planning_context.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 22 errors during collection !!!!!!!!!!!!!!!!!!!
+1 skipped, 22 errors in 2.41s

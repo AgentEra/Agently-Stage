@@ -1,0 +1,43 @@
+Agently public project template validation
+passes: 38
+PASS  template_exists: the public project template asset exists
+PASS  file_.gitignore: required authored file exists: .gitignore
+PASS  file_SETTINGS.yaml: required authored file exists: SETTINGS.yaml
+PASS  file_TOPOLOGY.md: required authored file exists: TOPOLOGY.md
+PASS  file_actions/growth.py: required authored file exists: actions/growth.py
+PASS  file_actions/sandbox/calculate_growth.py: required authored file exists: actions/sandbox/calculate_growth.py
+PASS  file_app.py: required authored file exists: app.py
+PASS  file_prompts/compose_answer.yaml: required authored file exists: prompts/compose_answer.yaml
+PASS  file_prompts/plan_analysis.yaml: required authored file exists: prompts/plan_analysis.yaml
+PASS  file_pyrightconfig.json: required authored file exists: pyrightconfig.json
+PASS  file_requirements.txt: required authored file exists: requirements.txt
+PASS  file_resources/metrics.json: required authored file exists: resources/metrics.json
+PASS  file_services/api.py: required authored file exists: services/api.py
+PASS  file_services/contracts.py: required authored file exists: services/contracts.py
+PASS  file_services/mcp_server.py: required authored file exists: services/mcp_server.py
+PASS  file_skills/install_local.py: required authored file exists: skills/install_local.py
+PASS  file_skills/local/analysis-writing/SKILL.md: required authored file exists: skills/local/analysis-writing/SKILL.md
+PASS  file_tests/conftest.py: required authored file exists: tests/conftest.py
+PASS  file_tests/test_services.py: required authored file exists: tests/test_services.py
+PASS  file_tests/test_structure.py: required authored file exists: tests/test_structure.py
+PASS  file_tests/test_trace.py: required authored file exists: tests/test_trace.py
+PASS  file_tests/test_utils_actions_skills.py: required authored file exists: tests/test_utils_actions_skills.py
+PASS  file_tests/test_workflow.py: required authored file exists: tests/test_workflow.py
+PASS  file_trace_log.py: required authored file exists: trace_log.py
+PASS  file_utils/metrics.py: required authored file exists: utils/metrics.py
+PASS  file_workflows/chunks/compose_answer.py: required authored file exists: workflows/chunks/compose_answer.py
+PASS  file_workflows/chunks/load_metric_facts.py: required authored file exists: workflows/chunks/load_metric_facts.py
+PASS  file_workflows/chunks/plan_analysis.py: required authored file exists: workflows/chunks/plan_analysis.py
+PASS  file_workflows/main_flow.py: required authored file exists: workflows/main_flow.py
+PASS  generated_paths_absent: generated and redundant paths are absent: []
+PASS  local_source_text_absent: authored files contain no local source assumptions: []
+PASS  topology_owner_and_invariant_ledger: TOPOLOGY.md contains Owner and Invariant Ledger
+PASS  topology_planned_node_ledger: TOPOLOGY.md contains Planned Node Ledger
+PASS  topology_planned_edge_ledger: TOPOLOGY.md contains Planned Edge Ledger
+PASS  topology_production_necessity_ledger: TOPOLOGY.md contains Production-Necessity Ledger
+PASS  fastapi_direct_adapter: the HTTP adapter uses FastAPI directly
+PASS  fastmcp_direct_adapter: the MCP server adapter uses FastMCP directly
+PASS  project_reference_links_asset: project-framework.md links the runnable asset as a conditional template
+failures: 0
+
+exit_code=0

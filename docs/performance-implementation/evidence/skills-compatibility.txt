@@ -1,0 +1,27 @@
+Compatibility support validation
+passes: 22
+PASS  schema_version: support manifest schema is 1
+PASS  framework: framework is agently
+PASS  aligned_framework_version: catalog is aligned with Agently 4.1.4.8 development
+PASS  catalog_generation: current support manifest declares catalog generation v2
+PASS  supported_catalog_generations: current generation is listed in supported catalog generations
+PASS  recommended_bundle: current support manifest recommends app bundle
+PASS  authoring_protocols: authoring protocols declared
+PASS  devtools_guidance_protocols: devtools guidance protocols declared
+PASS  stage_runtime_dependency: Agently-Stage runtime dependency and owning Skill are declared
+PASS  archived_v1_listed: support manifest lists archived V1 generation
+PASS  archived_v1_branch: archived V1 catalog is referenced by branch, not by a default-branch path
+PASS  archived_v1_no_path: archived V1 catalog does not declare an in-tree path
+PASS  archived_v1_last_supported: archived V1 catalog declares its last supported Agently version
+PASS  archived_v1_frozen: archived V1 catalog is marked frozen
+PASS  default_bundle_manifest_generation: default bundle manifest catalog generation matches support manifest
+PASS  recommended_bundle_exists: recommended bundle exists in default bundle manifest
+PASS  archived_catalogs_not_default_bundle: default bundle active skills do not reference archived catalog paths
+PASS  readme_mentions_aligned_version: README mentions the aligned Agently release line
+PASS  readme_mentions_stage_skill: README lists the Agently-Stage Skill in the current catalog
+PASS  readme_no_legacy_v1_path: README does not document retired catalog directories as an in-tree path
+PASS  readme_cn_no_legacy_v1_path: README_CN does not document retired catalog directories as an in-tree path
+PASS  readme_cn_mentions_aligned_version: README_CN mentions the aligned Agently release line
+failures: 0
+
+exit_code=0

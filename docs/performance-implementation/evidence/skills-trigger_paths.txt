@@ -1,0 +1,249 @@
+V2 trigger fixture validation
+passes: 244
+PASS  cases_present: route fixtures contain cases
+PASS  stage-sync-async-bridge-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  stage-sync-async-bridge-en_installed_exist: all installed skills exist
+PASS  stage-sync-async-bridge-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  stage-sync-async-bridge-en_locale: locale is one of the supported route-fixture languages
+PASS  stage-sync-async-bridge-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  stage-tunnel-replay-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  stage-tunnel-replay-zh_installed_exist: all installed skills exist
+PASS  stage-tunnel-replay-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  stage-tunnel-replay-zh_locale: locale is one of the supported route-fixture languages
+PASS  stage-tunnel-replay-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  stage-event-emitter-hooks-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  stage-event-emitter-hooks-zh_installed_exist: all installed skills exist
+PASS  stage-event-emitter-hooks-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  stage-event-emitter-hooks-zh_locale: locale is one of the supported route-fixture languages
+PASS  stage-event-emitter-hooks-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  stage-context-and-adapters-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  stage-context-and-adapters-en_installed_exist: all installed skills exist
+PASS  stage-context-and-adapters-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  stage-context-and-adapters-en_locale: locale is one of the supported route-fixture languages
+PASS  stage-context-and-adapters-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  generic-unresolved-no-framework-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  generic-unresolved-no-framework-en_installed_exist: all installed skills exist
+PASS  generic-unresolved-no-framework-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  generic-unresolved-no-framework-en_locale: locale is one of the supported route-fixture languages
+PASS  generic-unresolved-no-framework-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  generic-unresolved-no-framework-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  generic-unresolved-no-framework-zh_installed_exist: all installed skills exist
+PASS  generic-unresolved-no-framework-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  generic-unresolved-no-framework-zh_locale: locale is one of the supported route-fixture languages
+PASS  generic-unresolved-no-framework-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  skills-quality-simulator-kickoff-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  skills-quality-simulator-kickoff-zh_installed_exist: all installed skills exist
+PASS  skills-quality-simulator-kickoff-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  skills-quality-simulator-kickoff-zh_locale: locale is one of the supported route-fixture languages
+PASS  skills-quality-simulator-kickoff-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  skill-creation-tool-ui-ollama-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  skill-creation-tool-ui-ollama-zh_installed_exist: all installed skills exist
+PASS  skill-creation-tool-ui-ollama-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  skill-creation-tool-ui-ollama-zh_locale: locale is one of the supported route-fixture languages
+PASS  skill-creation-tool-ui-ollama-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  skills-quality-simulator-request_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  skills-quality-simulator-request_installed_exist: all installed skills exist
+PASS  skills-quality-simulator-request_expected_installed: all acceptable route paths only contain installed skills
+PASS  skills-quality-simulator-request_locale: locale is one of the supported route-fixture languages
+PASS  skills-quality-simulator-request_intent_style: intent_style exists for intent-driven routing coverage
+PASS  skills-quality-simulator-request-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  skills-quality-simulator-request-zh_installed_exist: all installed skills exist
+PASS  skills-quality-simulator-request-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  skills-quality-simulator-request-zh_locale: locale is one of the supported route-fixture languages
+PASS  skills-quality-simulator-request-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  explicit-quality-loop-workflow_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  explicit-quality-loop-workflow_installed_exist: all installed skills exist
+PASS  explicit-quality-loop-workflow_expected_installed: all acceptable route paths only contain installed skills
+PASS  explicit-quality-loop-workflow_locale: locale is one of the supported route-fixture languages
+PASS  explicit-quality-loop-workflow_intent_style: intent_style exists for intent-driven routing coverage
+PASS  explicit-quality-loop-workflow-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  explicit-quality-loop-workflow-zh_installed_exist: all installed skills exist
+PASS  explicit-quality-loop-workflow-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  explicit-quality-loop-workflow-zh_locale: locale is one of the supported route-fixture languages
+PASS  explicit-quality-loop-workflow-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  output-efficiency-unresolved-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  output-efficiency-unresolved-zh_installed_exist: all installed skills exist
+PASS  output-efficiency-unresolved-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  output-efficiency-unresolved-zh_locale: locale is one of the supported route-fixture languages
+PASS  output-efficiency-unresolved-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  output-efficiency-response-refactor-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  output-efficiency-response-refactor-zh_installed_exist: all installed skills exist
+PASS  output-efficiency-response-refactor-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  output-efficiency-response-refactor-zh_locale: locale is one of the supported route-fixture languages
+PASS  output-efficiency-response-refactor-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  output-efficiency-structured-fanout-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  output-efficiency-structured-fanout-en_installed_exist: all installed skills exist
+PASS  output-efficiency-structured-fanout-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  output-efficiency-structured-fanout-en_locale: locale is one of the supported route-fixture languages
+PASS  output-efficiency-structured-fanout-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  output-efficiency-full-combo-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  output-efficiency-full-combo-en_installed_exist: all installed skills exist
+PASS  output-efficiency-full-combo-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  output-efficiency-full-combo-en_locale: locale is one of the supported route-fixture languages
+PASS  output-efficiency-full-combo-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  mixed-sync-async-unresolved-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  mixed-sync-async-unresolved-zh_installed_exist: all installed skills exist
+PASS  mixed-sync-async-unresolved-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  mixed-sync-async-unresolved-zh_locale: locale is one of the supported route-fixture languages
+PASS  mixed-sync-async-unresolved-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  mixed-sync-async-orchestration-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  mixed-sync-async-orchestration-en_installed_exist: all installed skills exist
+PASS  mixed-sync-async-orchestration-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  mixed-sync-async-orchestration-en_locale: locale is one of the supported route-fixture languages
+PASS  mixed-sync-async-orchestration-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  mixed-sync-async-event-wait-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  mixed-sync-async-event-wait-zh_installed_exist: all installed skills exist
+PASS  mixed-sync-async-event-wait-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  mixed-sync-async-event-wait-zh_locale: locale is one of the supported route-fixture languages
+PASS  mixed-sync-async-event-wait-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  process-clarity-unresolved-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  process-clarity-unresolved-zh_installed_exist: all installed skills exist
+PASS  process-clarity-unresolved-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  process-clarity-unresolved-zh_locale: locale is one of the supported route-fixture languages
+PASS  process-clarity-unresolved-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  process-clarity-explicit-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  process-clarity-explicit-zh_installed_exist: all installed skills exist
+PASS  process-clarity-explicit-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  process-clarity-explicit-zh_locale: locale is one of the supported route-fixture languages
+PASS  process-clarity-explicit-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  process-clarity-stage-visibility-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  process-clarity-stage-visibility-en_installed_exist: all installed skills exist
+PASS  process-clarity-stage-visibility-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  process-clarity-stage-visibility-en_locale: locale is one of the supported route-fixture languages
+PASS  process-clarity-stage-visibility-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  project-structure-separated-unresolved-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  project-structure-separated-unresolved-zh_installed_exist: all installed skills exist
+PASS  project-structure-separated-unresolved-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  project-structure-separated-unresolved-zh_locale: locale is one of the supported route-fixture languages
+PASS  project-structure-separated-unresolved-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  project-structure-init-unresolved-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  project-structure-init-unresolved-zh_installed_exist: all installed skills exist
+PASS  project-structure-init-unresolved-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  project-structure-init-unresolved-zh_locale: locale is one of the supported route-fixture languages
+PASS  project-structure-init-unresolved-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  project-structure-init-explicit-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  project-structure-init-explicit-en_installed_exist: all installed skills exist
+PASS  project-structure-init-explicit-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  project-structure-init-explicit-en_locale: locale is one of the supported route-fixture languages
+PASS  project-structure-init-explicit-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  project-structure-separated-combo-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  project-structure-separated-combo-zh_installed_exist: all installed skills exist
+PASS  project-structure-separated-combo-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  project-structure-separated-combo-zh_locale: locale is one of the supported route-fixture languages
+PASS  project-structure-separated-combo-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  project-structure-separated-flow-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  project-structure-separated-flow-en_installed_exist: all installed skills exist
+PASS  project-structure-separated-flow-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  project-structure-separated-flow-en_locale: locale is one of the supported route-fixture languages
+PASS  project-structure-separated-flow-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  project-structure-config-bridge-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  project-structure-config-bridge-zh_installed_exist: all installed skills exist
+PASS  project-structure-config-bridge-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  project-structure-config-bridge-zh_locale: locale is one of the supported route-fixture languages
+PASS  project-structure-config-bridge-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  provider-setup_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  provider-setup_installed_exist: all installed skills exist
+PASS  provider-setup_expected_installed: all acceptable route paths only contain installed skills
+PASS  provider-setup_locale: locale is one of the supported route-fixture languages
+PASS  provider-setup_intent_style: intent_style exists for intent-driven routing coverage
+PASS  prompt-composition_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  prompt-composition_installed_exist: all installed skills exist
+PASS  prompt-composition_expected_installed: all acceptable route paths only contain installed skills
+PASS  prompt-composition_locale: locale is one of the supported route-fixture languages
+PASS  prompt-composition_intent_style: intent_style exists for intent-driven routing coverage
+PASS  session-memory_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  session-memory_installed_exist: all installed skills exist
+PASS  session-memory_expected_installed: all acceptable route paths only contain installed skills
+PASS  session-memory_locale: locale is one of the supported route-fixture languages
+PASS  session-memory_intent_style: intent_style exists for intent-driven routing coverage
+PASS  extensions_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  extensions_installed_exist: all installed skills exist
+PASS  extensions_expected_installed: all acceptable route paths only contain installed skills
+PASS  extensions_locale: locale is one of the supported route-fixture languages
+PASS  extensions_intent_style: intent_style exists for intent-driven routing coverage
+PASS  devtools-observation-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  devtools-observation-zh_installed_exist: all installed skills exist
+PASS  devtools-observation-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  devtools-observation-zh_locale: locale is one of the supported route-fixture languages
+PASS  devtools-observation-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  knowledge-base_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  knowledge-base_installed_exist: all installed skills exist
+PASS  knowledge-base_expected_installed: all acceptable route paths only contain installed skills
+PASS  knowledge-base_locale: locale is one of the supported route-fixture languages
+PASS  knowledge-base_intent_style: intent_style exists for intent-driven routing coverage
+PASS  langgraph-migration_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  langgraph-migration_installed_exist: all installed skills exist
+PASS  langgraph-migration_expected_installed: all acceptable route paths only contain installed skills
+PASS  langgraph-migration_locale: locale is one of the supported route-fixture languages
+PASS  langgraph-migration_intent_style: intent_style exists for intent-driven routing coverage
+PASS  triggerflow-graph-debug-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  triggerflow-graph-debug-zh_installed_exist: all installed skills exist
+PASS  triggerflow-graph-debug-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  triggerflow-graph-debug-zh_locale: locale is one of the supported route-fixture languages
+PASS  triggerflow-graph-debug-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  triggerflow-nowait-emit-manual-close-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  triggerflow-nowait-emit-manual-close-zh_installed_exist: all installed skills exist
+PASS  triggerflow-nowait-emit-manual-close-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  triggerflow-nowait-emit-manual-close-zh_locale: locale is one of the supported route-fixture languages
+PASS  triggerflow-nowait-emit-manual-close-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  triggerflow-manual-close-worker-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  triggerflow-manual-close-worker-en_installed_exist: all installed skills exist
+PASS  triggerflow-manual-close-worker-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  triggerflow-manual-close-worker-en_locale: locale is one of the supported route-fixture languages
+PASS  triggerflow-manual-close-worker-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  triggerflow-persistent-execution-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  triggerflow-persistent-execution-zh_installed_exist: all installed skills exist
+PASS  triggerflow-persistent-execution-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  triggerflow-persistent-execution-zh_locale: locale is one of the supported route-fixture languages
+PASS  triggerflow-persistent-execution-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  triggerflow-distributed-management-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  triggerflow-distributed-management-en_installed_exist: all installed skills exist
+PASS  triggerflow-distributed-management-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  triggerflow-distributed-management-en_locale: locale is one of the supported route-fixture languages
+PASS  triggerflow-distributed-management-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  dynamic-task-submitted-dag-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  dynamic-task-submitted-dag-en_installed_exist: all installed skills exist
+PASS  dynamic-task-submitted-dag-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  dynamic-task-submitted-dag-en_locale: locale is one of the supported route-fixture languages
+PASS  dynamic-task-submitted-dag-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  dynamic-task-auto-plan-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  dynamic-task-auto-plan-zh_installed_exist: all installed skills exist
+PASS  dynamic-task-auto-plan-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  dynamic-task-auto-plan-zh_locale: locale is one of the supported route-fixture languages
+PASS  dynamic-task-auto-plan-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  complex-system-design-unresolved-zh_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  complex-system-design-unresolved-zh_installed_exist: all installed skills exist
+PASS  complex-system-design-unresolved-zh_expected_installed: all acceptable route paths only contain installed skills
+PASS  complex-system-design-unresolved-zh_locale: locale is one of the supported route-fixture languages
+PASS  complex-system-design-unresolved-zh_intent_style: intent_style exists for intent-driven routing coverage
+PASS  cross-layer-system-design-explicit-en_shape: case has scenario metadata, query, installed_skills, and expected_route_paths
+PASS  cross-layer-system-design-explicit-en_installed_exist: all installed skills exist
+PASS  cross-layer-system-design-explicit-en_expected_installed: all acceptable route paths only contain installed skills
+PASS  cross-layer-system-design-explicit-en_locale: locale is one of the supported route-fixture languages
+PASS  cross-layer-system-design-explicit-en_intent_style: intent_style exists for intent-driven routing coverage
+PASS  generic_non_framework_playbook_case: fixtures cover unresolved generic cases without framework-name requirements
+PASS  chinese_quality_validator_case: fixtures cover the Chinese skills-quality-validator kickoff scenario without Agently mention
+PASS  ui_ollama_skill_tool_case: fixtures cover the Chinese UI plus local Ollama skill-tool case without Agently mention
+PASS  direct_leaf_cases_present: fixtures cover direct leaf discovery without forcing agently first
+PASS  stage_direct_cases_present: fixtures route direct Stage scopes, adapters, Tunnel, and EventEmitter work to agently-stage
+PASS  stage_does_not_take_workflow_owner: fixtures keep explicit workflow orchestration with TriggerFlow even when agently-stage is installed
+PASS  intent_grouped_routes_present: fixtures group multiple natural-language expressions under shared scenarios
+PASS  triggerflow-output-efficiency-refactor_min_cases: intent group has enough natural-language expressions
+PASS  triggerflow-output-efficiency-refactor_styles: intent group covers the expected expression styles
+PASS  triggerflow-output-efficiency-refactor_playbook_led: intent group includes unresolved phrasing that should stop at or start from agently
+PASS  triggerflow-output-efficiency-refactor_direct_combo: intent group includes explicit phrasing that should route to a non-playbook path
+PASS  triggerflow-mixed-sync-async-orchestration_min_cases: intent group has enough natural-language expressions
+PASS  triggerflow-mixed-sync-async-orchestration_styles: intent group covers the expected expression styles
+PASS  triggerflow-mixed-sync-async-orchestration_playbook_led: intent group includes unresolved phrasing that should stop at or start from agently
+PASS  triggerflow-mixed-sync-async-orchestration_direct_combo: intent group includes explicit phrasing that should route to a non-playbook path
+PASS  triggerflow-process-clarity-refactor_min_cases: intent group has enough natural-language expressions
+PASS  triggerflow-process-clarity-refactor_styles: intent group covers the expected expression styles
+PASS  triggerflow-process-clarity-refactor_playbook_led: intent group includes unresolved phrasing that should stop at or start from agently
+PASS  triggerflow-process-clarity-refactor_direct_combo: intent group includes explicit phrasing that should route to a non-playbook path
+PASS  project-structure-separated-refactor_min_cases: intent group has enough natural-language expressions
+PASS  project-structure-separated-refactor_styles: intent group covers the expected expression styles
+PASS  project-structure-separated-refactor_playbook_led: intent group includes unresolved phrasing that should stop at or start from agently
+PASS  project-structure-separated-refactor_direct_combo: intent group includes explicit phrasing that should route to a non-playbook path
+failures: 0
+
+exit_code=0

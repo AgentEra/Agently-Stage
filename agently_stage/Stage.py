@@ -78,11 +78,38 @@ _IMMEDIATE_ROOT_ADMISSION = _RootAdmission(gate=None, granted=True)
 
 
 class Stage:
-    """A structured scope whose work may use a caller loop or the Stage carrier."""
+    """A structured scope whose work may use a caller loop or the Stage carrier.
+
+    Prefer ``async with Stage()`` in async services to reuse the caller loop.
+    Synchronous contexts wait for settlement and may block their calling thread.
+    For many tiny related coroutines, submit one explicit async root and retain
+    its children with ``create_task``; group only work sharing result/cancellation
+    ownership. Stage never batches independent ``go`` calls automatically.
+
+    Blocking callables share the process thread pool by default. ``max_workers``
+    creates a private pool; ``executor`` borrows a caller-owned in-process
+    executor and does not close it. They are mutually exclusive. Separate pools
+    can protect short work from slow work, at the cost of reserved threads and
+    potentially longer total completion time. More threads do not parallelize
+    pure Python CPU work under the GIL; they suit blocking I/O or native work
+    releasing the GIL. Process/interpreter pools cannot transport Stage's
+    context-bound submissions; use an explicit application computation boundary.
+
+    ``max_concurrency`` bounds external roots, ``max_pending`` bounds waiting
+    roots, and ``idle_timeout`` detects lack of activity. These are distinct
+    from worker count and do not independently limit children of an admitted
+    root. Bound application fan-out explicitly when batching.
+    """
 
     @classmethod
     def set_settings(cls, key: str, value: object) -> type[Stage]:
-        """Set one process-level Stage runtime option before carrier use."""
+        """Set one process-level Stage runtime option before carrier use.
+
+        ``runtime.carrier_loop_count`` defaults to 1 and freezes on first carrier
+        use. Extra lanes serve separate scopes; one active scope stays on one
+        loop. More lanes cost threads and do not bypass the Python GIL. Increase
+        only after measuring independent-scope contention, not from CPU count.
+        """
 
         if key != "runtime.carrier_loop_count":
             raise KeyError(f"Unknown Stage setting: {key}")

@@ -1,0 +1,8 @@
+..................................                                       [100%]
+=============================== warnings summary ===============================
+tests/test_stage_support_contract.py::test_triggerflow_close_timeout_is_one_settlement_deadline
+  /Users/moxin/dev/public/Agently/agently/core/orchestration/TriggerFlow/Execution.py:1149: RuntimeWarning: TriggerFlow execution 1b9909e2d4b343f08e4c5fdc4ccf0e18 closed before 1 pending task(s) finished.
+    pending_task_results = await self._drain_pending_tasks(timeout=timeout)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+34 passed, 1 warning in 0.84s

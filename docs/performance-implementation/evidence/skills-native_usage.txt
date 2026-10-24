@@ -1,0 +1,187 @@
+V2 native usage validation
+passes: 182
+PASS  output-contract-native_example: reference example exists
+PASS  output-contract-native_.output(: required primitive .output( is present
+PASS  output-contract-native_tuple_ensure: required primitive tuple ensure is present
+PASS  output-contract-native_not_json.loads(: forbidden anti-pattern json.loads( is absent
+PASS  output-contract-native_not_re.search(: forbidden anti-pattern re.search( is absent
+PASS  output-contract-native_not_while True: forbidden anti-pattern while True is absent
+PASS  output-contract-native_profile: live smoke profile is valid
+PASS  response-reuse-native_example: reference example exists
+PASS  response-reuse-native_get_result(): required primitive get_result() is present
+PASS  response-reuse-native_result.get_data(: required primitive result.get_data( is present
+PASS  response-reuse-native_not_requests.post(: forbidden anti-pattern requests.post( is absent
+PASS  response-reuse-native_not_json.loads(: forbidden anti-pattern json.loads( is absent
+PASS  response-reuse-native_not_for _ in range(3): forbidden anti-pattern for _ in range(3) is absent
+PASS  response-reuse-native_profile: live smoke profile is valid
+PASS  triggerflow-native_example: reference example exists
+PASS  triggerflow-native_TriggerFlow: required primitive TriggerFlow is present
+PASS  triggerflow-native_.to(: required primitive .to( is present
+PASS  triggerflow-native_async_close: required primitive async_close is present
+PASS  triggerflow-native_not_while True: forbidden anti-pattern while True is absent
+PASS  triggerflow-native_not_asyncio.create_task(: forbidden anti-pattern asyncio.create_task( is absent
+PASS  triggerflow-native_not_custom_state_machine: forbidden anti-pattern custom_state_machine is absent
+PASS  triggerflow-native_profile: live smoke profile is valid
+PASS  triggerflow-response-fanout-native_example: reference example exists
+PASS  triggerflow-response-fanout-native_TriggerFlow: required primitive TriggerFlow is present
+PASS  triggerflow-response-fanout-native_.output(: required primitive .output( is present
+PASS  triggerflow-response-fanout-native_get_result(): required primitive get_result() is present
+PASS  triggerflow-response-fanout-native_async_close: required primitive async_close is present
+PASS  triggerflow-response-fanout-native_not_while True: forbidden anti-pattern while True is absent
+PASS  triggerflow-response-fanout-native_not_asyncio.create_task(: forbidden anti-pattern asyncio.create_task( is absent
+PASS  triggerflow-response-fanout-native_not_custom_event_bus: forbidden anti-pattern custom_event_bus is absent
+PASS  triggerflow-response-fanout-native_profile: live smoke profile is valid
+PASS  provider-setup-native_example: reference example exists
+PASS  provider-setup-native_Agently.set_settings(: required primitive Agently.set_settings( is present
+PASS  provider-setup-native_"OpenAICompatible": required primitive "OpenAICompatible" is present
+PASS  provider-setup-native_not_httpx.post(: forbidden anti-pattern httpx.post( is absent
+PASS  provider-setup-native_not_requests.post(: forbidden anti-pattern requests.post( is absent
+PASS  provider-setup-native_not_custom_auth_header: forbidden anti-pattern custom_auth_header is absent
+PASS  provider-setup-native_profile: live smoke profile is valid
+PASS  dynamic-task-native_example: reference example exists
+PASS  dynamic-task-native_Agently.create_dynamic_task(: required primitive Agently.create_dynamic_task( is present
+PASS  dynamic-task-native_"task_schema_version": required primitive "task_schema_version" is present
+PASS  dynamic-task-native_"semantic_outputs": required primitive "semantic_outputs" is present
+PASS  dynamic-task-native_handlers={: required primitive handlers={ is present
+PASS  dynamic-task-native_not_json.loads(: forbidden anti-pattern json.loads( is absent
+PASS  dynamic-task-native_not_re.search(: forbidden anti-pattern re.search( is absent
+PASS  dynamic-task-native_not_custom_scheduler: forbidden anti-pattern custom_scheduler is absent
+PASS  dynamic-task-native_profile: live smoke profile is valid
+PASS  project-template-triggerflow-native_example: reference example exists
+PASS  project-template-triggerflow-native_TriggerFlow: required primitive TriggerFlow is present
+PASS  project-template-triggerflow-native_.for_each(concurrency=4): required primitive .for_each(concurrency=4) is present
+PASS  project-template-triggerflow-native_create_execution(: required primitive create_execution( is present
+PASS  project-template-triggerflow-native_async_close: required primitive async_close is present
+PASS  project-template-triggerflow-native_not_while True: forbidden anti-pattern while True is absent
+PASS  project-template-triggerflow-native_not_asyncio.create_task(: forbidden anti-pattern asyncio.create_task( is absent
+PASS  project-template-triggerflow-native_not_custom_scheduler: forbidden anti-pattern custom_scheduler is absent
+PASS  project-template-triggerflow-native_profile: live smoke profile is valid
+PASS  project-template-fastapi-native_example: reference example exists
+PASS  project-template-fastapi-native_FastAPI: required primitive FastAPI is present
+PASS  project-template-fastapi-native_@app.post(: required primitive @app.post( is present
+PASS  project-template-fastapi-native_run_analysis(: required primitive run_analysis( is present
+PASS  project-template-fastapi-native_project_analysis_run(: required primitive project_analysis_run( is present
+PASS  project-template-fastapi-native_not_FastAPIHelper: forbidden anti-pattern FastAPIHelper is absent
+PASS  project-template-fastapi-native_not_AnalysisService: forbidden anti-pattern AnalysisService is absent
+PASS  project-template-fastapi-native_not_attach_mcp: forbidden anti-pattern attach_mcp is absent
+PASS  project-template-fastapi-native_profile: live smoke profile is valid
+PASS  project-template-fastmcp-native_example: reference example exists
+PASS  project-template-fastmcp-native_FastMCP: required primitive FastMCP is present
+PASS  project-template-fastmcp-native_@mcp.tool: required primitive @mcp.tool is present
+PASS  project-template-fastmcp-native_run_analysis(: required primitive run_analysis( is present
+PASS  project-template-fastmcp-native_project_analysis_run(: required primitive project_analysis_run( is present
+PASS  project-template-fastmcp-native_not_async_use_mcp: forbidden anti-pattern async_use_mcp is absent
+PASS  project-template-fastmcp-native_not_AnalysisService: forbidden anti-pattern AnalysisService is absent
+PASS  project-template-fastmcp-native_not_attach_mcp: forbidden anti-pattern attach_mcp is absent
+PASS  project-template-fastmcp-native_profile: live smoke profile is valid
+PASS  instant-deliberation-progress-native_example: reference example exists
+PASS  instant-deliberation-progress-native_"generation_plan": required primitive "generation_plan" is present
+PASS  instant-deliberation-progress-native_get_async_generator(type="instant"): required primitive get_async_generator(type="instant") is present
+PASS  instant-deliberation-progress-native_"streaming_parse_deferred": required primitive "streaming_parse_deferred" is present
+PASS  instant-deliberation-progress-native_async_get_data(): required primitive async_get_data() is present
+PASS  instant-deliberation-progress-native_not_"reasoning":: forbidden anti-pattern "reasoning": is absent
+PASS  instant-deliberation-progress-native_not_"thinking":: forbidden anti-pattern "thinking": is absent
+PASS  instant-deliberation-progress-native_not_while True: forbidden anti-pattern while True is absent
+PASS  instant-deliberation-progress-native_profile: live smoke profile is valid
+PASS  instant-retrieval-overlap-native_example: reference example exists
+PASS  instant-retrieval-overlap-native_wildcard_path == "retrieval_tasks[*]": required primitive wildcard_path == "retrieval_tasks[*]" is present
+PASS  instant-retrieval-overlap-native_async_emit_nowait(: required primitive async_emit_nowait( is present
+PASS  instant-retrieval-overlap-native_async_get_data(max_retries=1): required primitive async_get_data(max_retries=1) is present
+PASS  instant-retrieval-overlap-native_async_close: required primitive async_close is present
+PASS  instant-retrieval-overlap-native_not_await retrieve(: forbidden anti-pattern await retrieve( is absent
+PASS  instant-retrieval-overlap-native_not_requests.post(: forbidden anti-pattern requests.post( is absent
+PASS  instant-retrieval-overlap-native_not_while True: forbidden anti-pattern while True is absent
+PASS  instant-retrieval-overlap-native_profile: live smoke profile is valid
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_.end(: recommended TriggerFlow example does not use deprecated token .end(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_.start(: recommended TriggerFlow example does not use deprecated token .start(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_set_result(: recommended TriggerFlow example does not use deprecated token set_result(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_get_runtime_data(: recommended TriggerFlow example does not use deprecated token get_runtime_data(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_set_runtime_data(: recommended TriggerFlow example does not use deprecated token set_runtime_data(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_append_runtime_data(: recommended TriggerFlow example does not use deprecated token append_runtime_data(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_del_runtime_data(: recommended TriggerFlow example does not use deprecated token del_runtime_data(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_get_flow_data(: recommended TriggerFlow example does not use deprecated token get_flow_data(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_set_flow_data(: recommended TriggerFlow example does not use deprecated token set_flow_data(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_append_flow_data(: recommended TriggerFlow example does not use deprecated token append_flow_data(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_del_flow_data(: recommended TriggerFlow example does not use deprecated token del_flow_data(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_get_runtime_stream(: recommended TriggerFlow example does not use deprecated token get_runtime_stream(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_execution.get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.get_result(
+PASS  triggerflow_examples_no_deprecated_active_sub_flow_control_execution.async_get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.async_get_result(
+PASS  triggerflow_examples_close_active_sub_flow_control: recommended TriggerFlow example uses explicit execution close
+PASS  triggerflow_examples_no_deprecated_emit_nowait_.end(: recommended TriggerFlow example does not use deprecated token .end(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_.start(: recommended TriggerFlow example does not use deprecated token .start(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_set_result(: recommended TriggerFlow example does not use deprecated token set_result(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_get_runtime_data(: recommended TriggerFlow example does not use deprecated token get_runtime_data(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_set_runtime_data(: recommended TriggerFlow example does not use deprecated token set_runtime_data(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_append_runtime_data(: recommended TriggerFlow example does not use deprecated token append_runtime_data(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_del_runtime_data(: recommended TriggerFlow example does not use deprecated token del_runtime_data(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_get_flow_data(: recommended TriggerFlow example does not use deprecated token get_flow_data(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_set_flow_data(: recommended TriggerFlow example does not use deprecated token set_flow_data(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_append_flow_data(: recommended TriggerFlow example does not use deprecated token append_flow_data(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_del_flow_data(: recommended TriggerFlow example does not use deprecated token del_flow_data(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_get_runtime_stream(: recommended TriggerFlow example does not use deprecated token get_runtime_stream(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_execution.get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.get_result(
+PASS  triggerflow_examples_no_deprecated_emit_nowait_execution.async_get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.async_get_result(
+PASS  triggerflow_examples_close_emit_nowait: recommended TriggerFlow example uses explicit execution close
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_.end(: recommended TriggerFlow example does not use deprecated token .end(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_.start(: recommended TriggerFlow example does not use deprecated token .start(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_set_result(: recommended TriggerFlow example does not use deprecated token set_result(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_get_runtime_data(: recommended TriggerFlow example does not use deprecated token get_runtime_data(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_set_runtime_data(: recommended TriggerFlow example does not use deprecated token set_runtime_data(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_append_runtime_data(: recommended TriggerFlow example does not use deprecated token append_runtime_data(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_del_runtime_data(: recommended TriggerFlow example does not use deprecated token del_runtime_data(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_get_flow_data(: recommended TriggerFlow example does not use deprecated token get_flow_data(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_set_flow_data(: recommended TriggerFlow example does not use deprecated token set_flow_data(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_append_flow_data(: recommended TriggerFlow example does not use deprecated token append_flow_data(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_del_flow_data(: recommended TriggerFlow example does not use deprecated token del_flow_data(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_get_runtime_stream(: recommended TriggerFlow example does not use deprecated token get_runtime_stream(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_execution.get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.get_result(
+PASS  triggerflow_examples_no_deprecated_instant_retrieval_overlap_execution.async_get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.async_get_result(
+PASS  triggerflow_examples_close_instant_retrieval_overlap: recommended TriggerFlow example uses explicit execution close
+PASS  triggerflow_examples_no_deprecated_minimal_.end(: recommended TriggerFlow example does not use deprecated token .end(
+PASS  triggerflow_examples_no_deprecated_minimal_.start(: recommended TriggerFlow example does not use deprecated token .start(
+PASS  triggerflow_examples_no_deprecated_minimal_set_result(: recommended TriggerFlow example does not use deprecated token set_result(
+PASS  triggerflow_examples_no_deprecated_minimal_get_runtime_data(: recommended TriggerFlow example does not use deprecated token get_runtime_data(
+PASS  triggerflow_examples_no_deprecated_minimal_set_runtime_data(: recommended TriggerFlow example does not use deprecated token set_runtime_data(
+PASS  triggerflow_examples_no_deprecated_minimal_append_runtime_data(: recommended TriggerFlow example does not use deprecated token append_runtime_data(
+PASS  triggerflow_examples_no_deprecated_minimal_del_runtime_data(: recommended TriggerFlow example does not use deprecated token del_runtime_data(
+PASS  triggerflow_examples_no_deprecated_minimal_get_flow_data(: recommended TriggerFlow example does not use deprecated token get_flow_data(
+PASS  triggerflow_examples_no_deprecated_minimal_set_flow_data(: recommended TriggerFlow example does not use deprecated token set_flow_data(
+PASS  triggerflow_examples_no_deprecated_minimal_append_flow_data(: recommended TriggerFlow example does not use deprecated token append_flow_data(
+PASS  triggerflow_examples_no_deprecated_minimal_del_flow_data(: recommended TriggerFlow example does not use deprecated token del_flow_data(
+PASS  triggerflow_examples_no_deprecated_minimal_get_runtime_stream(: recommended TriggerFlow example does not use deprecated token get_runtime_stream(
+PASS  triggerflow_examples_no_deprecated_minimal_execution.get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.get_result(
+PASS  triggerflow_examples_no_deprecated_minimal_execution.async_get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.async_get_result(
+PASS  triggerflow_examples_close_minimal: recommended TriggerFlow example uses explicit execution close
+PASS  triggerflow_examples_no_deprecated_response_fanout_.end(: recommended TriggerFlow example does not use deprecated token .end(
+PASS  triggerflow_examples_no_deprecated_response_fanout_.start(: recommended TriggerFlow example does not use deprecated token .start(
+PASS  triggerflow_examples_no_deprecated_response_fanout_set_result(: recommended TriggerFlow example does not use deprecated token set_result(
+PASS  triggerflow_examples_no_deprecated_response_fanout_get_runtime_data(: recommended TriggerFlow example does not use deprecated token get_runtime_data(
+PASS  triggerflow_examples_no_deprecated_response_fanout_set_runtime_data(: recommended TriggerFlow example does not use deprecated token set_runtime_data(
+PASS  triggerflow_examples_no_deprecated_response_fanout_append_runtime_data(: recommended TriggerFlow example does not use deprecated token append_runtime_data(
+PASS  triggerflow_examples_no_deprecated_response_fanout_del_runtime_data(: recommended TriggerFlow example does not use deprecated token del_runtime_data(
+PASS  triggerflow_examples_no_deprecated_response_fanout_get_flow_data(: recommended TriggerFlow example does not use deprecated token get_flow_data(
+PASS  triggerflow_examples_no_deprecated_response_fanout_set_flow_data(: recommended TriggerFlow example does not use deprecated token set_flow_data(
+PASS  triggerflow_examples_no_deprecated_response_fanout_append_flow_data(: recommended TriggerFlow example does not use deprecated token append_flow_data(
+PASS  triggerflow_examples_no_deprecated_response_fanout_del_flow_data(: recommended TriggerFlow example does not use deprecated token del_flow_data(
+PASS  triggerflow_examples_no_deprecated_response_fanout_get_runtime_stream(: recommended TriggerFlow example does not use deprecated token get_runtime_stream(
+PASS  triggerflow_examples_no_deprecated_response_fanout_execution.get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.get_result(
+PASS  triggerflow_examples_no_deprecated_response_fanout_execution.async_get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.async_get_result(
+PASS  triggerflow_examples_close_response_fanout: recommended TriggerFlow example uses explicit execution close
+PASS  triggerflow_examples_no_deprecated_stream_bridge_.end(: recommended TriggerFlow example does not use deprecated token .end(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_.start(: recommended TriggerFlow example does not use deprecated token .start(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_set_result(: recommended TriggerFlow example does not use deprecated token set_result(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_get_runtime_data(: recommended TriggerFlow example does not use deprecated token get_runtime_data(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_set_runtime_data(: recommended TriggerFlow example does not use deprecated token set_runtime_data(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_append_runtime_data(: recommended TriggerFlow example does not use deprecated token append_runtime_data(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_del_runtime_data(: recommended TriggerFlow example does not use deprecated token del_runtime_data(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_get_flow_data(: recommended TriggerFlow example does not use deprecated token get_flow_data(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_set_flow_data(: recommended TriggerFlow example does not use deprecated token set_flow_data(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_append_flow_data(: recommended TriggerFlow example does not use deprecated token append_flow_data(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_del_flow_data(: recommended TriggerFlow example does not use deprecated token del_flow_data(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_get_runtime_stream(: recommended TriggerFlow example does not use deprecated token get_runtime_stream(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_execution.get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.get_result(
+PASS  triggerflow_examples_no_deprecated_stream_bridge_execution.async_get_result(: recommended TriggerFlow example does not use deprecated lifecycle call execution.async_get_result(
+PASS  triggerflow_examples_close_stream_bridge: recommended TriggerFlow example uses explicit execution close
+failures: 0
+
+exit_code=0

@@ -1,0 +1,17 @@
+case 0: {'kind': 'replay', 'count': 1000, 'mode': 'sync'}
+case 1: {'kind': 'replay', 'count': 1000, 'mode': 'async'}
+case 2: {'kind': 'replay', 'count': 10000, 'mode': 'sync'}
+case 3: {'kind': 'replay', 'count': 10000, 'mode': 'async'}
+case 4: {'kind': 'replay', 'count': 100000, 'mode': 'sync'}
+case 5: {'kind': 'replay', 'count': 100000, 'mode': 'async'}
+case 6: {'kind': 'replay', 'count': 100000, 'limit': 128, 'mode': 'sync'}
+case 7: {'kind': 'replay', 'count': 100000, 'limit': 10000, 'mode': 'sync'}
+case 8: {'kind': 'broadcast', 'count': 400, 'readers': 1, 'producer': 'loop', 'interval': 0}
+case 9: {'kind': 'broadcast', 'count': 400, 'readers': 1, 'producer': 'loop', 'interval': 0.001}
+case 10: {'kind': 'broadcast', 'count': 400, 'readers': 1, 'producer': 'thread', 'interval': 0.001}
+case 11: {'kind': 'broadcast', 'count': 400, 'readers': 8, 'producer': 'loop', 'interval': 0}
+case 12: {'kind': 'broadcast', 'count': 400, 'readers': 8, 'producer': 'loop', 'interval': 0.001}
+case 13: {'kind': 'broadcast', 'count': 400, 'readers': 8, 'producer': 'thread', 'interval': 0.001}
+case 14: {'kind': 'broadcast', 'count': 400, 'readers': 32, 'producer': 'loop', 'interval': 0}
+case 15: {'kind': 'broadcast', 'count': 400, 'readers': 32, 'producer': 'loop', 'interval': 0.001}
+case 16: {'kind': 'broadcast', 'count': 400, 'readers': 32, 'producer': 'thread', 'interval': 0.001}

@@ -1,0 +1,25 @@
+/Users/moxin/dev/public/Agently-Stage/examples/performance_options.py:13: RuntimeWarning: coroutine 'sleep' was never awaited
+  tasks = [stage.create_task(asyncio.sleep(0, result=i * 2)) for i in range(4)]
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+Traceback (most recent call last):
+  File "/Users/moxin/dev/public/Agently-Stage/examples/performance_options.py", line 43, in <module>
+    asyncio.run(main())
+  File "/opt/miniconda3/envs/3.10/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/opt/miniconda3/envs/3.10/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/Users/moxin/dev/public/Agently-Stage/examples/performance_options.py", line 22, in main
+    print("batch:", await stage.go(batch).async_get())
+  File "/Users/moxin/dev/public/Agently-Stage/examples/agently_stage/StageHandle.py", line 379, in async_get
+    return await asyncio.shield(reader)
+  File "/Users/moxin/dev/public/Agently-Stage/examples/agently_stage/Stage.py", line 714, in body
+    result = await self._execute_scalar(task, args, kwargs)
+  File "/Users/moxin/dev/public/Agently-Stage/examples/agently_stage/Stage.py", line 462, in _execute_scalar
+    return await self._await_with_loop_affinity_guidance(task(*args, **kwargs))
+  File "/Users/moxin/dev/public/Agently-Stage/examples/agently_stage/Stage.py", line 415, in _await_with_loop_affinity_guidance
+    return await awaitable
+  File "/Users/moxin/dev/public/Agently-Stage/examples/performance_options.py", line 13, in batch
+    tasks = [stage.create_task(asyncio.sleep(0, result=i * 2)) for i in range(4)]
+  File "/Users/moxin/dev/public/Agently-Stage/examples/performance_options.py", line 13, in <listcomp>
+    tasks = [stage.create_task(asyncio.sleep(0, result=i * 2)) for i in range(4)]
+TypeError: Stage.create_task() missing 1 required keyword-only argument: 'origin'

@@ -1,0 +1,4 @@
+batch: [0, 2, 4, 6]
+readers: [[42], [42], [42], [42], [42], [42], [42], [42]]
+isolated: 8 9
+borrowed pool remains open: 16

@@ -1,0 +1,10 @@
+{
+  "python": "3.10.21 (main, Aug 27 2026, 14:36:16) [Clang 20.1.8 ]",
+  "gil_disabled_build": null,
+  "gil_enabled": true,
+  "process": {
+    "direct_pow": 1024,
+    "stage_error": "TypeError: cannot pickle '_contextvars.Context' object"
+  },
+  "interpreter": "unavailable on this interpreter"
+}

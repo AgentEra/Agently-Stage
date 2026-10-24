@@ -1,0 +1,622 @@
+........................................................................ [  1%]
+........................................................................ [  3%]
+........................................................................ [  5%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [ 10%]
+...................................................sssssssssssssssssssss [ 12%]
+ssss.................................................................... [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 17%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 24%]
+........................................................................ [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 31%]
+........................................................................ [ 33%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 59%]
+........................................................................ [ 61%]
+....................................s................................... [ 63%]
+........................................................................ [ 64%]
+..........................s............................................. [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 73%]
+........................................................................ [ 75%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 80%]
+........................................................................ [ 82%]
+........................................................................ [ 84%]
+................ss....................................s................. [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 89%]
+..............................................s......................... [ 91%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 96%]
+........................................................................ [ 98%]
+......................................................................   [100%]
+=============================== warnings summary ===============================
+tests/test_agent_execution_step_contract.py::test_agent_execution_direct_strategy_forces_model_request_route
+  /private/tmp/agently-stage-integration-dev/tests/test_agent_execution_step_contract.py:9517: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(commands=["echo allowed"], action_id="echo_cli", sandbox="trusted_local")
+
+tests/test_agent_execution_step_contract.py::test_agent_execution_model_request_exposes_action_logs_and_artifacts
+  /private/tmp/agently-stage-integration-dev/tests/test_agent_execution_step_contract.py:9698: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(commands=["echo allowed"], action_id="echo_cli", sandbox="trusted_local")
+
+tests/test_agent_execution_step_contract.py::test_required_skill_create_execution_routes_to_agent_task
+  /private/tmp/agently-stage-integration-dev/tests/test_agent_execution_step_contract.py:9738: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(commands=["echo allowed"], action_id="echo_cli", sandbox="trusted_local")
+
+tests/test_cmd_async_lifecycle.py::test_cmd_cancellation_settles_owned_process_even_when_repeated[True-False]
+tests/test_cmd_async_lifecycle.py::test_cmd_cancellation_settles_owned_process_even_when_repeated[True-True]
+  /private/tmp/agently-stage-integration-dev/tests/test_cmd_async_lifecycle.py:110: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_cores/test_action_shell_workspace_boundary.py::test_read_only_task_workspace_rejects_unenforceable_trusted_local_shell
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_action_shell_workspace_boundary.py:35: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(sandbox="trusted_local")
+
+tests/test_cores/test_action_shell_workspace_boundary.py::test_read_only_task_workspace_shell_declares_ro_project_and_rw_execution_mounts
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_action_shell_workspace_boundary.py:49: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(sandbox="docker", action_id="task_workspace_shell")
+
+tests/test_cores/test_action_shell_workspace_boundary.py::test_explicit_read_write_task_workspace_allows_trusted_local_shell
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_action_shell_workspace_boundary.py:81: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(sandbox="trusted_local", action_id="task_workspace_shell")
+
+tests/test_cores/test_action_shell_workspace_boundary.py::test_task_workspace_shell_executes_in_its_declared_container_mount
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_action_shell_workspace_boundary.py:139: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_cores/test_builtin_actions_v2.py::test_instruction_heavy_direct_action_releases_historical_artifact_refs
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_builtin_actions_v2.py:1468: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(root=tmp_path, commands=["pwd"], action_id="test_recall_bash", sandbox="trusted_local")
+
+tests/test_cores/test_tool.py::test_model_sourced_bash_action_input_strips_allow_unsafe
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_tool.py:285: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(root=tmp_path, commands=["pwd"], action_id=action_id, sandbox="trusted_local")
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_config_round_trip_with_inspected_chunk_handler
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:44: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(double).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py: 17 warnings
+tests/test_cores/test_trigger_flow_contract.py: 2 warnings
+tests/test_cores/test_trigger_flow_execution_result.py: 2 warnings
+tests/test_cores/test_trigger_flow_execution_state.py: 7 warnings
+tests/test_cores/test_trigger_flow_module_safe_definition.py: 1 warning
+tests/test_cores/test_trigger_flow_pause_resume.py: 5 warnings
+tests/test_cores/test_trigger_flow_runtime_integrity.py: 4 warnings
+tests/test_cores/test_trigger_flow_runtime_intervention.py: 4 warnings
+tests/test_cores/test_trigger_flow_runtime_resources.py: 8 warnings
+tests/test_integrations/test_fastapi.py: 2 warnings
+  /private/tmp/agently-stage-integration-dev/agently/types/trigger_flow/trigger_flow.py:513: DeprecationWarning: TriggerFlowExecution.set_result() is deprecated; write execution state directly and let close() return the close snapshot. For compatibility, set_result() now writes '$final_result'.
+    self.set_result = lambda result: execution.set_result(
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_config_and_mermaid_include_contract_metadata
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:72: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(worker).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_batch_round_trip_and_mermaid
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:112: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.batch(left, right).to(combine).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_for_each_round_trip
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:137: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.for_each().to(scale).end_for_each().end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_match_round_trip
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:161: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.match().case(is_even).to(even_branch).case_else().to(odd_branch).end_match().end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_pause_round_trip_after_import
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:193: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.when("UserFeedback").to(finalize).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_pause_round_trip_after_import
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_capture_and_write_back_round_trip
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_and_load_then_continue
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_load_from_json_string
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_to_json_file_and_load_from_file
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_to_yaml_file_and_load_from_file
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_pause_continue_with_saved_interrupt
+  /tmp/stage-candidate-installed/agently_stage/Stage.py:415: DeprecationWarning: TriggerFlowExecution.async_set_runtime_data() is deprecated; use execution state APIs such as get_state()/set_state() instead.
+    return await awaitable
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_pause_round_trip_after_import
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:188: DeprecationWarning: TriggerFlowExecution.get_runtime_data() is deprecated; use execution state APIs such as get_state()/set_state() instead.
+    "draft": data.get_runtime_data("draft"),
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_pause_round_trip_after_import
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:206: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await execution.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_mermaid_allows_lambda_chunk_but_export_rejects_it
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:216: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(lambda data: data.value).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_mermaid_allows_lambda_condition_but_export_rejects_it
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:234: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.if_condition(lambda data: bool(data.value)).to(yes).else_condition().to(no).end_condition().end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_stream_and_result_events_include_origin_chunk
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:263: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(emit_and_complete).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_mermaid_shows_external_signal_and_declared_emit
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:295: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.when("UserFeedback").to(chunk).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_mermaid_simplified_shows_if_condition_internal_nodes
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:340: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    .end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_mermaid_simplified_shows_nested_for_each_subflows
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:392: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    .end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_round_trip_and_runtime
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:424: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(child_prepare).to(child_finalize).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_capture_and_write_back_round_trip
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:463: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(child_collect).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_capture_and_write_back_round_trip
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_uses_isolated_child_flow_state
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_and_load_then_continue
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_runtime_data_namespaces_and_flow_resources
+  /tmp/stage-candidate-installed/agently_stage/Stage.py:415: RuntimeWarning: TriggerFlow.async_set_flow_data() accesses flow-scoped data shared by all executions. Prefer execution state APIs for concurrent workflows, or pass no_warning=True if the shared scope is intentional.
+    return await awaitable
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_capture_and_write_back_round_trip
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:458: DeprecationWarning: TriggerFlowExecution.get_runtime_data() is deprecated; use execution state APIs such as get_state()/set_state() instead.
+    "draft": data.get_runtime_data("draft"),
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_capture_and_write_back_round_trip
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:459: RuntimeWarning: TriggerFlow.get_flow_data() accesses flow-scoped data shared by all executions. Prefer execution state APIs for concurrent workflows, or pass no_warning=True if the shared scope is intentional.
+    "topic": data.get_flow_data("topic"),
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_capture_and_write_back_round_trip
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:477: RuntimeWarning: TriggerFlow.get_flow_data() accesses flow-scoped data shared by all executions. Prefer execution state APIs for concurrent workflows, or pass no_warning=True if the shared scope is intentional.
+    "latest_topic": data.get_flow_data("latest_topic"),
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_uses_isolated_child_flow_state
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:670: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(child_increment).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_uses_isolated_child_flow_state
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:666: RuntimeWarning: TriggerFlow.get_flow_data() accesses flow-scoped data shared by all executions. Prefer execution state APIs for concurrent workflows, or pass no_warning=True if the shared scope is intentional.
+    next_count = data.get_flow_data("count", 0) + 1
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_uses_isolated_child_flow_state
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:677: RuntimeWarning: TriggerFlow.get_flow_data() accesses flow-scoped data shared by all executions. Prefer execution state APIs for concurrent workflows, or pass no_warning=True if the shared scope is intentional.
+    assert child_flow.get_flow_data("count") is None
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_bridges_child_runtime_stream
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:689: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(child_emit).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_bridges_child_runtime_stream
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:708: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    assert await execution.async_get_result(timeout=1) == 3
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_inherits_parent_run_lineage
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:714: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(lambda data: data.value + 1).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_emits_definition_runtime_event
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:769: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(lambda data: data.value + 1).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_chunk_runtime_events_include_input_output_and_origin_data
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:818: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(compute).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_persists_runtime_events_and_snapshots_to_record_store
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:874: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(compute).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_rejects_invalid_capture_and_write_back_specs
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:938: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(child_identity).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_projects_child_pause_and_resumes_from_root_after_load
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:978: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(child_pause).to(child_finalize).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_projects_child_pause_and_resumes_from_root_after_load
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:991: DeprecationWarning: TriggerFlowExecution.async_start(..., wait_for_result=...) is deprecated. Execution start behavior is now driven by auto_close: auto-close executions wait for close; manual-close executions start and return the execution handle. Use create_execution()/start_execution() for explicit lifecycle control.
+    await execution.async_start("pricing", wait_for_result=False)
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_projects_child_pause_and_resumes_from_root_after_load
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1004: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await restored.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_resume_requires_reinjected_resources_after_load
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1031: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(child_pause).to(child_finalize).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_resume_requires_reinjected_resources_after_load
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1043: DeprecationWarning: TriggerFlowExecution.async_start(..., wait_for_result=...) is deprecated. Execution start behavior is now driven by auto_close: auto-close executions wait for close; manual-close executions start and return the execution handle. Use create_execution()/start_execution() for explicit lifecycle control.
+    await execution.async_start({"topic": "pricing"}, wait_for_result=False)
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_sub_flow_resume_requires_reinjected_resources_after_load
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1059: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    assert await restored.async_get_result(timeout=1) == {"ok": True}
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_mermaid_shows_sub_flow_box_and_nested_flow
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1071: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    child_flow.to(child_step_one).to(child_step_two).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_repeated_internal_helper_names_do_not_conflict
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1097: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(lambda data: data.value).____("first", print_info=True).____("second", print_info=True).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_import_fails_without_registered_handler
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1109: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(named_handler).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_load_flow_config_respects_replace_flag
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1123: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    first_flow.to(first).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_load_json_flow_respects_replace_flag
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1160: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    first_flow.to(first_json).end()
+
+tests/test_cores/test_trigger_flow_config_and_mermaid.py::test_trigger_flow_load_yaml_flow_respects_replace_flag
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_config_and_mermaid.py:1199: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    first_flow.to(first_yaml).end()
+
+tests/test_cores/test_trigger_flow_contract.py::test_trigger_flow_contract_validates_input_stream_and_result
+tests/test_cores/test_trigger_flow_contract.py::test_trigger_flow_contract_rejects_invalid_initial_input
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_contract.py:37: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(worker).end()
+
+tests/test_cores/test_trigger_flow_contract.py::test_trigger_flow_contract_rejects_invalid_stream_item
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_contract.py:73: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(worker).end()
+
+tests/test_cores/test_trigger_flow_contract.py::test_trigger_flow_contract_rejects_invalid_result
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_contract.py:85: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(worker).end()
+
+tests/test_cores/test_trigger_flow_execution_result.py::test_execution_result_final_result_preserves_compat_precedence
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_result.py:64: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    assert await execution.async_get_result(timeout=1) == {"answer": "compat"}
+
+tests/test_cores/test_trigger_flow_execution_result.py::test_execution_result_keeps_set_result_contract_validation
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_result.py:93: DeprecationWarning: TriggerFlowExecution.set_result() is deprecated; write execution state directly and let close() return the close snapshot. For compatibility, set_result() now writes '$final_result'.
+    execution.set_result(cast(Any, {"wrong": "shape"}))
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_sync_start_returns_close_snapshot
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:17: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(lambda data: {"value": data.value}).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_and_load_then_continue
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:185: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.when("UserFeedback").to(finalize).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_and_load_then_continue
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:180: DeprecationWarning: TriggerFlowExecution.get_runtime_data() is deprecated; use execution state APIs such as get_state()/set_state() instead.
+    "draft": data.get_runtime_data("draft"),
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_and_load_then_continue
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:181: RuntimeWarning: TriggerFlow.get_flow_data() accesses flow-scoped data shared by all executions. Prefer execution state APIs for concurrent workflows, or pass no_warning=True if the shared scope is intentional.
+    "global_flag": data.get_flow_data("global_flag"),
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_and_load_then_continue
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:195: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await restored_execution.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_signal_net_dynamic_binding_fanout_and_join
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:239: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.when("dynamic.done").to(finish).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_signal_net_nested_emit_respects_concurrency_cap
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:307: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.when("dynamic.done").to(finish).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_load_from_json_string
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:628: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(setup).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_load_from_json_string
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:635: DeprecationWarning: TriggerFlowExecution.get_runtime_data() is deprecated; use execution state APIs such as get_state()/set_state() instead.
+    assert restored_execution.get_runtime_data("progress_marker") == {"step": 2}
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_load_keeps_ready_result
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:702: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(lambda data: data.value).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_load_keeps_ready_result
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:705: DeprecationWarning: TriggerFlowExecution.set_result() is deprecated; write execution state directly and let close() return the close snapshot. For compatibility, set_result() now writes '$final_result'.
+    execution.set_result({"done": True})
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_load_keeps_ready_result
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:710: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await restored_execution.async_get_result(timeout=0.01)
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_to_json_file_and_load_from_file
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:939: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(lambda data: data.value).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_to_json_file_and_load_from_file
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:951: DeprecationWarning: TriggerFlowExecution.get_runtime_data() is deprecated; use execution state APIs such as get_state()/set_state() instead.
+    assert restored_execution.get_runtime_data("progress_marker") == {"step": 1}
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_to_yaml_file_and_load_from_file
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:957: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(lambda data: data.value).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_execution_save_to_yaml_file_and_load_from_file
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:968: DeprecationWarning: TriggerFlowExecution.get_runtime_data() is deprecated; use execution state APIs such as get_state()/set_state() instead.
+    assert restored_execution.get_runtime_data("progress_marker") == {"step": 2}
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_start_propagates_parent_run_context
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:1144: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(lambda data: data.value).end()
+
+tests/test_cores/test_trigger_flow_execution_state.py::test_trigger_flow_runtime_stream_propagates_parent_run_context
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_execution_state.py:1183: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(stream_once).end()
+
+tests/test_cores/test_trigger_flow_module_safe_definition.py::test_trigger_flow_dynamic_todo_dag_executor_uses_task_id_identities
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_module_safe_definition.py:297: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    extract_template.to(extract).end()
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_pause_continue_with_saved_interrupt
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:741: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.when("UserFeedback").to(finalize).end()
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_pause_continue_with_saved_interrupt
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:736: DeprecationWarning: TriggerFlowExecution.get_runtime_data() is deprecated; use execution state APIs such as get_state()/set_state() instead.
+    "draft": data.get_runtime_data("draft"),
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_pause_continue_with_saved_interrupt
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:759: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await restored_execution.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_pause_resume_to_next_continues_downstream_after_load
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:789: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(ask_feedback).to(finalize).end()
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_pause_resume_to_next_continues_downstream_after_load
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:797: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await restored.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_pause_resume_to_self_exposes_resume_context
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:829: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(gate).end()
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_close_rejects_pending_interrupt_by_default_and_can_cancel
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:892: DeprecationWarning: TriggerFlowExecution.async_start(..., wait_for_result=...) is deprecated. Execution start behavior is now driven by auto_close: auto-close executions wait for close; manual-close executions start and return the execution handle. Use create_execution()/start_execution() for explicit lifecycle control.
+    await execution.async_start("pricing", wait_for_result=False)
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_close_cancel_persists_external_wait_cancel_state
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:927: DeprecationWarning: TriggerFlowExecution.async_start(..., wait_for_result=...) is deprecated. Execution start behavior is now driven by auto_close: auto-close executions wait for close; manual-close executions start and return the execution handle. Use create_execution()/start_execution() for explicit lifecycle control.
+    await execution.async_start("pricing", wait_for_result=False)
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_when_and_state_is_isolated_per_execution
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:973: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.when({"event": ["A", "B"]}, mode="and").to(lambda data: data.value).end()
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_when_and_state_is_isolated_per_execution
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:982: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    assert await execution_1.async_get_result(timeout=0.01) is None
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_batch_state_is_isolated_per_execution
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:1018: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.batch(left, right).to(lambda data: data.value).end()
+
+tests/test_cores/test_trigger_flow_pause_resume.py::test_trigger_flow_batch_state_is_isolated_per_execution
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_pause_resume.py:1028: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result_1 = await execution_1.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_runtime_integrity.py::test_terminal_result_is_carried_once_and_closed_event_is_compact
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_integrity.py:49: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(produce).end()
+
+tests/test_cores/test_trigger_flow_runtime_integrity.py::test_for_each_empty_sequence_completes_for_builder_and_loaded_config
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_integrity.py:94: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.for_each().to(scale).end_for_each().end()
+
+tests/test_cores/test_trigger_flow_runtime_integrity.py::test_match_without_hit_restores_layer_for_builder_and_loaded_config
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_integrity.py:128: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.match().case(is_expected).to(matched).end_match().to(inspect_layers).end()
+
+tests/test_cores/test_trigger_flow_runtime_integrity.py::test_set_concurrency_limits_nested_dispatch_without_deadlocking_chain
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_integrity.py:425: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(tracked_step).to(final_step).end()
+
+tests/test_cores/test_trigger_flow_runtime_intervention.py::test_trigger_flow_planned_intervention_point_passes_through_without_pending_item
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_intervention.py:44: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(first).intervention_point(name="before_second", target="before_second").to(second).end()
+
+tests/test_cores/test_trigger_flow_runtime_intervention.py::test_trigger_flow_planned_intervention_point_inserts_matching_pending_once
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_intervention.py:77: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(extract).intervention_point(name="before_assess", target="before_assess").to(assess).end()
+
+tests/test_cores/test_trigger_flow_runtime_intervention.py::test_trigger_flow_auto_intervention_inserts_targeted_before_matching_chunk
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_intervention.py:145: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(("first", first)).to(("second", second)).end()
+
+tests/test_cores/test_trigger_flow_runtime_intervention.py::test_trigger_flow_auto_intervention_inserts_untargeted_at_next_chunk_boundary
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_intervention.py:170: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(("first", first)).to(("second", second)).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_runtime_data_namespaces_and_flow_resources
+  /private/tmp/agently-stage-integration-dev/agently/types/trigger_flow/trigger_flow.py:108: RuntimeWarning: TriggerFlow.get_flow_data() accesses flow-scoped data shared by all executions. Prefer execution state APIs for concurrent workflows, or pass no_warning=True if the shared scope is intentional.
+    return self._getter(key, default, inherit=inherit)
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_recovery_cleanup_failure_preserves_recovery_data
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:255: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(produce).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_close_retry_reuses_large_terminal_carrier
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:421: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(produce).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_terminal_promotion_freezes_state_before_first_await
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:456: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(produce).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_runtime_data_set_resource_is_execution_scoped
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:798: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(remember).to(read_token).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_runtime_data_set_resource_is_execution_scoped
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:801: DeprecationWarning: TriggerFlowExecution.async_start(..., wait_for_result=...) is deprecated. Execution start behavior is now driven by auto_close: auto-close executions wait for close; manual-close executions start and return the execution handle. Use create_execution()/start_execution() for explicit lifecycle control.
+    await execution.async_start("alpha", wait_for_result=False)
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_runtime_data_set_resource_is_execution_scoped
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:802: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await execution.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_execution_save_records_resource_keys_only
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:820: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(passthrough).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_execution_save_records_resource_keys_only
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:822: DeprecationWarning: TriggerFlowExecution.async_start(..., wait_for_result=...) is deprecated. Execution start behavior is now driven by auto_close: auto-close executions wait for close; manual-close executions start and return the execution handle. Use create_execution()/start_execution() for explicit lifecycle control.
+    await execution.async_start("ok", wait_for_result=False)
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_execution_load_requires_reinjecting_runtime_resources
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:858: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.when("Resume").to(finalize).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_execution_load_requires_reinjecting_runtime_resources
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:889: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await restored_execution.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_async_load_restores_resource_with_importable_resolver
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:920: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(ask_feedback).to(finalize).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_async_load_restores_resource_with_importable_resolver
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:958: DeprecationWarning: TriggerFlowExecution.get_result()/async_get_result() are compatibility APIs; prefer close()/async_close() and execution state APIs for lifecycle-oriented workflows. get_result() now returns '$final_result' when present, otherwise the close snapshot.
+    result = await restored.async_get_result(timeout=1)
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_load_missing_resolver_fails_closed
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:977: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(ask_feedback).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_load_unhealthy_resource_fail_closed_and_fail_open
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:1004: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    fail_closed_flow.to(ask_feedback).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_save_records_managed_execution_resource_keys
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:1263: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(hold_resource).end()
+
+tests/test_cores/test_trigger_flow_runtime_resources.py::test_trigger_flow_save_records_managed_execution_resource_keys
+  /private/tmp/agently-stage-integration-dev/tests/test_cores/test_trigger_flow_runtime_resources.py:1277: DeprecationWarning: TriggerFlowExecution.async_start(..., wait_for_result=...) is deprecated. Execution start behavior is now driven by auto_close: auto-close executions wait for close; manual-close executions start and return the execution handle. Use create_execution()/start_execution() for explicit lifecycle control.
+    await execution.async_start("start", wait_for_result=False)
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_registers_run_bash_action
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:779: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_defaults_to_docker_profile
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:809: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(root=tmp_path, commands=["pwd"], action_id="docker_default_bash")
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_defaults_to_safe_profile
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:830: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(root=tmp_path, action_id="default_safe_bash", sandbox="trusted_local")
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_redacts_env_in_action_info
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:850: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_supports_multi_token_command_prefixes
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:886: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_uses_root_as_default_workdir
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:910: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_accepts_one_command_string_in_list
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:929: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_persists_large_output_artifacts
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:953: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_extensions/test_action_extension.py::test_action_extension_enable_shell_reports_timeout
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:985: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(
+
+tests/test_extensions/test_action_extension.py::test_action_extension_shell_and_nodejs_inherit_foundation_workspace
+  /private/tmp/agently-stage-integration-dev/tests/test_extensions/test_action_extension.py:1439: DeprecationWarning: enable_shell(commands=.../sandbox=...) is the legacy argv interface. For general Shell source, select environment= and approval= without legacy parameters; the default Action becomes run_shell(command=..., workdir=...). Legacy cleanup is planned for 4.2.
+    agent.enable_shell(commands=["pwd"], action_id="task_workspace_shell")
+
+tests/test_integrations/test_fastapi.py::test_fastapi_helper_post_uses_triggerflow_contract_for_runtime_and_openapi
+tests/test_integrations/test_fastapi.py::test_fastapi_helper_sse_keeps_triggerflow_contract_runtime_validation
+  /private/tmp/agently-stage-integration-dev/tests/test_integrations/test_fastapi.py:36: DeprecationWarning: TriggerFlowProcess.end() is deprecated. It only installs a compatibility result sink that writes '$final_result'. New code should rely on execution close snapshots and runtime lifecycle APIs.
+    flow.to(worker).end()
+
+tests/test_plugins/test_prompt_generator/test_agently_prompt_generator.py::test_to_text_complex
+  /private/tmp/agently-stage-integration-dev/tests/test_plugins/test_prompt_generator/test_agently_prompt_generator.py:175: UserWarning: Skipped content: unable to convert type 'something' to text. Content: {'type': 'something', 'something': 'OK'}
+    prompt.to_text()
+
+tests/test_plugins/test_prompt_generator/test_agently_prompt_generator.py::test_message_prompt
+  /private/tmp/agently-stage-integration-dev/tests/test_plugins/test_prompt_generator/test_agently_prompt_generator.py:286: UserWarning: Skipped content: unable to convert type 'something' to chat message when `rich_content` == False. Content: {'type': 'something', 'something': 'OK'}
+    assert prompt.to_messages(rich_content=False) == [
+
+tests/test_plugins/test_prompt_generator/test_agently_prompt_generator.py::test_rich_prompt
+  /private/tmp/agently-stage-integration-dev/tests/test_plugins/test_prompt_generator/test_agently_prompt_generator.py:770: UserWarning: Skipped content: unable to put attachment content into prompt messages when `rich_content` == False
+  Content: {'type': 'image_url', 'image_url': 'http://example.com'}
+    messages = prompt.to_messages()
+
+tests/test_stage_support_contract.py::test_triggerflow_close_timeout_is_one_settlement_deadline
+  /private/tmp/agently-stage-integration-dev/agently/core/orchestration/TriggerFlow/Execution.py:1177: RuntimeWarning: TriggerFlow execution 7b41e40b5d5f4f81a47d4ff27e8dbf50 closed before 1 pending task(s) finished.
+    pending_task_results = await self._drain_pending_tasks(timeout=timeout)
+
+tests/test_utils/test_function_shifter.py::test_kwargs
+  /private/tmp/agently-stage-integration-dev/tests/test_utils/test_function_shifter.py:22: DeprecationWarning: FunctionShifter.auto_options_func is deprecated; use Agently StageCallBridge or filter_callable_options
+    new_test_func = FunctionShifter.auto_options_func(test_func)
+
+tests/test_utils/test_function_shifter.py::test_asyncify_sync_generator_yields_items
+  /private/tmp/agently-stage-integration-dev/tests/test_utils/test_function_shifter.py:82: DeprecationWarning: FunctionShifter.asyncify_sync_generator is deprecated; use Agently StageCallBridge or filter_callable_options
+    async for item in FunctionShifter.asyncify_sync_generator(sync_gen()):
+
+tests/test_utils/test_function_shifter.py::test_asyncify_sync_generator_raises_error
+  /private/tmp/agently-stage-integration-dev/tests/test_utils/test_function_shifter.py:96: DeprecationWarning: FunctionShifter.asyncify_sync_generator is deprecated; use Agently StageCallBridge or filter_callable_options
+    async for item in FunctionShifter.asyncify_sync_generator(sync_gen()):
+
+tests/test_utils/test_function_shifter.py::test_asyncify_sync_generator_closes_on_break
+  /private/tmp/agently-stage-integration-dev/tests/test_utils/test_function_shifter.py:115: DeprecationWarning: FunctionShifter.asyncify_sync_generator is deprecated; use Agently StageCallBridge or filter_callable_options
+    async for item in FunctionShifter.asyncify_sync_generator(sync_gen()):
+
+tests/test_utils/test_storage.py::test_async_sqlite
+  /Users/moxin/dev/public/Agently/.venv/lib/python3.14/site-packages/sqlmodel/main.py:722: SAWarning: This declarative base already contains a class with the same class name and module name as test_storage.Test, and will be replaced in the string-lookup table.
+    DeclarativeMeta.__init__(cls, classname, bases, dict_, **kw)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+4071 passed, 32 skipped, 198 warnings in 203.92s (0:03:23)

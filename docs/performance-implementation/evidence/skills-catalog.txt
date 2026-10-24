@@ -1,0 +1,199 @@
+V2 catalog validation
+passes: 194
+PASS  skills_dir_exists: skills directory exists
+PASS  compatibility_support_exists: compatibility support manifest exists
+PASS  legacy_dir_absent: default branch does not contain archived catalog directories
+PASS  catalog_exact: public catalog matches current 8-skill set
+PASS  playbook_framework_name_optional: playbook explicitly allows scenario-led discovery without framework-name requirements
+PASS  hard_gate_soft_quality_acceptance_guidance: AI application acceptance separates criticality from evaluation method, calibrates semantic review, and reports model capability gaps
+PASS  optional_replaceable_handoff_reference_guidance: complex flows may use lightweight project-defined reference data at valuable handoff seams without forcing a universal packet or extra boundary
+PASS  stage_scoped_output_progress_guidance: non-terminal outputs remain locally correct and observably progressive without pretending to be terminal answers
+PASS  project_information_locality: general project guidance avoids splitting information without reuse or ownership value
+PASS  playbook_trusted_identifier_join_boundary: playbook keeps opaque identity and metadata joins host-owned
+PASS  selection_key_freshness_and_host_correlation_guidance: selection-key guidance binds cross-boundary responses to a fresh Host request before canonical lookup while exempting strictly inline responses
+PASS  strict_hot_only_request_and_semantic_input_lineage_guidance: strict hot-only requests isolate reusable Agent prompt/handler inheritance, while Host lineage binds the semantic input/evidence revision without model-copied correlation ids
+PASS  design_cross_owner_boundary: agently-design owns cross-layer design while routing executable details to leaf owners
+PASS  stage_owner_boundary: Agently-Stage guidance covers standalone scopes, adapters, channels, and listeners without taking workflow or policy ownership
+PASS  request_final_getter_without_discarded_stream: request guidance chooses final data getters when no stream is consumed
+PASS  request_contract_information_locality: Agently fluent request guidance keeps one-off request chains locally readable
+PASS  request_prompt_context_locality_guidance: prompt-management guidance defines all five relevance roles, the retain-side boundary, and draft-versus-final prompt auditing
+PASS  prompt_special_cases_and_examples_guidance: prompt guidance keeps business incidents out of normative rules and examples subordinate to the general contract
+PASS  prompt_special_case_guidance_is_domain_general: special-case guidance uses domain-general categories and contains no EDA-anchored checklist
+PASS  cross_surface_prompt_context_locality_guidance: request, design, topology, and catalog guidance preserve the fifth role and distinguish draft from final prompt evidence
+PASS  rule_first_business_validation_guidance: business validation rules reach the model before first attempt and hidden gates require confirmation
+PASS  model_request_snapshot_and_new_observation_boundary: request guidance merges same-snapshot work and splits after required new observations
+PASS  request_retrieval_ref_rendering_protocol: retrieval guidance defines a host-resolved reference rendering protocol
+PASS  task_context_internal_context_index_contract: TaskContext owns derived indexing while sources retain exact source truth
+PASS  session_memory_task_context_recall_contract: SessionMemory writes stay separate from TaskContext-owned task recall
+PASS  task_workspace_terminal_promotion_contract: required terminal artifacts are verified before atomic promotion
+PASS  workspace_owner_terms_do_not_overlap: design guidance separates task files, durable records, and task context
+PASS  action_and_terminal_promotion_owner_contract: Action evidence and host-controlled terminal file promotion have distinct owners
+PASS  terminal_topology_orders_verification_before_target_promotion: topology guidance distinguishes candidate evidence from accepted target promotion
+PASS  retrieval_token_evidence_contract: retrieval guidance separates embedding cost from observed LLM token effects
+PASS  execution_topology_validation_reference: cross-layer evaluation guidance defines schema-complete value and signal/event topology audits
+PASS  execution_topology_validation_routing: agently and TriggerFlow guidance route complex request/block handoff audits to one standard
+PASS  triggerflow_framework_name_optional: triggerflow explicitly allows scenario-led discovery without framework-name requirements
+PASS  triggerflow_loop_back_edge_guidance: triggerflow documents graph-visible loop edges and chunk-level while True as an anti-pattern
+PASS  triggerflow_execution_state_owner_guidance: triggerflow documents execution state as runtime data owner and custom state helpers as anti-patterns
+PASS  taskdag_foundation_dynamic_task_facade: TaskDAG is documented as the DAG foundation, with Dynamic Task as facade and TriggerFlow as substrate
+PASS  taskdag_default_direct_blocks_opt_in: TaskDAG overview distinguishes direct execution from the opt-in Blocks carrier
+PASS  runtime_dag_data_not_direct_triggerflow_definitions: runtime-generated/submitted DAG data routes through TaskDAG instead of ad hoc TriggerFlow definitions
+PASS  triggerflow_flow_data_snapshot_semantics: TriggerFlow guidance states the exact shared flow_data save/load behavior
+PASS  triggerflow_hidden_execution_scope: TriggerFlow guidance scopes hidden execution sugar by lifecycle needs
+PASS  agently_skill_md: SKILL.md exists
+PASS  agently_references: optional references resource is a directory
+PASS  agently_examples: optional examples resource is a directory
+PASS  agently_outputs: optional outputs resource is a directory
+PASS  agently_scripts: optional scripts resource is a directory
+PASS  agently_frontmatter: frontmatter exists
+PASS  agently_name: frontmatter name matches directory
+PASS  agently_description: frontmatter description exists
+PASS  agently_description_yaml_safe: frontmatter description is safe for YAML-based skill installers
+PASS  agently_references/capability-map.md: referenced file references/capability-map.md exists
+PASS  agently_references/project-framework.md: referenced file references/project-framework.md exists
+PASS  agently_references/context-and-skills.md: referenced file references/context-and-skills.md exists
+PASS  agently_references/execution-topology-validation.md: referenced file references/execution-topology-validation.md exists
+PASS  agently_references/model-quality-validation.md: referenced file references/model-quality-validation.md exists
+PASS  agently_references/project-framework.md: referenced file references/project-framework.md exists
+PASS  agently-design_skill_md: SKILL.md exists
+PASS  agently-design_references: optional references resource is a directory
+PASS  agently-design_examples: optional examples resource is a directory
+PASS  agently-design_outputs: optional outputs resource is a directory
+PASS  agently-design_scripts: optional scripts resource is a directory
+PASS  agently-design_frontmatter: frontmatter exists
+PASS  agently-design_name: frontmatter name matches directory
+PASS  agently-design_description: frontmatter description exists
+PASS  agently-design_description_yaml_safe: frontmatter description is safe for YAML-based skill installers
+PASS  agently-design_references/system-boundaries.md: referenced file references/system-boundaries.md exists
+PASS  agently-design_references/system-boundaries.md: referenced file references/system-boundaries.md exists
+PASS  agently-design_references/model-request-topology.md: referenced file references/model-request-topology.md exists
+PASS  agently-design_references/information-and-evidence-design.md: referenced file references/information-and-evidence-design.md exists
+PASS  agently-design_references/lifecycle-and-pressure-design.md: referenced file references/lifecycle-and-pressure-design.md exists
+PASS  agently-design_references/observability-and-validation.md: referenced file references/observability-and-validation.md exists
+PASS  agently-dynamic-task_skill_md: SKILL.md exists
+PASS  agently-dynamic-task_references: optional references resource is a directory
+PASS  agently-dynamic-task_examples: optional examples resource is a directory
+PASS  agently-dynamic-task_outputs: optional outputs resource is a directory
+PASS  agently-dynamic-task_scripts: optional scripts resource is a directory
+PASS  agently-dynamic-task_frontmatter: frontmatter exists
+PASS  agently-dynamic-task_name: frontmatter name matches directory
+PASS  agently-dynamic-task_description: frontmatter description exists
+PASS  agently-dynamic-task_description_yaml_safe: frontmatter description is safe for YAML-based skill installers
+PASS  agently-dynamic-task_references/overview.md: referenced file references/overview.md exists
+PASS  agently-migration_skill_md: SKILL.md exists
+PASS  agently-migration_references: optional references resource is a directory
+PASS  agently-migration_examples: optional examples resource is a directory
+PASS  agently-migration_outputs: optional outputs resource is a directory
+PASS  agently-migration_scripts: optional scripts resource is a directory
+PASS  agently-migration_frontmatter: frontmatter exists
+PASS  agently-migration_name: frontmatter name matches directory
+PASS  agently-migration_description: frontmatter description exists
+PASS  agently-migration_description_yaml_safe: frontmatter description is safe for YAML-based skill installers
+PASS  agently-migration_references/migration-playbook.md: referenced file references/migration-playbook.md exists
+PASS  agently-migration_references/langchain-to-agently.md: referenced file references/langchain-to-agently.md exists
+PASS  agently-migration_references/langgraph-to-triggerflow.md: referenced file references/langgraph-to-triggerflow.md exists
+PASS  agently-migration_references/migration-playbook.md: referenced file references/migration-playbook.md exists
+PASS  agently-migration_references/langchain-to-agently.md: referenced file references/langchain-to-agently.md exists
+PASS  agently-migration_references/langgraph-to-triggerflow.md: referenced file references/langgraph-to-triggerflow.md exists
+PASS  agently-request_skill_md: SKILL.md exists
+PASS  agently-request_references: optional references resource is a directory
+PASS  agently-request_examples: optional examples resource is a directory
+PASS  agently-request_outputs: optional outputs resource is a directory
+PASS  agently-request_scripts: optional scripts resource is a directory
+PASS  agently-request_frontmatter: frontmatter exists
+PASS  agently-request_name: frontmatter name matches directory
+PASS  agently-request_description: frontmatter description exists
+PASS  agently-request_description_yaml_safe: frontmatter description is safe for YAML-based skill installers
+PASS  agently-request_references/model-setup.md: referenced file references/model-setup.md exists
+PASS  agently-request_references/prompt-management.md: referenced file references/prompt-management.md exists
+PASS  agently-request_references/output-control.md: referenced file references/output-control.md exists
+PASS  agently-request_references/model-response.md: referenced file references/model-response.md exists
+PASS  agently-request_references/session-memory.md: referenced file references/session-memory.md exists
+PASS  agently-request_references/knowledge-base.md: referenced file references/knowledge-base.md exists
+PASS  agently-runtime_skill_md: SKILL.md exists
+PASS  agently-runtime_references: optional references resource is a directory
+PASS  agently-runtime_examples: optional examples resource is a directory
+PASS  agently-runtime_outputs: optional outputs resource is a directory
+PASS  agently-runtime_scripts: optional scripts resource is a directory
+PASS  agently-runtime_frontmatter: frontmatter exists
+PASS  agently-runtime_name: frontmatter name matches directory
+PASS  agently-runtime_description: frontmatter description exists
+PASS  agently-runtime_description_yaml_safe: frontmatter description is safe for YAML-based skill installers
+PASS  agently-runtime_references/actions-runtime.md: referenced file references/actions-runtime.md exists
+PASS  agently-runtime_references/actions-execution-resource.md: referenced file references/actions-execution-resource.md exists
+PASS  agently-runtime_references/devtools.md: referenced file references/devtools.md exists
+PASS  agently-stage_skill_md: SKILL.md exists
+PASS  agently-stage_references: optional references resource is a directory
+PASS  agently-stage_agents: optional agents resource is a directory
+PASS  agently-stage_frontmatter: frontmatter exists
+PASS  agently-stage_name: frontmatter name matches directory
+PASS  agently-stage_description: frontmatter description exists
+PASS  agently-stage_description_yaml_safe: frontmatter description is safe for YAML-based skill installers
+PASS  agently-stage_references/task-lifecycle.md: referenced file references/task-lifecycle.md exists
+PASS  agently-stage_references/bridges-streams-events.md: referenced file references/bridges-streams-events.md exists
+PASS  agently-stage_references/performance.md: referenced file references/performance.md exists
+PASS  agently-triggerflow_skill_md: SKILL.md exists
+PASS  agently-triggerflow_references: optional references resource is a directory
+PASS  agently-triggerflow_examples: optional examples resource is a directory
+PASS  agently-triggerflow_outputs: optional outputs resource is a directory
+PASS  agently-triggerflow_scripts: optional scripts resource is a directory
+PASS  agently-triggerflow_frontmatter: frontmatter exists
+PASS  agently-triggerflow_name: frontmatter name matches directory
+PASS  agently-triggerflow_description: frontmatter description exists
+PASS  agently-triggerflow_description_yaml_safe: frontmatter description is safe for YAML-based skill installers
+PASS  agently-triggerflow_references/overview.md: referenced file references/overview.md exists
+PASS  agently-triggerflow_references/runtime-intervention.md: referenced file references/runtime-intervention.md exists
+PASS  agently-triggerflow_references/stream-bridge.md: referenced file references/stream-bridge.md exists
+PASS  agently-triggerflow_references/devtools-graph.md: referenced file references/devtools-graph.md exists
+PASS  retired_archive_dir_absent: retired archive directory is absent from the default branch
+PASS  gitignore_does_not_preserve_retired_archive_name: gitignore does not preserve the retired archive name
+PASS  README.md_no_retired_archive_name: public file does not reference the retired archive name
+PASS  README.md_no_legacy_v1_path: public file does not reference archived catalog filesystem paths
+PASS  README.md_no_retired_skills: public file does not reference retired V1 skills
+PASS  README_CN.md_no_retired_archive_name: public file does not reference the retired archive name
+PASS  README_CN.md_no_legacy_v1_path: public file does not reference archived catalog filesystem paths
+PASS  README_CN.md_no_retired_skills: public file does not reference retired V1 skills
+PASS  AGENTS.md_no_retired_archive_name: public file does not reference the retired archive name
+PASS  AGENTS.md_no_legacy_v1_path: public file does not reference archived catalog filesystem paths
+PASS  AGENTS.md_no_retired_skills: public file does not reference retired V1 skills
+PASS  manifest.json_no_retired_archive_name: public file does not reference the retired archive name
+PASS  manifest.json_no_legacy_v1_path: public file does not reference archived catalog filesystem paths
+PASS  manifest.json_no_retired_skills: public file does not reference retired V1 skills
+PASS  support.json_no_retired_archive_name: public file does not reference the retired archive name
+PASS  support.json_no_legacy_v1_path: public file does not reference archived catalog filesystem paths
+PASS  support.json_no_retired_skills: public file does not reference retired V1 skills
+PASS  route_fixture_covers_generic_non_framework_case: route fixtures cover generic kickoff cases without Agently mentions
+PASS  route_fixture_covers_chinese_quality_validator_case: route fixtures cover the Chinese skills-quality-validator kickoff scenario
+PASS  route_fixture_covers_ui_ollama_skill_tool_case: route fixtures cover the Chinese UI plus local Ollama skill-tool kickoff scenario
+PASS  route_fixture_covers_direct_leaf_cases: route fixtures cover direct leaf discovery cases
+PASS  route_fixture_uses_intent_group_metadata: route fixtures group natural-language expressions by scenario and intent style
+PASS  route_fixture_covers_output_efficiency_refactor_group: route fixtures cover the TriggerFlow output-efficiency refactor scenario with multiple user expressions
+PASS  route_fixture_covers_mixed_sync_async_group: route fixtures cover the mixed sync/async TriggerFlow orchestration scenario with multiple user expressions
+PASS  route_fixture_covers_process_clarity_group: route fixtures cover the TriggerFlow process-clarity refactor scenario with multiple user expressions
+PASS  route_fixture_covers_execution_lifecycle_group: route fixtures cover TriggerFlow execution lifecycle and manual close scenarios
+PASS  route_fixture_covers_durable_execution: route fixtures cover durable TriggerFlow execution scenarios
+PASS  route_fixture_covers_distributed_management: route fixtures cover distributed TriggerFlow execution management scenarios
+PASS  route_fixture_covers_project_structure_group: route fixtures cover the project-structure separation refactor scenario with multiple user expressions
+PASS  route_fixture_covers_agently_design: route fixtures cover unresolved and explicit cross-layer design requests
+PASS  reference_fixture_present: reference retrieval fixtures exist
+PASS  reference_fixture_covers_project_framework: reference retrieval fixtures cover topology-first project guidance and the runnable asset
+PASS  reference_fixture_covers_prompt_placeholders: reference retrieval fixtures cover prompt placeholder mappings
+PASS  reference_fixture_covers_request_prompt_context_locality: reference retrieval fixtures cover both locality extremes, a declared user/UI consumer, and draft-versus-final prompt auditing
+PASS  reference_fixture_covers_env_settings: reference retrieval fixtures cover env-backed model settings
+PASS  reference_fixture_covers_response_fanout: reference retrieval fixtures cover TriggerFlow response-fanout support docs
+PASS  reference_fixture_covers_triggerflow_lifecycle: reference retrieval fixtures cover TriggerFlow lifecycle close guidance
+PASS  reference_fixture_covers_stream_close: reference retrieval fixtures cover runtime stream close guidance
+PASS  reference_fixture_covers_state_vs_flow_data: reference retrieval fixtures cover execution state versus flow data guidance
+PASS  reference_fixture_covers_model_quality_validation: reference retrieval fixtures cover model-request-based quality and routing guidance
+PASS  reference_fixture_covers_hard_soft_acceptance: reference retrieval fixtures cover hard gates, soft targets, semantic calibration, and model capability escalation
+PASS  reference_fixture_covers_execution_topology_validation: reference retrieval fixtures cover schema/event topology audits
+PASS  reference_fixture_covers_agently_design: reference retrieval fixtures cover system boundaries and ModelRequest topology design
+PASS  reference_fixture_covers_replaceable_handoff_reference: reference retrieval fixtures cover optional project-defined handoff samples without universal packet constraints
+PASS  reference_fixture_covers_selection_key_freshness_correlation: reference retrieval fixtures cover selection-key freshness binding and Host correlation before canonical lookup
+PASS  reference_fixture_covers_strict_hot_only_request_and_semantic_input_lineage: reference retrieval fixtures cover strict reusable-Agent isolation and Host-owned semantic-input lineage
+PASS  reference_fixture_covers_instant_overlap_reconcile: reference retrieval fixtures cover provisional instant fan-out and final reconciliation
+PASS  reference_fixture_covers_request_snapshot_boundary: reference retrieval fixtures cover same-request merging and new-observation splitting
+PASS  reference_fixture_covers_rule_first_validation: reference retrieval fixtures cover rule-first validation and hidden-gate confirmation
+failures: 0
+
+exit_code=0

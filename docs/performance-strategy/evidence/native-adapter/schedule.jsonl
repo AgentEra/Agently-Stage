@@ -1,0 +1,70 @@
+{"id": "boundary-62673c4db119", "repeat": 0, "case": {"group": "boundary", "language": "go", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:40:59.299033+00:00"}
+{"id": "compute-69e7fdcf0782", "repeat": 0, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:40:59.412027+00:00"}
+{"id": "callbacks-a25d8246860e", "repeat": 0, "case": {"group": "callbacks", "workers": 4, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:40:59.859900+00:00"}
+{"id": "callbacks-fc9bcfb73d14", "repeat": 0, "case": {"group": "callbacks", "workers": 1, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:00.127690+00:00"}
+{"id": "compute-9d64ae7e3c8c", "repeat": 0, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:00.400516+00:00"}
+{"id": "boundary-6c5c2d2c1c52", "repeat": 0, "case": {"group": "boundary", "language": "go", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:01.030230+00:00"}
+{"id": "boundary-cd381f1ba0e3", "repeat": 0, "case": {"group": "boundary", "language": "rust", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:01.143523+00:00"}
+{"id": "compute-06393ac26b94", "repeat": 0, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:01.245310+00:00"}
+{"id": "boundary-026da205c8bd", "repeat": 0, "case": {"group": "boundary", "language": "rust", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:01.700911+00:00"}
+{"id": "compute-ee153474f972", "repeat": 0, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:01.806483+00:00"}
+{"id": "compute-ef6203ce452f", "repeat": 0, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:02.442256+00:00"}
+{"id": "compute-d9ab77842be7", "repeat": 0, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:03.088370+00:00"}
+{"id": "compute-54b51caa5ee7", "repeat": 0, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:03.584158+00:00"}
+{"id": "compute-59b55697a5ec", "repeat": 0, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:04.061740+00:00"}
+{"id": "compute-ee153474f972", "repeat": 1, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:04.722729+00:00"}
+{"id": "boundary-cd381f1ba0e3", "repeat": 1, "case": {"group": "boundary", "language": "rust", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:05.388912+00:00"}
+{"id": "callbacks-fc9bcfb73d14", "repeat": 1, "case": {"group": "callbacks", "workers": 1, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:05.488916+00:00"}
+{"id": "boundary-62673c4db119", "repeat": 1, "case": {"group": "boundary", "language": "go", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:05.781815+00:00"}
+{"id": "boundary-6c5c2d2c1c52", "repeat": 1, "case": {"group": "boundary", "language": "go", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:05.884173+00:00"}
+{"id": "compute-59b55697a5ec", "repeat": 1, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:06.002390+00:00"}
+{"id": "boundary-026da205c8bd", "repeat": 1, "case": {"group": "boundary", "language": "rust", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:06.635433+00:00"}
+{"id": "compute-d9ab77842be7", "repeat": 1, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:06.746496+00:00"}
+{"id": "compute-69e7fdcf0782", "repeat": 1, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:07.212846+00:00"}
+{"id": "compute-54b51caa5ee7", "repeat": 1, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:07.690502+00:00"}
+{"id": "compute-9d64ae7e3c8c", "repeat": 1, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:08.207298+00:00"}
+{"id": "compute-06393ac26b94", "repeat": 1, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:08.868331+00:00"}
+{"id": "callbacks-a25d8246860e", "repeat": 1, "case": {"group": "callbacks", "workers": 4, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:09.341068+00:00"}
+{"id": "compute-ef6203ce452f", "repeat": 1, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:09.641453+00:00"}
+{"id": "boundary-62673c4db119", "repeat": 2, "case": {"group": "boundary", "language": "go", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:10.270211+00:00"}
+{"id": "callbacks-fc9bcfb73d14", "repeat": 2, "case": {"group": "callbacks", "workers": 1, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:10.400138+00:00"}
+{"id": "compute-59b55697a5ec", "repeat": 2, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:10.721245+00:00"}
+{"id": "compute-54b51caa5ee7", "repeat": 2, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:11.355456+00:00"}
+{"id": "boundary-6c5c2d2c1c52", "repeat": 2, "case": {"group": "boundary", "language": "go", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:11.798878+00:00"}
+{"id": "compute-9d64ae7e3c8c", "repeat": 2, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:11.898082+00:00"}
+{"id": "callbacks-a25d8246860e", "repeat": 2, "case": {"group": "callbacks", "workers": 4, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:12.503966+00:00"}
+{"id": "compute-06393ac26b94", "repeat": 2, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:12.800518+00:00"}
+{"id": "boundary-026da205c8bd", "repeat": 2, "case": {"group": "boundary", "language": "rust", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:13.252293+00:00"}
+{"id": "compute-ef6203ce452f", "repeat": 2, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:13.351328+00:00"}
+{"id": "boundary-cd381f1ba0e3", "repeat": 2, "case": {"group": "boundary", "language": "rust", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:13.970840+00:00"}
+{"id": "compute-69e7fdcf0782", "repeat": 2, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:14.056525+00:00"}
+{"id": "compute-ee153474f972", "repeat": 2, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:14.500928+00:00"}
+{"id": "compute-d9ab77842be7", "repeat": 2, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:15.120360+00:00"}
+{"id": "compute-54b51caa5ee7", "repeat": 3, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:15.586907+00:00"}
+{"id": "boundary-026da205c8bd", "repeat": 3, "case": {"group": "boundary", "language": "rust", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:16.047813+00:00"}
+{"id": "compute-ef6203ce452f", "repeat": 3, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:16.151470+00:00"}
+{"id": "compute-9d64ae7e3c8c", "repeat": 3, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:16.828165+00:00"}
+{"id": "compute-ee153474f972", "repeat": 3, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:17.542475+00:00"}
+{"id": "compute-59b55697a5ec", "repeat": 3, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:18.185951+00:00"}
+{"id": "callbacks-fc9bcfb73d14", "repeat": 3, "case": {"group": "callbacks", "workers": 1, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:18.820557+00:00"}
+{"id": "boundary-cd381f1ba0e3", "repeat": 3, "case": {"group": "boundary", "language": "rust", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:19.104346+00:00"}
+{"id": "boundary-62673c4db119", "repeat": 3, "case": {"group": "boundary", "language": "go", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:19.196926+00:00"}
+{"id": "compute-d9ab77842be7", "repeat": 3, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:19.290520+00:00"}
+{"id": "compute-69e7fdcf0782", "repeat": 3, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:19.754756+00:00"}
+{"id": "compute-06393ac26b94", "repeat": 3, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:20.205969+00:00"}
+{"id": "callbacks-a25d8246860e", "repeat": 3, "case": {"group": "callbacks", "workers": 4, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:20.649727+00:00"}
+{"id": "boundary-6c5c2d2c1c52", "repeat": 3, "case": {"group": "boundary", "language": "go", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:20.950638+00:00"}
+{"id": "compute-9d64ae7e3c8c", "repeat": 4, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:21.066337+00:00"}
+{"id": "callbacks-a25d8246860e", "repeat": 4, "case": {"group": "callbacks", "workers": 4, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:21.728662+00:00"}
+{"id": "compute-d9ab77842be7", "repeat": 4, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:22.032249+00:00"}
+{"id": "compute-69e7fdcf0782", "repeat": 4, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:22.521606+00:00"}
+{"id": "compute-54b51caa5ee7", "repeat": 4, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 4}, "started_at": "2026-10-22T06:41:22.983945+00:00"}
+{"id": "boundary-026da205c8bd", "repeat": 4, "case": {"group": "boundary", "language": "rust", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:23.471579+00:00"}
+{"id": "compute-ef6203ce452f", "repeat": 4, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:23.587630+00:00"}
+{"id": "boundary-6c5c2d2c1c52", "repeat": 4, "case": {"group": "boundary", "language": "go", "mode": "each", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:24.235822+00:00"}
+{"id": "boundary-62673c4db119", "repeat": 4, "case": {"group": "boundary", "language": "go", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:24.351543+00:00"}
+{"id": "compute-ee153474f972", "repeat": 4, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 1}, "started_at": "2026-10-22T06:41:24.459730+00:00"}
+{"id": "compute-59b55697a5ec", "repeat": 4, "case": {"group": "compute", "kind": "go", "iterations": 5000000, "count": 32, "mode": "stage", "workers": 1}, "started_at": "2026-10-22T06:41:25.094538+00:00"}
+{"id": "compute-06393ac26b94", "repeat": 4, "case": {"group": "compute", "kind": "rust", "iterations": 5000000, "count": 32, "mode": "thread", "workers": 4}, "started_at": "2026-10-22T06:41:25.748006+00:00"}
+{"id": "callbacks-fc9bcfb73d14", "repeat": 4, "case": {"group": "callbacks", "workers": 1, "iterations": 20000, "count": 64}, "started_at": "2026-10-22T06:41:26.216649+00:00"}
+{"id": "boundary-cd381f1ba0e3", "repeat": 4, "case": {"group": "boundary", "language": "rust", "mode": "batch", "count": 50000, "iterations": 1}, "started_at": "2026-10-22T06:41:26.514258+00:00"}
